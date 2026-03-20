@@ -113,6 +113,70 @@
                   </el-button>
                 </div>
               </div>
+
+            </div>
+          </div>
+
+          <!-- Global API Token Card -->
+          <div class="settings-card">
+            <div class="card-title">
+              <div class="card-title-row">
+                <span>{{ $t('globalToken') }}</span>
+                <el-switch v-model="globalTokenEnabled" @change="onGlobalTokenEnabledChange" />
+              </div>
+            </div>
+            <div class="card-content">
+              <p class="global-token-desc">{{ $t('globalTokenDesc') }}</p>
+
+              <template v-if="globalTokenEnabled">
+                <!-- Token field -->
+                <div class="gt-field-row">
+                  <div class="gt-token-box">
+                    <Icon icon="mdi:key-variant" width="15" height="15" class="gt-key-icon"/>
+                    <span class="gt-token-text" :class="{ masked: !globalTokenVisible }">
+                      {{ globalTokenVisible ? (globalToken || $t('noToken')) : (globalToken ? '•'.repeat(32) : $t('noToken')) }}
+                    </span>
+                  </div>
+                  <div class="gt-actions">
+                    <el-tooltip :content="globalTokenVisible ? $t('hide') : $t('show')">
+                      <el-button size="small" circle plain @click="globalTokenVisible = !globalTokenVisible">
+                        <Icon :icon="globalTokenVisible ? 'mdi:eye-off-outline' : 'mdi:eye-outline'" width="14" height="14"/>
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip :content="$t('copy')" v-if="globalToken">
+                      <el-button size="small" circle plain @click="copyGlobalToken">
+                        <Icon icon="mdi:content-copy" width="14" height="14"/>
+                      </el-button>
+                    </el-tooltip>
+                    <el-button size="small" type="primary" @click="onGenerateGlobalToken" :loading="globalTokenGenerating">
+                      <Icon :icon="globalToken ? 'mdi:refresh' : 'mdi:plus'" width="14" height="14" style="margin-right:4px"/>
+                      {{ globalToken ? $t('regenerate') : $t('generate') }}
+                    </el-button>
+                  </div>
+                </div>
+
+                <!-- API reference -->
+                <div class="gt-api-box">
+                  <div class="gt-api-title">{{ $t('globalTokenApiHint') }}</div>
+                  <div class="gt-api-line">
+                    <span class="gt-method">GET</span>
+                    <code>/api/admin/mails?limit=20&amp;offset=0&amp;address=xxx@domain.com</code>
+                  </div>
+                  <div class="gt-api-line">
+                    <span class="gt-header-label">Header</span>
+                    <code>x-admin-auth: {{ globalTokenVisible && globalToken ? globalToken : '&lt;your-token&gt;' }}</code>
+                  </div>
+                  <div class="gt-api-line">
+                    <span class="gt-header-label">{{ $t('globalTokenResp') }}</span>
+                    <code>{ "results": [...], "count": N }</code>
+                  </div>
+                </div>
+              </template>
+
+              <div v-else class="gt-disabled-tip">
+                <Icon icon="mdi:lock-outline" width="16" height="16"/>
+                <span>{{ $t('globalTokenDisabledTip') }}</span>
+              </div>
             </div>
           </div>
 
@@ -392,7 +456,7 @@
               <div class="concerning-item">
                 <span>{{ $t('version') }} :</span>
                 <el-badge is-dot :hidden="!hasUpdate">
-                  <el-button @click="jump('https://github.com/maillab/cloud-mail/releases')">
+                  <el-button @click="jump('https://github.com/PastKing/xi-mail/releases')">
                     {{ currentVersion }}
                     <template #icon>
                       <Icon icon="qlementine-icons:version-control-16" style="font-size: 20px" color="#1890FF"/>
@@ -403,13 +467,13 @@
               <div class="concerning-item">
                 <span>{{ $t('community') }} : </span>
                 <div class="community">
-                  <el-button @click="jump('https://github.com/maillab/cloud-mail')">
+                  <el-button @click="jump('https://github.com/PastKing/xi-mail')">
                     Github
                     <template #icon>
                       <Icon icon="codicon:github-inverted" width="22" height="22"/>
                     </template>
                   </el-button>
-                  <el-button @click="jump('https://t.me/cloud_mail_tg')">
+                  <el-button @click="jump('https://t.me/pk_oa')">
                     Telegram
                     <template #icon>
                       <Icon icon="logos:telegram" width="30" height="30"/>
@@ -418,22 +482,31 @@
                 </div>
               </div>
               <div class="concerning-item">
-                <span>{{ $t('support') }} : </span>
-                <el-button @click="jump('https://doc.skymail.ink/support.html')">
-                  {{ t('supportDesc') }}
-                  <template #icon>
-                    <Icon color="#79D6B5" icon="simple-icons:buymeacoffee" width="20" height="20"/>
-                  </template>
-                </el-button>
-              </div>
-              <div class="concerning-item">
-                <span>{{ $t('help') }} : </span>
-                <el-button @click="jump('https://doc.skymail.ink')">
-                  {{ t('document') }}
-                  <template #icon>
-                    <Icon color="#79D6B5" icon="fluent-color:document-32" width="18" height="18"/>
-                  </template>
-                </el-button>
+                <span>{{ $t('donate') }} : </span>
+                <div class="donate-box">
+                  <div class="donate-row">
+                    <span class="donate-chain bep20">BEP20</span>
+                    <code class="donate-addr" @click="copyAddr('0x555390f5c07cf76cc344f42612196e8669e3586b')">
+                      0x555390f5c07cf76cc344f42612196e8669e3586b
+                    </code>
+                    <el-tooltip :content="$t('copy')">
+                      <el-button circle size="small" plain @click="copyAddr('0x555390f5c07cf76cc344f42612196e8669e3586b')">
+                        <Icon icon="mdi:content-copy" width="13" height="13"/>
+                      </el-button>
+                    </el-tooltip>
+                  </div>
+                  <div class="donate-row">
+                    <span class="donate-chain trc20">TRC20</span>
+                    <code class="donate-addr" @click="copyAddr('TVqK4thJCsaaWvp1Dah9F5CFZ1iqw75f4G')">
+                      TVqK4thJCsaaWvp1Dah9F5CFZ1iqw75f4G
+                    </code>
+                    <el-tooltip :content="$t('copy')">
+                      <el-button circle size="small" plain @click="copyAddr('TVqK4thJCsaaWvp1Dah9F5CFZ1iqw75f4G')">
+                        <Icon icon="mdi:content-copy" width="13" height="13"/>
+                      </el-button>
+                    </el-tooltip>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -776,7 +849,7 @@
 
 <script setup>
 import {computed, defineOptions, reactive, ref} from "vue";
-import {settingQuery, settingSet} from "@/request/setting.js";
+import {settingQuery, settingSet, getGlobalToken, setGlobalTokenEnabled, generateGlobalToken} from "@/request/setting.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useUiStore} from "@/store/ui.js";
 import {useUserStore} from "@/store/user.js";
@@ -793,7 +866,7 @@ defineOptions({
   name: 'sys-setting'
 })
 
-const currentVersion = 'v2.9.0'
+const currentVersion = 'v1.0.0'
 const hasUpdate = ref(false)
 let getUpdateErrorCount = 1;
 const {t, locale} = useI18n();
@@ -834,6 +907,11 @@ let backup = '{}'
 const addS3Show = ref(false)
 const addVerifyCountShow = ref(false)
 const regVerifyCountShow = ref(false)
+
+const globalToken = ref('')
+const globalTokenEnabled = ref(false)
+const globalTokenVisible = ref(false)
+const globalTokenGenerating = ref(false)
 const resendTokenForm = reactive({
   domain: '',
   token: '',
@@ -899,6 +977,52 @@ const tgMsgLabelWidth = computed(() => locale.value === 'en' ? '120px' : '100px'
 
 getSettings()
 getUpdate()
+loadGlobalToken()
+
+function loadGlobalToken() {
+  getGlobalToken().then(data => {
+    globalToken.value = data.token || ''
+    globalTokenEnabled.value = !!data.enabled
+  }).catch(() => {})
+}
+
+function onGlobalTokenEnabledChange(val) {
+  setGlobalTokenEnabled(val).catch(() => {
+    globalTokenEnabled.value = !val
+    ElMessage.error(t('saveFail'))
+  })
+}
+
+async function onGenerateGlobalToken() {
+  globalTokenGenerating.value = true
+  try {
+    const data = await generateGlobalToken()
+    globalToken.value = data.token
+    globalTokenVisible.value = true
+    ElMessage.success(t('generateSuccess'))
+  } catch {
+    ElMessage.error(t('saveFail'))
+  } finally {
+    globalTokenGenerating.value = false
+  }
+}
+
+function copyGlobalToken() {
+  if (!globalToken.value) return
+  navigator.clipboard.writeText(globalToken.value).then(() => {
+    ElMessage.success(t('copySuccess'))
+  }).catch(() => {
+    ElMessage.error(t('copyFail'))
+  })
+}
+
+function copyAddr(addr) {
+  navigator.clipboard.writeText(addr).then(() => {
+    ElMessage.success(t('copySuccess'))
+  }).catch(() => {
+    ElMessage.error(t('copyFail'))
+  })
+}
 
 function getSettings() {
   settingQuery().then(settingData => {
@@ -969,7 +1093,7 @@ const resendList = computed(() => {
 
 function getUpdate() {
   if (getUpdateErrorCount > 5 || !getUpdateErrorCount) return
-  axios.get('https://api.github.com/repos/maillab/cloud-mail/releases/latest').then(({data}) => {
+  axios.get('https://api.github.com/repos/PastKing/xi-mail/releases/latest').then(({data}) => {
     hasUpdate.value = data.name !== currentVersion
     getUpdateErrorCount = 0
   }).catch(e => {
@@ -1460,6 +1584,137 @@ function editSetting(settingForm, refreshStatus = true) {
   white-space: nowrap;
 }
 
+/* ── Global API Token Card ── */
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.global-token-desc {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.gt-field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gt-token-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+
+  .gt-key-icon {
+    flex-shrink: 0;
+    color: var(--el-color-primary);
+    opacity: 0.7;
+  }
+
+  .gt-token-text {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--el-text-color-primary);
+    word-break: break-all;
+    line-height: 1.4;
+
+    &.masked {
+      letter-spacing: 4px;
+      color: var(--el-text-color-placeholder);
+      font-size: 11px;
+    }
+  }
+}
+
+.gt-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.gt-api-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--el-fill-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  .gt-api-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+}
+
+.gt-api-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+
+  code {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--el-text-color-primary);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+}
+
+.gt-method {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+}
+
+.gt-header-label {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--el-color-info-light-9);
+  color: var(--el-color-info);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+.gt-disabled-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--el-text-color-placeholder);
+  padding: 8px 0;
+}
+
 .r2domain-item {
   display: flex;
   gap: 10px;
@@ -1778,7 +2033,7 @@ function editSetting(settingForm, refreshStatus = true) {
 
 .concerning-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 
   .community {
     display: flex;
@@ -1799,6 +2054,56 @@ function editSetting(settingForm, refreshStatus = true) {
     font-weight: normal;
     padding-right: 20px;
     white-space: nowrap;
+    padding-top: 4px;
+  }
+}
+
+.donate-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.donate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  .donate-chain {
+    flex-shrink: 0;
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+
+    &.bep20 {
+      background: #FEF3C7;
+      color: #D97706;
+    }
+
+    &.trc20 {
+      background: #DCFCE7;
+      color: #16A34A;
+    }
+  }
+
+  .donate-addr {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 11.5px;
+    color: var(--el-text-color-regular);
+    word-break: break-all;
+    cursor: pointer;
+    transition: color 0.15s;
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
   }
 }
 

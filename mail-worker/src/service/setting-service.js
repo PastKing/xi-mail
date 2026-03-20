@@ -9,6 +9,13 @@ import BizError from '../error/biz-error';
 import {t} from '../i18n/i18n'
 import verifyRecordService from './verify-record-service';
 
+function generateToken(len = 32) {
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	const arr = new Uint8Array(len);
+	crypto.getRandomValues(arr);
+	return Array.from(arr, b => chars[b % chars.length]).join('');
+}
+
 const settingService = {
 
 	async refresh(c) {
@@ -181,6 +188,22 @@ const settingService = {
 		await orm(c).update(setting).set({ background }).run();
 		await this.refresh(c);
 		return background;
+	},
+
+	async getGlobalToken(c) {
+		const token   = await c.env.kv.get(KvConst.GLOBAL_TOKEN) || '';
+		const enabled = (await c.env.kv.get(KvConst.GLOBAL_TOKEN_ENABLED)) === '1';
+		return { token, enabled };
+	},
+
+	async setGlobalTokenEnabled(c, enabled) {
+		await c.env.kv.put(KvConst.GLOBAL_TOKEN_ENABLED, enabled ? '1' : '0');
+	},
+
+	async generateGlobalToken(c) {
+		const token = generateToken(32);
+		await c.env.kv.put(KvConst.GLOBAL_TOKEN, token);
+		return token;
 	},
 
 	async websiteConfig(c) {

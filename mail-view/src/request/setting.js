@@ -19,3 +19,15 @@ export function setBackground(background) {
 export function deleteBackground() {
     return http.delete('/setting/deleteBackground')
 }
+
+export function getGlobalToken() {
+    return http.get('/setting/globalToken')
+}
+
+export function setGlobalTokenEnabled(enabled) {
+    return http.put('/setting/globalToken/enabled', { enabled })
+}
+
+export function generateGlobalToken() {
+    return http.post('/setting/globalToken/generate')
+}

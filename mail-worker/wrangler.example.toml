@@ -1,0 +1,43 @@
+name = "xi-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "db"
+database_name = "xi-mail"
+database_id = "<YOUR_D1_DATABASE_ID>"
+
+[[kv_namespaces]]
+binding = "kv"
+id = "<YOUR_KV_NAMESPACE_ID>"
+
+[[r2_buckets]]
+binding = "r2"
+bucket_name = "xi-mail"
+
+[assets]
+binding = "assets"
+directory = "./dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+crons = ["0 16 * * *"]
+
+[vars]
+orm_log = false
+domain = ["example.com", "mail.example.com"]
+admin = "admin@example.com"
+jwt_secret = "<YOUR_JWT_SECRET_MIN_32_CHARS>"
+
+# Uncomment to enable OAuth (LinuxDo)
+# linuxdo_switch = "false"
+# linuxdo_client_id = "<YOUR_LINUXDO_CLIENT_ID>"
+# linuxdo_callback_url = "https://your-worker.workers.dev/oauth/linuxdo/callback"
+
+# [build]
+# command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"

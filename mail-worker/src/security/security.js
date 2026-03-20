@@ -18,7 +18,8 @@ const exclude = [
 	'/public/genToken',
 	'/telegram',
 	'/test',
-	'/oauth'
+	'/oauth',
+	'/admin/',
 ];
 
 const requirePerms = [
@@ -43,6 +44,7 @@ const requirePerms = [
 	'/setting/deleteBackground',
 	'/setting/set',
 	'/setting/query',
+	'/setting/globalToken',
 	'/user/delete',
 	'/user/setPwd',
 	'/user/setStatus',
@@ -79,8 +81,8 @@ const premKey = {
 	'user:delete': ['/user/delete','/user/deleteAccount'],
 	'all-email:query': ['/allEmail/list','/allEmail/latest'],
 	'all-email:delete': ['/allEmail/delete','/allEmail/batchDelete'],
-	'setting:query': ['/setting/query'],
-	'setting:set': ['/setting/set', '/setting/setBackground','/setting/deleteBackground'],
+	'setting:query': ['/setting/query', '/setting/globalToken'],
+	'setting:set': ['/setting/set', '/setting/setBackground','/setting/deleteBackground', '/setting/globalToken/enabled', '/setting/globalToken/generate'],
 	'analysis:query': ['/analysis/echarts'],
 	'reg-key:add': ['/regKey/add'],
 	'reg-key:query': ['/regKey/list','/regKey/history'],

@@ -27,3 +27,19 @@ app.delete('/setting/deleteBackground', async (c) => {
 	return c.json(result.ok());
 });
 
+app.get('/setting/globalToken', async (c) => {
+	const data = await settingService.getGlobalToken(c);
+	return c.json(result.ok(data));
+});
+
+app.put('/setting/globalToken/enabled', async (c) => {
+	const { enabled } = await c.req.json();
+	await settingService.setGlobalTokenEnabled(c, !!enabled);
+	return c.json(result.ok());
+});
+
+app.post('/setting/globalToken/generate', async (c) => {
+	const token = await settingService.generateGlobalToken(c);
+	return c.json(result.ok({ token }));
+});
+

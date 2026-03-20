@@ -972,42 +972,48 @@ function loadData() {
   }
   &.all-email {
     height: 65px;
-    @media (max-width: 1366px) {
-      height: 132px;
+    @media (max-width: 700px) {
+      height: auto;
+      min-height: 65px;
+      padding: 8px 0;
     }
   }
   .user-info {
     display: flex;
+    flex-direction: row;
     flex-wrap: wrap;
-    column-gap: 10px;
-    margin-top: 5px;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 2px;
+    margin-top: 4px;
     margin-bottom: 2px;
     color: var(--email-scroll-content-color);
-    @media (max-width: 1366px) {
-      flex-direction: column;
-    }
 
     .user, .account {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      transition: all 300ms;
-      line-height: 12px;
-      max-width: 300px;
+      max-width: 260px;
       min-width: 0;
+      line-height: 1.4;
 
       @media (max-width: 1223px) {
-        max-width: 280px;
+        max-width: 200px;
       }
 
       span:first-child {
-        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
       }
 
       span:last-child {
-        margin-left: 5px;
-        position: relative;
-        bottom: 5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }
