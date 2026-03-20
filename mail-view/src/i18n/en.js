@@ -208,6 +208,8 @@ const en = {
     emptyCountMsg: 'Available count cannot be empty',
     addSuccessMsg: 'Addition successful',
     delConfirm: 'Confirm deleting {msg}?',
+    batchDelConfirm: 'Confirm deleting {count} selected accounts?',
+    selected: 'Selected',
     delUsersConfirm: 'Confirm deletion of selected users?',
     emptyRoleNameMsg: 'Role name cannot be empty',
     saveSuccessMsg: 'Saved successfully',

@@ -115,25 +115,37 @@
 
     <!-- Add dialog -->
     <el-dialog v-model="showAdd" :title="$t('addAccount')">
-      <div class="container">
-        <div class="email-input-row">
+      <div class="add-form">
+        <div class="add-field">
+          <label class="field-label">{{ $t('emailAccount') }}</label>
           <el-input
             v-model="addForm.email"
             ref="addRef"
             type="text"
             :placeholder="$t('emailAccount')"
             autocomplete="off"
-            class="email-prefix-input"
-          />
-          <span class="at-sign">@</span>
-          <el-select v-model="addForm.suffix" class="domain-select">
+          >
+            <template #suffix>
+              <el-tooltip :content="$t('randomPrefix')" placement="top">
+                <Icon
+                  icon="mingcute:refresh-2-line"
+                  width="16" height="16"
+                  class="rand-icon"
+                  @click.stop="randomizePrefix"
+                />
+              </el-tooltip>
+            </template>
+          </el-input>
+        </div>
+        <div class="add-field">
+          <label class="field-label">{{ $t('select') }}</label>
+          <el-select v-model="addForm.suffix" style="width: 100%">
             <el-option v-for="item in domainList" :key="item" :label="item" :value="item"/>
           </el-select>
-          <el-tooltip :content="$t('randomPrefix')" placement="top">
-            <el-button class="rand-btn" @click="randomizePrefix">
-              <Icon icon="mingcute:refresh-2-line" width="16" height="16" />
-            </el-button>
-          </el-tooltip>
+        </div>
+        <div class="email-preview" v-if="addForm.email">
+          <Icon icon="mingcute:mail-line" width="13" height="13" />
+          <span>{{ addForm.email }}{{ addForm.suffix }}</span>
         </div>
         <el-button class="btn" type="primary" @click="submit" :loading="addLoading">{{ $t('add') }}</el-button>
       </div>
@@ -628,40 +640,45 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
 
 .btn {
   width: 100%;
-  margin-top: 15px;
 }
 
-.container {
-  display: grid;
-  gap: 12px;
-}
-
-.email-input-row {
+.add-form {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 4px;
+}
+
+.add-field {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 
-  .email-prefix-input {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .at-sign {
-    flex-shrink: 0;
-    font-size: 14px;
+  .field-label {
+    font-size: 12px;
     color: var(--el-text-color-secondary);
-    line-height: 1;
+    font-weight: 500;
   }
+}
 
-  .domain-select {
-    width: 160px;
-    flex-shrink: 0;
-  }
+.rand-icon {
+  cursor: pointer;
+  color: var(--el-text-color-placeholder);
+  transition: color 0.15s;
+  &:hover { color: var(--el-color-primary); }
+}
 
-  .rand-btn {
-    flex-shrink: 0;
-    padding: 8px 10px;
-  }
+.email-preview {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-border-radius-base);
+  font-size: 12.5px;
+  color: var(--el-color-primary);
+  font-family: monospace;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 :deep(.el-dialog) {

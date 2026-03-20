@@ -208,6 +208,8 @@ const zh = {
     emptyCountMsg: '可用次数不能为空',
     addSuccessMsg: '添加成功',
     delConfirm: '确认删除{msg}吗?',
+    batchDelConfirm: '确认批量删除选中的 {count} 个邮箱吗？',
+    selected: '已选',
     delUsersConfirm: '确定删除选中的用户吗？',
     emptyRoleNameMsg: '身份名不能为空',
     saveSuccessMsg: '保存成功',

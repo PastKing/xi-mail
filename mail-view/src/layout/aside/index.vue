@@ -9,9 +9,8 @@
 
     <el-scrollbar class="aside-scroll">
       <nav class="nav-section">
+        <template v-for="item in mainNav" :key="item.name">
         <div
-          v-for="item in mainNav"
-          :key="item.name"
           v-if="!item.perm || hasPerm(item.perm)"
           class="nav-item"
           :class="{ active: route.meta.name === item.name }"
@@ -27,6 +26,7 @@
           </div>
           <span class="nav-label">{{ $t(item.label) }}</span>
         </div>
+        </template>
       </nav>
 
       <div class="nav-divider" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query']">

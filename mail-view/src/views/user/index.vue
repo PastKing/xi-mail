@@ -208,7 +208,12 @@
       </div>
     </el-dialog>
     <el-dialog class="account-dialog" v-model="accountShow" :title="t('userAccount')" @closed="resetAccountList" >
-      <el-table :data="accountList" style="height: 480px" v-loading="accountLoading" element-loading-background="transparent" :empty-text="accountLoading ? '' : null">
+      <div class="account-toolbar" v-if="selectedAccounts.length > 0">
+        <span class="account-sel-count">{{ $t('selected') }} {{ selectedAccounts.length }}</span>
+        <el-button size="small" type="danger" @click="batchDeleteAccounts">{{ $t('delete') }}</el-button>
+      </div>
+      <el-table :data="accountList" style="height: 480px" v-loading="accountLoading" element-loading-background="transparent" :empty-text="accountLoading ? '' : null" ref="accountTableRef" @selection-change="onAccountSelectionChange">
+        <el-table-column type="selection" width="40" />
         <el-table-column property="email" :label="t('emailAccount')" >
           <template #default="props">
             <div class="email-row">{{ props.row.email }}</div>
@@ -222,14 +227,7 @@
         </el-table-column>
         <el-table-column :label="t('action')" :width="locale === 'en' ? 75 : 65" >
           <template #default="props">
-            <el-dropdown trigger="click">
-              <el-button type="primary" size="small">{{t('action')}}</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="deleteAccount(props.row)">{{ $t('delete') }}</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-button type="danger" size="small" link @click="deleteAccount(props.row)">{{ $t('delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -597,11 +595,36 @@ function accountCurChange(e) {
   getAccountList()
 }
 
+const selectedAccounts = ref([]);
+const accountTableRef = ref(null);
+
+function onAccountSelectionChange(rows) {
+  selectedAccounts.value = rows;
+}
+
+function batchDeleteAccounts() {
+  if (selectedAccounts.value.length === 0) return;
+  const count = selectedAccounts.value.length;
+  ElMessageBox.confirm(t('batchDelConfirm', { count }), {
+    confirmButtonText: t('confirm'),
+    cancelButtonText: t('cancel'),
+    type: 'warning'
+  }).then(async () => {
+    for (const acc of selectedAccounts.value) {
+      await userDeleteAccount(acc.accountId);
+    }
+    selectedAccounts.value = [];
+    getAccountList();
+    ElMessage({ message: t('delSuccessMsg'), type: 'success', plain: true });
+  });
+}
+
 function resetAccountList() {
   accountList.length = 0
   accountParams.num = 0
   accountParams.size = 10
   accountParams.total = 0
+  selectedAccounts.value = [];
 }
 
 function openAccountList(userId) {
@@ -1163,6 +1186,18 @@ function adjustWidth() {
     width: calc(100% - 40px) !important;
     margin-right: 20px !important;
     margin-left: 20px !important;
+  }
+}
+
+.account-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 8px;
+
+  .account-sel-count {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
   }
 }
 
