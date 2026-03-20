@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat)](https://github.com/PastKing/xi-mail/stargazers)
 
+简体中文 | [English](README-en.md)
+
 ---
 
 ## 项目简介
@@ -121,18 +123,18 @@ cd mail-worker
 npm install
 
 # 3. 创建 D1 数据库
-npx wrangler d1 create cloud-mail
+npx wrangler d1 create xi-mail
 
 # 4. 创建 KV 命名空间
 npx wrangler kv namespace create kv
 
 # 5. 创建 R2 存储桶
-npx wrangler r2 bucket create cloud-mail
+npx wrangler r2 bucket create xi-mail
 
 # 6. 编辑 wrangler.toml，填入上述创建的 ID 及域名、管理员邮箱、JWT 密钥
 
 # 7. 初始化数据库
-npx wrangler d1 execute cloud-mail --remote --file=./src/db/schema.sql
+npx wrangler d1 execute xi-mail --remote --file=./src/db/schema.sql
 
 # 8. 构建前端
 cd ../mail-view
