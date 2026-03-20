@@ -1,4 +1,4 @@
-name = "cloud-mail"
+name = "xi-mail"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
 keep_vars = true
@@ -9,15 +9,15 @@ enabled = true
 [[d1_databases]]
 binding = "db"
 database_name = "cloud-mail"
-database_id = "f508af92-ac37-494a-bf7e-2c1789085d98"
+database_id = ""    # 替换为你的 D1 database_id，通过 `npx wrangler d1 create cloud-mail` 获取
 
 [[kv_namespaces]]
 binding = "kv"
-id = "13fccbba3fa54e1e8ba958367c813492"
+id = ""    # 替换为你的 KV namespace id，通过 `npx wrangler kv namespace create kv` 获取
 
 [[r2_buckets]]
 binding = "r2"
-bucket_name = "cloud-mail"
+bucket_name = "cloud-mail"    # 替换为你的 R2 bucket 名称
 
 [assets]
 binding = "assets"		#静态资源绑定名默认不可修改
@@ -31,9 +31,9 @@ crons = ["0 16 * * *"]	#定时任务每天晚上12点执行
 
 [vars]
 orm_log = false
-domain = ["nlfree.me","au-to.me","211799.xyz","52it.de","ahm.pp.ua","cvak.netlib.re","uiov.netlib.re","ali.edu.kg","azx.us","oaiu.pp.ua","ovvo.qzz.io","uao.pp.ua","uea.pp.ua","uu-uu.netlib.re","aoeu.netlib.re","idco.netlib.re","h7h.netlib.re","itoa.netlib.re","oaifree.netlib.re","xoui.netlib.re","c.6.7.b.0.d.0.0.1.0.a.2.ip6.arpa"]
-admin = "admin@azx.us"
-jwt_secret = "Z7f!xPq8mV@L2bC$r9X${JWT_SECRET}N1t"
+domain = ["example.com"]					#邮件域名，可配置多个，示例: ["example1.com","example2.com"]
+admin = "admin@example.com"				#管理员邮箱
+jwt_secret = "your-jwt-secret-here"		#jwt令牌密钥，填一串随机字符串
 
 [build]
 command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"
