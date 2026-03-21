@@ -78,7 +78,7 @@
                   </span>
                   <span class="phone-time">{{ item.formatCreateTime }}</span>
                 </div>
-                <div>
+                <div class="email-right-col">
                   <div class="email-text">
                     <span class="email-subject" :style="(item.unread === EmailUnreadEnum.UNREAD && showUnread)  ? 'font-weight: bold' : ''">
                       <div class="unread" v-if="!isMobile && (item.unread === EmailUnreadEnum.UNREAD && showUnread) "/>
@@ -971,37 +971,62 @@ function loadData() {
     user-select: none;
   }
   &.all-email {
-    height: 65px;
-    @media (max-width: 700px) {
-      height: auto;
-      min-height: 65px;
-      padding: 8px 0;
+    height: auto;
+    min-height: 65px;
+    padding: 8px 0;
+    align-items: flex-start;
+
+    /* 在中间宽度（开发者工具打开 / 非全屏），保持双列但让左列缩小，不要切换为单列 */
+    .title, .title.title-column {
+      @media (max-width: 1366px) and (min-width: 701px) {
+        grid-template-columns: minmax(100px, 180px) 1fr !important;
+        gap: 8px !important;
+        padding-right: 8px !important;
+      }
+    }
+
+    /* 中间宽度：时间保持显示在右侧，隐藏行内 phone-time */
+    @media (max-width: 1366px) and (min-width: 701px) {
+      .phone-time {
+        display: none !important;
+      }
+      .email-right {
+        display: flex !important;
+        align-items: flex-start;
+        padding-top: 8px;
+      }
     }
   }
   .user-info {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    column-gap: 12px;
-    row-gap: 2px;
+    gap: 10px;
     margin-top: 4px;
     margin-bottom: 2px;
+    overflow: hidden;
     color: var(--email-scroll-content-color);
+
+    /* 手机视图：竖向排列，每个邮箱独占一行，确保可以完整显示 */
+    @media (max-width: 700px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
 
     .user, .account {
       display: flex;
       align-items: center;
       gap: 4px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      max-width: 260px;
+      flex: 1;
       min-width: 0;
+      overflow: hidden;
       line-height: 1.4;
 
-      @media (max-width: 1223px) {
-        max-width: 200px;
+      @media (max-width: 700px) {
+        width: 100%;
+        flex: none;
       }
 
       span:first-child {
@@ -1030,6 +1055,8 @@ function loadData() {
     padding-left: 15px;
     padding-right: 20px;
     justify-content: center;
+    align-self: flex-start;
+    padding-top: 10px;
     @media (min-width: 1367px) {
       justify-content: start;
       height: 100%;
@@ -1047,6 +1074,8 @@ function loadData() {
 
   .title {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
     display: grid;
     grid-template-columns: 240px 1fr;
     @media (max-width: 1366px) {
@@ -1059,6 +1088,8 @@ function loadData() {
 
     .email-sender {
       color: var(--el-text-color-primary);
+      min-width: 0;
+      overflow: hidden;
       display: grid;
       grid-template-columns: auto 1fr auto;
 
@@ -1137,8 +1168,15 @@ function loadData() {
       }
     }
 
+    .email-right-col {
+      min-width: 0;
+      overflow: hidden;
+    }
+
     .email-text {
       display: grid;
+      min-width: 0;
+      overflow: hidden;
       grid-template-columns: auto 1fr;
       @media (max-width: 1366px) {
         grid-template-columns: 1fr;
@@ -1239,13 +1277,14 @@ function loadData() {
 
   .header-left {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     position: relative;
-    column-gap: 20px;
-    row-gap: 8px;
+    gap: 8px;
     padding-left: 2px;
-    color: var(--el-text-color-primary);;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--el-text-color-primary);
   }
 
   .header-right {

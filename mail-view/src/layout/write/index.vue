@@ -6,9 +6,28 @@
           <span class="title-text">
             <Icon icon="hugeicons:quill-write-01" width="28" height="28"/>
           </span>
-          <span class="sender">{{ $t('sender') }}:</span>
-          <span class="sender-name">{{ form.name }}</span>
-          <span class="send-email"><{{ form.sendEmail }}></span>
+          <span class="sender-label">{{ $t('sender') }}:</span>
+          <el-select
+            v-model="form.accountId"
+            class="sender-select"
+            popper-class="sender-select-popper"
+            @change="changeSender"
+          >
+            <template #label="{ label }">
+              <span class="sender-selected-label">{{ label }}</span>
+            </template>
+            <el-option
+              v-for="item in accountOptions"
+              :key="item.accountId"
+              :value="item.accountId"
+              :label="item.email"
+            >
+              <div class="sender-option">
+                <span class="sender-option-name">{{ item.name || item.email }}</span>
+                <span v-if="item.name && item.name !== item.email" class="sender-option-email">{{ item.email }}</span>
+              </div>
+            </el-option>
+          </el-select>
         </div>
         <div @click="close" style="cursor: pointer;">
           <Icon icon="material-symbols-light:close-rounded" width="22" height="22"/>
@@ -114,6 +133,7 @@ import dayjs from "dayjs";
 import {useI18n} from "vue-i18n";
 import router from "@/router/index.js";
 import {ElMessageBox} from "element-plus";
+import {accountList as fetchAccountList} from "@/request/account.js";
 
 defineExpose({
   open,
@@ -160,6 +180,7 @@ const form = reactive({
 })
 
 const selectRecipientList = ref([])
+const accountOptions = ref([])
 
 const contacts = computed(() => writerStore.sendRecipientRecord.map(item => ({email: item})))
 
@@ -212,6 +233,38 @@ function selectChange(value) {
 
 function selectStatusChange(status) {
   selectStatus = status
+}
+
+async function loadAccounts() {
+  try {
+    // 先用当前账户填充，保证选择框立即有值显示
+    if (form.sendEmail) {
+      accountOptions.value = [{ accountId: form.accountId, email: form.sendEmail, name: form.name }]
+    }
+    // 一次性拉取足够多的账户（API直接返回数组）
+    const list = await fetchAccountList(0, 200, null)
+    if (Array.isArray(list) && list.length > 0) {
+      accountOptions.value = list
+      // 如果当前 accountId 不在列表中，追加进去
+      const exists = list.some(a => a.accountId === form.accountId)
+      if (!exists && form.sendEmail) {
+        accountOptions.value = [{ accountId: form.accountId, email: form.sendEmail, name: form.name }, ...list]
+      }
+    }
+  } catch (e) {
+    if (form.sendEmail) {
+      accountOptions.value = [{ accountId: form.accountId, email: form.sendEmail, name: form.name }]
+    }
+  }
+}
+
+function changeSender(accountId) {
+  const account = accountOptions.value.find(a => a.accountId === accountId)
+  if (account) {
+    form.sendEmail = account.email
+    form.accountId = account.accountId
+    form.name = account.name || account.email
+  }
 }
 
 const openSelect = () => {
@@ -509,13 +562,14 @@ function formatImage(content) {
 function open() {
   if (!accountStore.currentAccount.email) {
     form.sendEmail = userStore.user.email;
-    form.accountId = userStore.user.account.accountId;
+    form.accountId = userStore.user.account?.accountId;
     form.name = userStore.user.name;
   } else {
     form.sendEmail = accountStore.currentAccount.email;
     form.accountId = accountStore.currentAccount.accountId;
     form.name = accountStore.currentAccount.name;
   }
+  loadAccounts()
   show.value = true;
   editor.value.focus()
 }
@@ -615,6 +669,39 @@ function close() {
 .write-select .el-select-dropdown {
   min-width: 0 !important;
 }
+
+.sender-select-popper {
+  min-width: 260px !important;
+  max-width: min(420px, 90vw) !important;
+}
+
+.sender-select-popper .el-select-dropdown__item {
+  height: auto;
+  padding: 8px 12px;
+}
+
+.sender-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.4;
+}
+
+.sender-option-name {
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sender-option-email {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 </style>
 <style scoped lang="scss">
 .send {
@@ -657,32 +744,71 @@ function close() {
 
       .title-left {
         align-items: center;
-        display: grid;
-        grid-template-columns: auto auto auto 1fr;
+        display: flex;
+        gap: 6px;
+        min-width: 0;
+        flex: 1;
       }
 
       .title-text {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
       }
 
-      .sender {
-        margin-left: 8px;
+      .sender-label {
+        flex-shrink: 0;
+        color: var(--el-text-color-regular);
+        font-size: 13px;
+        @media (max-width: 500px) {
+          display: none;
+        }
       }
 
-      .sender-name {
-        margin-left: 8px;
-        font-weight: bold;
+      .sender-select {
+        flex: 1;
+        min-width: 100px;
+        max-width: 380px;
+
+        :deep(.el-select__wrapper) {
+          min-height: 28px;
+          padding: 2px 8px;
+          box-shadow: none;
+          background: var(--el-fill-color-light);
+          border-radius: 6px;
+
+          &:hover, &.is-focused {
+            box-shadow: 0 0 0 1px var(--el-color-primary);
+          }
+        }
+
+        :deep(.el-select__selected-item) {
+          font-size: 13px;
+          color: var(--el-text-color-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        :deep(.el-select__placeholder) {
+          font-size: 13px;
+          color: var(--el-text-color-regular);
+        }
+
+        @media (max-width: 500px) {
+          max-width: none;
+        }
       }
 
-      .send-email {
-        color: #999896;
-        margin-left: 5px;
-        white-space: nowrap;
-        text-overflow: ellipsis;
+      .sender-selected-label {
+        font-size: 13px;
+        color: var(--el-text-color-primary);
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-
-      div {
+      & > div:last-child {
         display: flex;
         align-items: center;
       }
@@ -694,8 +820,6 @@ function close() {
       grid-template-rows: auto auto 1fr auto;
       gap: 15px;
 
-      .item-title {
-      }
 
       .button-item {
         display: grid;

@@ -424,10 +424,19 @@ async function latest() {
 :deep(.header-actions) {
   padding-top: 8px;
   padding-bottom: 8px;
+
+  .header-left {
+    gap: 6px;
+  }
+
+  .icon {
+    flex-shrink: 0;
+  }
 }
 
 .search-input {
-  width: 100%;
+  flex: 1 1 120px;
+  min-width: 80px;
   max-width: 280px;
   height: 28px;
 
@@ -455,10 +464,12 @@ async function latest() {
 
 .status-select {
   margin-bottom: 2px;
-  width: 102px;
+  flex-shrink: 0;
+  width: 92px;
 
   :deep(.el-select__wrapper) {
     min-height: 28px;
+    padding: 2px 6px;
   }
 }
 
