@@ -9,13 +9,11 @@
            :style="first ? 'background: transparent' : ''">
         <loading/>
       </div>
-      <el-table
-          :data="roles"
-          style="height: 100%;"
-          :empty-text="''"
-      >
+
+      <!-- 桌面端：表格 -->
+      <el-table v-if="!isMobile" :data="roles" style="height: 100%;" :empty-text="''">
         <el-table-column width="10"/>
-        <el-table-column :label="$t('role')" prop="name" :min-width="roleWidth">
+        <el-table-column :label="$t('role')" prop="name" min-width="200">
           <template #default="props">
             <div class="role-name">
               <span>{{ props.row.name }}</span>
@@ -23,16 +21,14 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('order')" :width="sortWidth" prop="sort"/>
-        <el-table-column :label="$t('permLevel')" :width="sortWidth" prop="level"/>
+        <el-table-column :label="$t('order')" width="80" prop="sort"/>
+        <el-table-column :label="$t('permLevel')" width="80" prop="level"/>
         <el-table-column v-if="desShow" :label="$t('description')" min-width="200" prop="description">
           <template #default="props">
-            <div class="description">
-              <span>{{ props.row.description }}</span>
-            </div>
+            <div class="description"><span>{{ props.row.description }}</span></div>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('tabSetting')" :width="settingWidth">
+        <el-table-column :label="$t('tabSetting')" width="90">
           <template #default="props">
             <el-dropdown trigger="click">
               <el-button size="small" type="primary">{{ $t('action') }}</el-button>
@@ -47,8 +43,40 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 移动端：卡片列表 -->
+      <div v-else class="role-card-list">
+        <div v-for="row in roles" :key="row.roleId" class="role-card">
+          <div class="role-card-main">
+            <div class="role-card-name">
+              <span>{{ row.name }}</span>
+              <el-tag v-if="row.isDefault" class="def-tag" size="small">{{ $t('default') }}</el-tag>
+            </div>
+            <div class="role-card-meta">
+              <span class="meta-item">
+                <span class="meta-label">{{ $t('permLevel') }}</span>
+                <span class="meta-value">{{ row.level }}</span>
+              </span>
+              <span v-if="row.description" class="meta-item meta-desc">{{ row.description }}</span>
+            </div>
+          </div>
+          <div class="role-card-actions">
+            <el-dropdown trigger="click">
+              <el-button size="small" type="primary">{{ $t('action') }}</el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="openRoleSet(row)">{{ $t('change') }}</el-dropdown-item>
+                  <el-dropdown-item @click="setDef(row)">{{ $t('default') }}</el-dropdown-item>
+                  <el-dropdown-item @click="delRole(row)">{{ $t('delete') }}</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+        </div>
+        <div v-if="!tableLoading && roles.length === 0" class="role-empty">{{ $t('noMessagesFound') }}</div>
+      </div>
     </el-scrollbar>
-    <el-dialog top="5vh" class="dialog" v-model="roleFormShow" @closed="resetForm">
+    <el-dialog top="5vh" class="dialog" v-model="roleFormShow" @closed="resetForm" :width="dialogWidth">
       <template #header>
         <span style="font-size: 18px">{{ dialogType.title }}</span>
         <el-popover
@@ -154,7 +182,7 @@
 </template>
 <script setup>
 import {Icon} from "@iconify/vue";
-import {defineOptions, nextTick, reactive, ref} from "vue";
+import {defineOptions, nextTick, reactive, ref, computed} from "vue";
 import {roleAdd, roleDelete, rolePermTree, roleRoleList, roleSet, roleSetDef} from "@/request/role.js";
 import loading from '@/components/loading/index.vue';
 import {useRoleStore} from "@/store/role.js";
@@ -178,9 +206,8 @@ const tree = ref({})
 const permLoading = ref(false)
 const tableLoading = ref(false)
 const desShow = ref(true)
-const settingWidth = ref(null)
-const sortWidth = ref(null)
-const roleWidth = ref(200)
+const isMobile = ref(false)
+const dialogWidth = computed(() => window.innerWidth < 500 ? '95%' : window.innerWidth < 768 ? '85%' : '50%')
 const first = ref(true)
 
 const dialogType = reactive({
@@ -412,10 +439,9 @@ function getRoleList() {
 }
 
 function adjustWidth() {
-  desShow.value = window.innerWidth > 767
-  settingWidth.value = window.innerWidth < 480 ? (locale.value === 'en' ? 85 : 75) : null
-  sortWidth.value = window.innerWidth < 480 ? 75 : null
-  roleWidth.value = window.innerWidth < 480 ? 180 : 200
+  const w = window.innerWidth
+  desShow.value = w > 767
+  isMobile.value = w <= 640
 }
 
 adjustWidth()
@@ -436,6 +462,89 @@ window.onresize = () => {
   .perm-scrollbar {
     height: 100%;
   }
+}
+
+.role-card-list {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.role-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  gap: 12px;
+
+  .role-card-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .role-card-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+
+    span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .role-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .meta-label {
+    color: var(--el-text-color-placeholder);
+  }
+
+  .meta-value {
+    font-weight: 500;
+    color: var(--el-text-color-regular);
+  }
+
+  .meta-desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 160px;
+  }
+
+  .role-card-actions {
+    flex-shrink: 0;
+  }
+}
+
+.role-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
 }
 
 .send-num {
