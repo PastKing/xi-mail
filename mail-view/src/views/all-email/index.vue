@@ -438,7 +438,11 @@ async function latest() {
   flex: 1 1 120px;
   min-width: 80px;
   max-width: 280px;
-  height: 28px;
+
+  :deep(.el-input__wrapper) {
+    min-height: 28px;
+    padding: 2px 8px;
+  }
 
   .setting-icon {
     position: relative;
@@ -463,7 +467,6 @@ async function latest() {
 }
 
 .status-select {
-  margin-bottom: 2px;
   flex-shrink: 0;
   width: 92px;
 

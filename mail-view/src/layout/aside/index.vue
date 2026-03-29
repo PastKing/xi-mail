@@ -86,12 +86,12 @@ const mainNav = [
 ];
 
 const adminNav = [
-  { name: 'analysis', icon: 'mingcute:chart-pie-2-line', label: 'analytics', perm: "'analysis:query'" },
-  { name: 'user', icon: 'mingcute:group-line', label: 'allUsers', perm: "'user:query'" },
-  { name: 'all-email', icon: 'mingcute:mail-open-line', label: 'allMail', perm: "'all-email:query'" },
-  { name: 'role', icon: 'mingcute:shield-line', label: 'permissions', perm: "'role:query'" },
-  { name: 'reg-key', icon: 'mingcute:key-2-line', label: 'inviteCode', perm: "'reg-key:query'" },
-  { name: 'sys-setting', icon: 'mingcute:settings-6-line', label: 'SystemSettings', perm: "'setting:query'" },
+  { name: 'analysis', icon: 'mingcute:chart-pie-2-line', label: 'analytics', perm: 'analysis:query' },
+  { name: 'user', icon: 'mingcute:group-line', label: 'allUsers', perm: 'user:query' },
+  { name: 'all-email', icon: 'mingcute:mail-open-line', label: 'allMail', perm: 'all-email:query' },
+  { name: 'role', icon: 'mingcute:shield-line', label: 'permissions', perm: 'role:query' },
+  { name: 'reg-key', icon: 'mingcute:key-2-line', label: 'inviteCode', perm: 'reg-key:query' },
+  { name: 'sys-setting', icon: 'mingcute:settings-6-line', label: 'SystemSettings', perm: 'setting:query' },
 ];
 
 transferPendingList().then(list => {

@@ -747,40 +747,38 @@ function createSendGauge() {
 
 .analysis {
   height: 100%;
-  padding: 20px 20px 30px;
-  gap: 20px;
+  padding: 14px 14px 24px;
+  gap: 12px;
   background: var(--extra-light-fill);
   display: grid;
   grid-auto-rows: min-content;
   @media (max-width: 1024px) {
-    padding: 15px 15px 30px;
-    gap: 15px
+    padding: 10px 10px 20px;
+    gap: 10px;
   }
 
   .title {
-    margin-top: 10px;
-    margin-left: 15px;
-    font-size: 18px;
+    margin-top: 6px;
+    margin-left: 12px;
+    font-size: 15px;
     font-weight: 500;
   }
 
   .number {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 20px;
+    gap: 12px;
     @media (max-width: 1366px) {
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      gap: 10px;
     }
-    @media (max-width: 767px) {
-      grid-template-columns: 1fr;
-    }
+    /* 移动端保持2列，不切换为单列 */
 
     .number-item {
       background: var(--el-bg-color);
       border-radius: 8px;
       border: 1px solid var(--el-border-color);
-      padding: 21px 20px;
+      padding: 12px 14px;
 
       .top {
         display: grid;
@@ -790,19 +788,20 @@ function createSendGauge() {
 
         .left {
           display: grid;
-          gap: 5px;
+          gap: 2px;
           grid-auto-rows: min-content;
 
           > div:first-child {
-            font-size: 15px;
+            font-size: 13px;
+            color: var(--el-text-color-secondary);
           }
 
           > div:last-child {
-            font-size: 13px;
+            font-size: 12px;
           }
 
           :deep(.el-statistic__number) {
-            font-size: 26px;
+            font-size: 22px;
           }
         }
 
@@ -811,12 +810,11 @@ function createSendGauge() {
           align-items: center;
 
           .count-icon {
-            top: 3px;
             position: relative;
             display: grid;
             align-items: center;
-            padding: 14px;
-            border-radius: 8px;
+            padding: 9px;
+            border-radius: 7px;
             background: var(--el-color-primary-light-9);
             color: var(--el-color-primary);
           }
@@ -827,24 +825,24 @@ function createSendGauge() {
       .delete-ratio {
         width: 100%;
         display: grid;
-        grid-template-columns:  auto auto;
+        grid-template-columns: auto auto;
         justify-content: start;
-        gap: 20px;
-        padding-top: 5px;
-        font-size: 14px;
+        gap: 12px;
+        padding-top: 4px;
+        font-size: 12px;
 
         .normal {
           width: fit-content;
           color: var(--el-color-success);
-          font-weight: bold;;
-          margin-left: 3px;
+          font-weight: bold;
+          margin-left: 2px;
         }
 
         .deleted {
           width: fit-content;
           color: var(--el-color-danger);
-          font-weight: bold;;
-          margin-left: 3px;
+          font-weight: bold;
+          margin-left: 2px;
         }
       }
 
@@ -853,13 +851,13 @@ function createSendGauge() {
 
   .picture {
     display: grid;
-    grid-template-columns: 500px 1fr;
-    gap: 20px;
-    @media (max-width: 1620px) {
+    grid-template-columns: 420px 1fr;
+    gap: 12px;
+    @media (max-width: 1366px) {
       grid-template-columns: 1fr;
     }
     @media (max-width: 1024px) {
-      gap: 15px;
+      gap: 10px;
     }
 
     .picture-item {
@@ -878,16 +876,16 @@ function createSendGauge() {
       }
 
       .sender-pie {
-        height: 350px;
+        height: 280px;
         @media (max-width: 767px) {
           height: 200px;
         }
       }
 
       .increase-line {
-        height: 350px;
+        height: 280px;
         @media (max-width: 767px) {
-          height: 280px;
+          height: 220px;
         }
       }
     }
@@ -895,11 +893,11 @@ function createSendGauge() {
 
   .picture-cs {
     display: grid;
-    grid-template-columns: 1fr 500px;
-    gap: 20px;
-    @media (max-width: 1620px) {
+    grid-template-columns: 1fr 380px;
+    gap: 12px;
+    @media (max-width: 1366px) {
       grid-template-columns: 1fr;
-      gap: 15px;
+      gap: 10px;
     }
 
     .picture-cs-item {
@@ -908,16 +906,16 @@ function createSendGauge() {
       border: 1px solid var(--el-border-color);
 
       .send-count {
-        height: 350px;
+        height: 280px;
         @media (max-width: 767px) {
-          height: 320px;
+          height: 240px;
         }
       }
 
       .email-column {
-        height: 350px;
+        height: 280px;
         @media (max-width: 767px) {
-          height: 250px;
+          height: 210px;
         }
       }
     }
