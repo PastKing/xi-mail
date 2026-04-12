@@ -440,8 +440,9 @@ async function latest() {
   max-width: 280px;
 
   :deep(.el-input__wrapper) {
-    min-height: 28px;
-    padding: 2px 8px;
+    height: 32px;
+    box-sizing: border-box;
+    padding: 0 8px;
   }
 
   .setting-icon {
@@ -471,8 +472,10 @@ async function latest() {
   width: 92px;
 
   :deep(.el-select__wrapper) {
-    min-height: 28px;
-    padding: 2px 6px;
+    height: 32px;
+    box-sizing: border-box;
+    padding: 0 6px;
+    min-height: unset;
   }
 }
 
@@ -486,8 +489,9 @@ async function latest() {
 }
 
 :deep(.el-select__wrapper) {
-  padding: 2px 10px;
-  min-height: 28px;
+  height: 32px;
+  box-sizing: border-box;
+  min-height: unset;
 }
 
 :deep(.el-date-editor.el-input__wrapper) {

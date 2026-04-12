@@ -120,6 +120,17 @@ const accountTransferService = {
             .all();
     },
 
+    async receivedHistoryList(c, userId) {
+        return orm(c).select().from(accountTransfer)
+            .where(and(
+                eq(accountTransfer.toUserId, userId),
+                sql`${accountTransfer.status} != 0`
+            ))
+            .orderBy(sql`${accountTransfer.createTime} DESC`)
+            .limit(30)
+            .all();
+    },
+
     async pendingCount(c, userId) {
         const result = await c.env.db.prepare(
             `SELECT COUNT(*) as cnt FROM account_transfer WHERE to_user_id = ? AND status = 0`

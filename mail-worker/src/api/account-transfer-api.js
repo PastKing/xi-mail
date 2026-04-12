@@ -32,3 +32,9 @@ app.get('/transfer/sent', async (c) => {
     const data = await accountTransferService.sentList(c, userId);
     return c.json(result.ok(data));
 });
+
+app.get('/transfer/received-history', async (c) => {
+    const userId = userContext.getUserId(c);
+    const data = await accountTransferService.receivedHistoryList(c, userId);
+    return c.json(result.ok(data));
+});

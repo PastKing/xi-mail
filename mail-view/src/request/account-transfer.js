@@ -19,3 +19,7 @@ export function transferPendingList() {
 export function transferSentList() {
     return http.get('/transfer/sent')
 }
+
+export function transferReceivedHistory() {
+    return http.get('/transfer/received-history')
+}
