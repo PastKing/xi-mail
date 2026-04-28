@@ -50,7 +50,17 @@ const accountService = {
 		let accountRow = await this.selectByEmailIncludeDel(c, email);
 
 		if (accountRow && accountRow.isDel === isDel.DELETE) {
-			throw new BizError(t('isDelAccount'));
+			// 软删除的邮箱允许重新创建：恢复记录并转移到当前用户
+			await orm(c).update(account)
+				.set({ isDel: isDel.NORMAL, userId: userId, name: emailUtils.getName(email) })
+				.where(eq(account.email, email))
+				.run();
+			// 同步恢复该邮箱下的邮件归属
+			await c.env.db.prepare(`UPDATE email SET user_id = ?, is_del = 0 WHERE account_id = ?`)
+				.bind(userId, accountRow.accountId).run();
+			const restored = await this.selectByEmailIncludeDel(c, email);
+			restored.addVerifyOpen = false;
+			return restored;
 		}
 
 		if (accountRow) {
@@ -125,8 +135,8 @@ const accountService = {
 		size = Number(size);
 		lastSort = Number(lastSort);
 
-		if (size > 30) {
-			size = 30;
+		if (size > 100) {
+			size = 100;
 		}
 
 		if (!accountId) {

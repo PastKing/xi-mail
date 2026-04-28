@@ -233,7 +233,7 @@ const addForm = reactive({
   suffix: settingStore.domainList[0]
 });
 let skeletonRows = 8;
-const queryParams = { size: 50 };
+const queryParams = { size: 100 };
 
 const transferShow = ref(false);
 const transferLoading = ref(false);
