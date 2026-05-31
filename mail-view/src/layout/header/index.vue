@@ -208,6 +208,33 @@ function formatName(email) {
 <style>
 .detail-dropdown {
   color: var(--el-text-color-primary) !important;
+  background: var(--el-bg-color) !important;
+}
+.detail-dropdown .el-dropdown-menu {
+  background: var(--el-bg-color) !important;
+  border: 1px solid var(--el-border-color-lighter) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  padding: 0 !important;
+}
+.detail-dropdown .el-dropdown-menu__item {
+  background: var(--el-bg-color) !important;
+  color: var(--el-text-color-primary) !important;
+}
+.detail-dropdown .user-panel {
+  background: var(--el-bg-color) !important;
+  color: var(--el-text-color-primary) !important;
+}
+.detail-dropdown .user-panel .panel-name {
+  color: var(--el-text-color-primary) !important;
+}
+.detail-dropdown .user-panel .panel-email {
+  color: var(--el-text-color-secondary) !important;
+}
+.detail-dropdown .user-panel .stat-label {
+  color: var(--el-text-color-secondary) !important;
+}
+.detail-dropdown .user-panel .stat-value {
+  color: var(--el-text-color-primary) !important;
 }
 </style>
 
