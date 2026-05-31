@@ -2391,14 +2391,6 @@ function editSetting(settingForm, refreshStatus = true) {
   display: flex;
   align-items: center;
 }
-  margin-left: 2px;
-}
-
-.warning {
-  margin-left: 2px;
-  color: grey;
-  cursor: pointer;
-}
 
 .cropper {
   border-radius: 4px;
