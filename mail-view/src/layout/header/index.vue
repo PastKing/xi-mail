@@ -368,6 +368,8 @@ function formatName(email) {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-primary);
 }
 
 .panel-avatar {

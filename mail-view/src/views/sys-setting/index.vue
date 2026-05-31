@@ -644,11 +644,30 @@
                       <div class="tpl-card-inner tpl-minimal-card"></div>
                     </div>
                     <!-- Split preview -->
-                    <div v-else class="tpl-preview tpl-split">
+                    <div v-else-if="tpl.id === 'split'" class="tpl-preview tpl-split">
                       <div class="tpl-split-left"></div>
                       <div class="tpl-split-right">
                         <div class="tpl-card-inner tpl-split-card"></div>
                       </div>
+                    </div>
+                    <!-- Glassmorphism preview -->
+                    <div v-else-if="tpl.id === 'glassmorphism'" class="tpl-preview tpl-glassmorphism">
+                      <div class="tpl-glass-bg"></div>
+                      <div class="tpl-glass-orb tpl-glass-orb-1"></div>
+                      <div class="tpl-glass-orb tpl-glass-orb-2"></div>
+                      <div class="tpl-card-inner tpl-glass-card"></div>
+                    </div>
+                    <!-- Aurora preview -->
+                    <div v-else-if="tpl.id === 'aurora'" class="tpl-preview tpl-aurora">
+                      <div class="tpl-aurora-wave"></div>
+                      <div class="tpl-card-inner tpl-aurora-card"></div>
+                    </div>
+                    <!-- Geometric preview -->
+                    <div v-else-if="tpl.id === 'geometric'" class="tpl-preview tpl-geometric">
+                      <div class="tpl-geo-shape tpl-geo-1"></div>
+                      <div class="tpl-geo-shape tpl-geo-2"></div>
+                      <div class="tpl-geo-shape tpl-geo-3"></div>
+                      <div class="tpl-card-inner tpl-geo-card"></div>
                     </div>
                     <span class="tpl-label">{{ tpl.label }}</span>
                   </button>
@@ -3183,6 +3202,114 @@ form .el-button {
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 3px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+}
+
+/* glassmorphism preview */
+.tpl-glassmorphism {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  position: relative;
+  overflow: hidden;
+
+  .tpl-glass-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(12px);
+  }
+  .tpl-glass-orb-1 {
+    width: 50px; height: 50px;
+    background: rgba(255,255,255,0.3);
+    top: -15px; right: -10px;
+  }
+  .tpl-glass-orb-2 {
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.2);
+    bottom: -10px; left: -8px;
+  }
+  .tpl-glass-card {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px; height: 34px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(8px);
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.3);
+    z-index: 1;
+  }
+}
+
+/* aurora preview */
+.tpl-aurora {
+  background: #0a0a12;
+  position: relative;
+  overflow: hidden;
+
+  .tpl-aurora-wave {
+    position: absolute;
+    width: 200%; height: 100%;
+    top: 0; left: -50%;
+    background: linear-gradient(180deg, 
+      transparent 0%,
+      rgba(34,211,238,0.15) 20%,
+      rgba(168,85,247,0.2) 40%,
+      rgba(34,211,238,0.1) 60%,
+      transparent 100%
+    );
+    border-radius: 50%;
+  }
+  .tpl-aurora-card {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px; height: 34px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(4px);
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 1;
+  }
+}
+
+/* geometric preview */
+.tpl-geometric {
+  background: #f8fafc;
+  position: relative;
+  overflow: hidden;
+
+  .tpl-geo-shape {
+    position: absolute;
+  }
+  .tpl-geo-1 {
+    width: 30px; height: 30px;
+    background: #3b82f6;
+    border-radius: 50%;
+    top: -8px; left: -8px;
+  }
+  .tpl-geo-2 {
+    width: 24px; height: 24px;
+    background: #f59e0b;
+    top: 50%; right: -6px;
+    transform: translateY(-50%) rotate(45deg);
+  }
+  .tpl-geo-3 {
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-bottom: 24px solid #10b981;
+    bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+  }
+  .tpl-geo-card {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px; height: 34px;
+    background: #fff;
+    border-radius: 4px;
+    border: 2px solid #1e293b;
+    box-shadow: 4px 4px 0 #1e293b;
+    z-index: 1;
   }
 }
 
