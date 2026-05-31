@@ -1912,6 +1912,13 @@ function editSetting(settingForm, refreshStatus = true) {
 </script>
 
 <style scoped lang="scss">
+/* ══════════════════════════════════════════════════════════════════════════════
+   System Settings: Eastern Aesthetic / 东方美学设置页面
+   ──────────────────────────────────────────────────────────────────────────────
+   - Clean, organized layout with generous whitespace
+   - Refined card treatments with subtle jade accents
+   - Elegant form controls and transitions
+   ══════════════════════════════════════════════════════════════════════════════ */
 .settings-container {
   height: 100%;
   overflow: hidden;
@@ -1931,7 +1938,7 @@ function editSetting(settingForm, refreshStatus = true) {
   }
 
   .loading-show {
-    transition: all 200ms ease 200ms;
+    transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1) 200ms;
     opacity: 1;
   }
 
@@ -1953,17 +1960,30 @@ function editSetting(settingForm, refreshStatus = true) {
   }
 }
 
-/* Left navigation */
+/* Left navigation - Eastern inspired with jade accents */
 .settings-nav {
-  width: 168px;
+  width: 180px;
   flex-shrink: 0;
   border-right: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
-  padding: 12px 8px;
+  padding: 16px 10px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   overflow-y: auto;
+  position: relative;
+  
+  /* Subtle decorative top border */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--xi-gradient);
+    opacity: 0.6;
+  }
 
   @media (max-width: 680px) {
     width: 100%;
@@ -1971,12 +1991,14 @@ function editSetting(settingForm, refreshStatus = true) {
     flex-direction: row;
     border-right: none;
     border-bottom: 1px solid var(--el-border-color-lighter);
-    padding: 6px 12px;
+    padding: 8px 14px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
-    gap: 4px;
+    gap: 6px;
     flex-shrink: 0;
+    
+    &::before { display: none; }
 
     &::-webkit-scrollbar { display: none; }
   }
@@ -1985,15 +2007,17 @@ function editSetting(settingForm, refreshStatus = true) {
 .sn-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 6px;
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: var(--xi-radius-sm);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 450;
+  font-size: 13.5px;
+  font-weight: 480;
   color: var(--el-text-color-regular);
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  letter-spacing: -0.01em;
 
   &:hover {
     background: var(--el-fill-color);
@@ -2003,17 +2027,32 @@ function editSetting(settingForm, refreshStatus = true) {
   &.active {
     background: var(--el-color-primary-light-9);
     color: var(--el-color-primary);
-    font-weight: 550;
+    font-weight: 560;
+    
+    /* Left accent bar */
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 18px;
+      background: var(--xi-gradient);
+      border-radius: 0 2px 2px 0;
+    }
   }
 
   @media (max-width: 680px) {
     flex-shrink: 0;
-    height: 28px;
-    padding: 0 12px;
-    border-radius: 14px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 16px;
     font-size: 12.5px;
     white-space: nowrap;
     gap: 6px;
+    
+    &.active::before { display: none; }
   }
 }
 
@@ -2025,20 +2064,20 @@ function editSetting(settingForm, refreshStatus = true) {
 }
 
 .sb-inner {
-  padding: 24px;
-  max-width: 660px;
+  padding: 28px;
+  max-width: 700px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 
-  @media (max-width: 680px) { padding: 14px 12px; gap: 12px; }
-  @media (max-width: 400px) { padding: 10px 8px; }
+  @media (max-width: 680px) { padding: 16px 14px; gap: 14px; }
+  @media (max-width: 400px) { padding: 12px 10px; }
 }
 
 .background {
   width: 249px;
   height: 140px;
-  border-radius: 4px;
+  border-radius: var(--xi-radius-sm);
   border: 1px solid var(--light-border);
   @media (max-width: 500px) {
     width: 160px;
@@ -2056,46 +2095,49 @@ function editSetting(settingForm, refreshStatus = true) {
   margin-left: 10px;
 }
 
+/* ── Settings Card - Eastern refined style ── */
 .settings-card {
   background-color: var(--el-bg-color);
   border-radius: var(--xi-radius);
   border: 1px solid var(--el-border-color-lighter);
-  transition: box-shadow 0.18s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: var(--xi-shadow-card);
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    box-shadow: var(--xi-shadow-card-hover);
+    border-color: rgba(61, 139, 132, 0.12);
   }
 }
 
 .card-title {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
-  padding: 11px 18px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   letter-spacing: -0.01em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--el-text-color-primary);
-  background: var(--el-fill-color-extra-light);
+  background: linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-bg-color) 100%);
+  /* Left jade accent bar */
   box-shadow: inset 3px 0 0 var(--el-color-primary);
 }
 
 .card-content {
-  padding: 14px 18px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 16px;
 
-  @media (max-width: 480px) { padding: 12px 14px; }
+  @media (max-width: 480px) { padding: 14px 16px; }
 }
 
 .setting-item {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px 16px;
+  gap: 14px 20px;
   font-weight: normal;
   font-size: 13.5px;
   align-items: center;
@@ -2938,20 +2980,20 @@ form .el-button {
   color: var(--el-text-color-secondary);
 }
 
-/* gradient preview — Aurora style */
+/* gradient preview — Eastern Ink Wash style / 水墨风格 */
 .tpl-gradient {
-  background: #05050d;
+  background: #0c1210;
   position: relative;
   overflow: hidden;
 
-  /* Big corner aurora blobs (mimics the real template) */
+  /* Ink-wash inspired blobs */
   &::before {
     content: '';
     position: absolute;
     width: 200%; height: 150%;
     top: -80%; right: -80%;
     background: radial-gradient(circle at 40% 40%,
-      var(--xi-orb-1, rgba(99,102,241,0.55)) 0%, transparent 60%
+      var(--xi-orb-1, rgba(61,139,132,0.50)) 0%, transparent 60%
     );
     filter: blur(20px);
   }
@@ -2962,12 +3004,12 @@ form .el-button {
     width: 160%; height: 140%;
     bottom: -80%; left: -60%;
     background: radial-gradient(circle at 60% 60%,
-      var(--xi-orb-2, rgba(139,92,246,0.48)) 0%, transparent 60%
+      var(--xi-orb-2, rgba(90,158,150,0.42)) 0%, transparent 60%
     );
     filter: blur(18px);
   }
 
-  .tpl-orb { display: none; }   /* not needed — ::before/after handle it */
+  .tpl-orb { display: none; }
 
   .tpl-card-inner {
     position: absolute;
@@ -2976,8 +3018,8 @@ form .el-button {
     width: 48px; height: 34px;
     background: rgba(255,255,255,0.06);
     backdrop-filter: blur(6px);
-    border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.10);
     z-index: 1;
   }
 }
@@ -3030,7 +3072,7 @@ form .el-button {
 
 .lp-sidebar {
   width: 28px;
-  background: #1a1a22;
+  background: #1a1f1e;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -3044,7 +3086,7 @@ form .el-button {
   padding: 8px 3px;
 }
 
-.lp-sb-item { border-radius: 2px; background: #3f3f52; }
+.lp-sb-item { border-radius: 2px; background: #3a4542; }
 .lp-sb-full { height: 5px; width: 100%; }
 .lp-sb-dot  { height: 5px; width: 5px; border-radius: 50%; }
 
@@ -3082,7 +3124,7 @@ form .el-button {
 
 .lp-hbar {
   height: 8px;
-  background: #1a1a22;
+  background: #1a1f1e;
   border-radius: 2px;
   display: flex;
   align-items: center;
@@ -3094,13 +3136,13 @@ form .el-button {
 .lp-h-dot {
   width: 10px;
   height: 3px;
-  background: #3f3f52;
+  background: #3a4542;
   border-radius: 1px;
 }
 
-/* minimal preview */
+/* minimal preview - Rice paper style / 宣纸风格 */
 .tpl-minimal {
-  background: #f4f5f7;
+  background: #fafaf8;
 
   .tpl-minimal-card {
     position: absolute;

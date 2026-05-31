@@ -884,7 +884,12 @@ function loadData() {
 
 </script>
 <style lang="scss" scoped>
-
+/* ══════════════════════════════════════════════════════════════════════════════
+   Email Scroll: Eastern Aesthetic / 东方美学邮件列表
+   ──────────────────────────────────────────────────────────────────────────────
+   - Clean, minimal email rows with refined hover states
+   - Elegant transitions and subtle jade accents
+   ══════════════════════════════════════════════════════════════════════════════ */
 .email-container {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -916,8 +921,9 @@ function loadData() {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 15px 0 0 0;
+    padding: 18px 0 0 0;
     color: var(--secondary-text-color);
+    font-size: 13px;
   }
 
   .follow-loading {
@@ -941,7 +947,7 @@ function loadData() {
   }
 
   .loading-show {
-    transition: all 200ms ease 200ms;
+    transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1) 200ms;
     opacity: 1;
   }
 
@@ -954,26 +960,31 @@ function loadData() {
 
 :deep(.email-row) {
   display: flex;
-  padding: 8px 0;
+  padding: 10px 0;
   justify-content: space-between;
   border-bottom: 1px solid var(--el-border-color-extra-light);
   cursor: pointer;
   align-items: center;
   position: relative;
-  transition: background 0.15s ease-in-out;
-  height: 48px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 50px;
+  
+  /* Hover effect with jade accent */
+  &:hover {
+    background: var(--email-hover-background);
+  }
+  
   @media (max-width: 1366px) {
-    height: 83px;
+    height: 85px;
   }
 
   @media (pointer: coarse) {
-    /* 触屏 */
     user-select: none;
   }
   &.all-email {
     height: auto;
-    min-height: 65px;
-    padding: 8px 0;
+    min-height: 68px;
+    padding: 10px 0;
     align-items: flex-start;
 
     /* 在中间宽度（开发者工具打开 / 非全屏），保持双列但让左列缩小，不要切换为单列 */
@@ -1271,17 +1282,18 @@ function loadData() {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 15px;
-  padding: 3px 15px;
+  gap: 16px;
+  padding: 6px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
 
   .header-left {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
     position: relative;
-    gap: 8px;
-    padding-left: 2px;
+    gap: 10px;
+    padding-left: 4px;
     min-width: 0;
     overflow: hidden;
     color: var(--el-text-color-primary);
@@ -1292,22 +1304,32 @@ function loadData() {
     grid-template-columns: auto auto;
     align-items: start;
     height: 100%;
-    color: var(--el-text-color-primary);;
+    color: var(--el-text-color-secondary);
 
     .email-count {
       white-space: nowrap;
       margin-top: 6px;
+      font-size: 13px;
     }
   }
 
   .icon {
     font-size: 18px;
     cursor: pointer;
+    color: var(--el-text-color-secondary);
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: var(--xi-radius-sm);
+    
+    &:hover {
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+    }
   }
 
   .more-icon {
-    margin-top: 8px;
-    margin-left: 15px;
+    margin-top: 6px;
+    margin-left: 14px;
   }
 }
 
@@ -1341,14 +1363,15 @@ function loadData() {
 }
 
 .unread {
-  height: 6px;
-  width: 6px;
+  height: 7px;
+  width: 7px;
   background: var(--el-color-primary);
   margin-bottom: 2px;
-  margin-right: 5px;
+  margin-right: 6px;
   border-radius: 50%;
   display: inline-block;
   justify-content: center;
+  box-shadow: 0 0 6px rgba(61, 139, 132, 0.4);
 }
 
 ul {

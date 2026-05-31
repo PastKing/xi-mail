@@ -1,8 +1,10 @@
-/* ═══════════════════════════════════════════
-   Login Template: split (分栏)
-   Left brand panel (theme gradient) + right form.
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Login Template: split → "分栏" (Split Panel)
+   ───────────────────────────────────────────────────────────────────────────────
+   Left brand panel with jade gradient + right form panel.
    Collapses to single column on mobile.
-   ═══════════════════════════════════════════ */
+   Features subtle decorative elements inspired by Eastern design.
+   ═══════════════════════════════════════════════════════════════════════════════ */
 .template-split {
   flex-direction: row;
   align-items: stretch;
@@ -11,13 +13,13 @@
   .bg-layer { display: none; }
 
   .card-wrapper {
-    flex: 0 0 420px;
+    flex: 0 0 440px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 32px;
+    padding: 48px 36px;
     background: var(--el-bg-color);
     overflow-y: auto;
   }
@@ -27,13 +29,13 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05);
-    max-width: 360px;
+    border-radius: var(--xi-radius-lg);
+    box-shadow: var(--xi-shadow-card);
+    max-width: 380px;
     width: 100%;
   }
 
-  .page-footer { margin-top: 20px; }
+  .page-footer { margin-top: 24px; }
 
   @media (max-width: 680px) {
     flex-direction: column;
@@ -43,17 +45,19 @@
     .card-wrapper {
       flex: 1;
       min-height: 100vh;
-      padding: 32px 16px;
+      padding: 36px 18px;
     }
   }
 }
 
 :global(.dark) .template-split .auth-card {
-  border-color: #2a2a30;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+  border-color: #262c34;
+  box-shadow: 
+    0 1px 4px rgba(0,0,0,0.25), 
+    0 6px 20px rgba(0,0,0,0.18);
 }
 
-/* Split left brand panel */
+/* Split left brand panel - Jade gradient with Eastern elements */
 .split-left {
   flex: 1;
   display: flex;
@@ -64,24 +68,27 @@
   overflow: hidden;
   min-height: 100vh;
 
+  /* Subtle wave-like decorative overlay */
   &::before {
     content: '';
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse 60% 50% at 20% 80%, rgba(255,255,255,0.10) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 60%);
+      radial-gradient(ellipse 70% 50% at 15% 85%, rgba(255,255,255,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse 55% 45% at 85% 15%, rgba(255,255,255,0.06) 0%, transparent 50%);
   }
 
+  /* Large decorative circle - inspired by moon/jade disc */
   &::after {
     content: '';
     position: absolute;
-    width: 300px;
-    height: 300px;
+    width: 350px;
+    height: 350px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.06);
-    bottom: -80px;
-    right: -80px;
+    background: rgba(255,255,255,0.04);
+    bottom: -100px;
+    right: -100px;
+    border: 1px solid rgba(255,255,255,0.08);
   }
 }
 
@@ -91,51 +98,56 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 40px;
+  gap: 20px;
+  padding: 48px;
   text-align: center;
   color: #fff;
 }
 
 .split-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: rgba(255,255,255,0.20);
-  border: 1px solid rgba(255,255,255,0.30);
+  width: 72px;
+  height: 72px;
+  border-radius: var(--xi-radius-xl);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(8px);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
 .split-title {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #fff;
   margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .split-desc {
-  font-size: 14px;
-  color: rgba(255,255,255,0.75);
+  font-size: 15px;
+  color: rgba(255,255,255,0.7);
   margin: 0;
-  max-width: 260px;
-  line-height: 1.6;
+  max-width: 280px;
+  line-height: 1.7;
 }
 
 .split-dots {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 12px;
 
   span {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.50);
+    background: rgba(255,255,255,0.4);
+    transition: background 0.3s ease;
 
-    &:first-child { background: rgba(255,255,255,0.90); }
+    &:first-child { background: rgba(255,255,255,0.85); }
   }
 }

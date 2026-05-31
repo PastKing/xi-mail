@@ -1,28 +1,25 @@
-/* ═══════════════════════════════════════════════════
-   Login Template: gradient → "Aurora" (极光)
-   ───────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Login Template: gradient → "水墨" (Ink Wash / Eastern Aurora)
+   ───────────────────────────────────────────────────────────────────────────────
    Design approach:
-   - Near-black base (#05050d)
-   - Two HUGE corner blobs (80 vmax) that flow into
-     the center — creates true aurora/mesh gradient
-   - No grid lines (too subtle, just adds noise)
-   - Frosted glass card with crisp border + glow ring
-   - All colors adapt to the active theme via CSS vars
+   - Deep ink-wash base (#0c1210 - almost black with subtle green undertone)
+   - Jade-teal aurora blobs that flow organically
+   - Frosted glass card with refined borders
+   - All colors adapt to the Eastern jade theme via CSS vars
 
-   To extend: adjust blob sizes/positions in the
-   .bg-orb-1 / .bg-orb-2 / .bg-orb-3 overrides.
-   ═══════════════════════════════════════════════════ */
+   Inspired by traditional Chinese ink wash painting and jade aesthetics.
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
 .template-gradient {
-  background: #05050d;
+  background: #0c1210;
 
-  /* ── Override bg-layer orbs: huge corner aurora blobs ── */
+  /* ── Override bg-layer orbs: ink-wash aurora blobs ── */
   .bg-orb {
     border-radius: 50%;
-    filter: blur(0);  /* reset base; each orb sets its own */
+    filter: blur(0);
   }
 
-  /* Top-right: primary color bloom */
+  /* Top-right: primary jade bloom */
   .bg-orb-1 {
     width: 80vmax;
     height: 80vmax;
@@ -32,12 +29,12 @@
       var(--xi-orb-1) 0%,
       transparent 65%
     );
-    filter: blur(90px);
+    filter: blur(100px);
     opacity: 1;
-    animation: aurora-drift-1 20s ease-in-out infinite;
+    animation: ink-drift-1 24s ease-in-out infinite;
   }
 
-  /* Bottom-left: secondary accent bloom */
+  /* Bottom-left: secondary jade bloom */
   .bg-orb-2 {
     width: 65vmax;
     height: 65vmax;
@@ -47,9 +44,9 @@
       var(--xi-orb-2) 0%,
       transparent 65%
     );
-    filter: blur(80px);
-    opacity: 0.9;
-    animation: aurora-drift-2 26s ease-in-out infinite;
+    filter: blur(90px);
+    opacity: 0.85;
+    animation: ink-drift-2 30s ease-in-out infinite;
   }
 
   /* Center: subtle tertiary glow — anchors the card area */
@@ -63,114 +60,117 @@
       var(--xi-orb-3) 0%,
       transparent 70%
     );
-    filter: blur(120px);
-    opacity: 0.35;
+    filter: blur(130px);
+    opacity: 0.3;
     animation: none;
   }
 
-  /* Hide grid — clean look */
+  /* Hide grid for clean look */
   .bg-grid { display: none; }
 
-  /* ── Card: true frosted glass ── */
+  /* ── Card: frosted glass with jade undertones ── */
   .auth-card {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(28px) saturate(1.4);
-    -webkit-backdrop-filter: blur(28px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(32px) saturate(1.3);
+    -webkit-backdrop-filter: blur(32px) saturate(1.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 8px 32px rgba(0, 0, 0, 0.55),
-      0 32px 80px rgba(0, 0, 0, 0.30);
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 8px 40px rgba(0, 0, 0, 0.5),
+      0 32px 80px rgba(0, 0, 0, 0.25);
+    border-radius: var(--xi-radius-lg);
   }
 
   /* ── Typography for dark background ── */
-  .app-name        { color: #f0f0ff; }
-  .card-heading h2 { color: #f4f4f5; }
-  .card-heading p  { color: rgba(255, 255, 255, 0.52); }
-  .field label     { color: rgba(255, 255, 255, 0.48); }
+  .app-name        { color: #e8ede8; }
+  .card-heading h2 { color: #f0f4f2; }
+  .card-heading p  { color: rgba(255, 255, 255, 0.48); }
+  .field label     { color: rgba(255, 255, 255, 0.45); }
 
   /* ── Input fields ── */
   .input-main,
   .input-group {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.10);
+    border-radius: var(--xi-radius);
 
     &:focus-within {
       border-color: var(--xi-orb-card-border);
-      background: rgba(255, 255, 255, 0.09);
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(61, 139, 132, 0.08);
     }
   }
 
   input {
-    color: #f0f0ff;
-    caret-color: var(--xi-orb-card-border);
+    color: #e8ede8;
+    caret-color: var(--el-color-primary);
     background: transparent;
 
-    &::placeholder { color: rgba(255, 255, 255, 0.28); }
+    &::placeholder { color: rgba(255, 255, 255, 0.25); }
   }
 
   /* ── Icon / helper elements ── */
   .toggle-pwd {
-    color: rgba(255, 255, 255, 0.38);
-    &:hover { color: rgba(255, 255, 255, 0.72); }
+    color: rgba(255, 255, 255, 0.35);
+    &:hover { color: rgba(255, 255, 255, 0.7); }
   }
-  .input-icon   { color: rgba(255, 255, 255, 0.38); }
+  .input-icon   { color: rgba(255, 255, 255, 0.35); }
   .input-suffix {
-    color: rgba(255, 255, 255, 0.52);
-    border-left-color: rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.08);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.10);
-      color: rgba(255, 255, 255, 0.90);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.85);
     }
   }
 
   /* ── Tab bar ── */
   .tab-bar {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--xi-radius);
   }
-  .tab { color: rgba(255, 255, 255, 0.42); }
+  .tab { color: rgba(255, 255, 255, 0.4); }
   .tab.active {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.10);
     color: #ffffff;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
   }
 
   /* ── Divider ── */
-  .divider span { color: rgba(255, 255, 255, 0.28); }
+  .divider span { color: rgba(255, 255, 255, 0.25); }
   .divider::before,
-  .divider::after { background: rgba(255, 255, 255, 0.10); }
+  .divider::after { background: rgba(255, 255, 255, 0.08); }
 
   /* ── Social login button ── */
   .social-btn {
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #e0e0f0;
-    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.10);
+    color: #d8e0dc;
+    background: rgba(255, 255, 255, 0.05);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.10);
-      border-color: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
     }
   }
 
   /* ── Footer ── */
   .page-footer a {
-    color: rgba(255, 255, 255, 0.28);
-    &:hover { color: rgba(255, 255, 255, 0.58); }
+    color: rgba(255, 255, 255, 0.25);
+    &:hover { color: rgba(255, 255, 255, 0.55); }
   }
 }
 
-/* ── Aurora drift keyframes ── */
-@keyframes aurora-drift-1 {
+/* ── Ink-wash drift keyframes - slower, more organic ── */
+@keyframes ink-drift-1 {
   0%,  100% { transform: translate(0, 0) scale(1); }
-  30%        { transform: translate(-3vw, 2vh) scale(1.05); }
-  70%        { transform: translate(2vw, -3vh) scale(0.96); }
+  30%        { transform: translate(-2vw, 1.5vh) scale(1.03); }
+  70%        { transform: translate(1.5vw, -2vh) scale(0.97); }
 }
 
-@keyframes aurora-drift-2 {
+@keyframes ink-drift-2 {
   0%,  100% { transform: translate(0, 0) scale(1); }
-  35%        { transform: translate(3vw, -2vh) scale(1.04); }
-  65%        { transform: translate(-2vw, 3vh) scale(0.97); }
+  35%        { transform: translate(2vw, -1.5vh) scale(1.02); }
+  65%        { transform: translate(-1.5vw, 2vh) scale(0.98); }
 }

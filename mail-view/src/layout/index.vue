@@ -59,6 +59,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
+/* ══════════════════════════════════════════════════════════════════════════════
+   Main Layout: Eastern Aesthetic / 东方美学布局
+   ──────────────────────────────────────────────────────────────────────────────
+   - Clean separation between sidebar and content
+   - Refined border treatments
+   - Smooth, elegant transitions
+   ══════════════════════════════════════════════════════════════════════════════ */
 .layout {
   height: 100%;
   width: 100%;
@@ -67,13 +74,14 @@ onBeforeUnmount(() => {
   left: 0;
   display: flex;
   overflow: hidden;
+  background: var(--el-bg-color);
 }
 
 .aside {
   flex-shrink: 0;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   z-index: 101;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(61, 139, 132, 0.08);
 }
 
 .aside-hide {
@@ -105,23 +113,26 @@ onBeforeUnmount(() => {
   flex-direction: column;
   background: var(--el-bg-color);
   overflow: hidden;
+  /* Subtle texture for main content area */
+  background-image: var(--xi-gradient-subtle);
 }
 
 .top-bar {
-  height: 52px;
+  height: 56px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
   padding: 0;
   background: var(--el-bg-color);
+  backdrop-filter: blur(8px);
 }
 
 .overlay-show {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(12, 15, 18, 0.55);
   z-index: 99;
-  transition: opacity 0.25s ease;
-  backdrop-filter: blur(2px);
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(4px);
 }
 
 .overlay-hide {

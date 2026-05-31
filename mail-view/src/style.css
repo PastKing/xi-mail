@@ -113,95 +113,120 @@
   max-height: 220px !important;
 }
 
-/* ── Design System: Linear-inspired tokens ── */
+/* ══════════════════════════════════════════════════════════════════════════════
+   Design System: Eastern Aesthetic / 东方美学设计系统
+   ──────────────────────────────────────────────────────────────────────────────
+   Inspired by:
+   - 水墨 (Ink Wash): Deep blacks, soft grays, calming transitions
+   - 玉石 (Jade): Muted teal-green accents
+   - 宣纸 (Rice Paper): Warm off-white backgrounds
+   - 留白 (Negative Space): Generous whitespace, refined proportions
+   ══════════════════════════════════════════════════════════════════════════════ */
 :root {
-  --el-color-primary: #6366f1;
-  --el-color-primary-dark-2: #4f46e5;
-  --el-color-primary-light-3: #818cf8;
-  --el-color-primary-light-5: #a5b4fc;
-  --el-color-primary-light-7: #c7d2fe;
-  --el-color-primary-light-9: #eef2ff;
-  --el-color-primary-light-8: #e0e7ff;
+  /* Primary: Jade-teal inspired, elegant and calming */
+  --el-color-primary: #3d8b84;
+  --el-color-primary-dark-2: #2d726c;
+  --el-color-primary-light-3: #5aa39c;
+  --el-color-primary-light-5: #8ac4be;
+  --el-color-primary-light-7: #bce0dc;
+  --el-color-primary-light-9: #e8f4f3;
+  --el-color-primary-light-8: #d5ebe9;
 
-  --xi-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
-  --xi-gradient-hover: linear-gradient(135deg, #4f46e5, #7c3aed);
-  --xi-shadow-sm: 0 1px 2px rgba(99, 102, 241, 0.05);
-  --xi-shadow: 0 1px 3px rgba(99, 102, 241, 0.08), 0 1px 2px rgba(99, 102, 241, 0.06);
-  --xi-shadow-md: 0 4px 6px -1px rgba(99, 102, 241, 0.08), 0 2px 4px -2px rgba(99, 102, 241, 0.06);
-  --xi-shadow-lg: 0 10px 15px -3px rgba(99, 102, 241, 0.08), 0 4px 6px -4px rgba(99, 102, 241, 0.06);
-  --xi-shadow-card: 0 1px 3px rgba(99, 102, 241, 0.06), 0 0 0 1px rgba(99, 102, 241, 0.04);
-  --xi-shadow-card-hover: 0 8px 25px -5px rgba(99, 102, 241, 0.12), 0 0 0 1px rgba(99, 102, 241, 0.08);
+  /* Eastern-inspired gradients */
+  --xi-gradient: linear-gradient(135deg, #3d8b84 0%, #5a9e96 50%, #7ab3ac 100%);
+  --xi-gradient-hover: linear-gradient(135deg, #2d726c 0%, #4a8e86 50%, #6aa39c 100%);
+  --xi-gradient-subtle: linear-gradient(180deg, rgba(61,139,132,0.03) 0%, rgba(61,139,132,0.01) 100%);
+  
+  /* Ink-wash inspired shadows - softer, more diffused */
+  --xi-shadow-sm: 0 1px 2px rgba(45, 55, 72, 0.04);
+  --xi-shadow: 0 2px 8px rgba(45, 55, 72, 0.06), 0 1px 3px rgba(45, 55, 72, 0.04);
+  --xi-shadow-md: 0 4px 12px -2px rgba(45, 55, 72, 0.08), 0 2px 6px -2px rgba(45, 55, 72, 0.05);
+  --xi-shadow-lg: 0 12px 24px -4px rgba(45, 55, 72, 0.10), 0 6px 12px -6px rgba(45, 55, 72, 0.06);
+  --xi-shadow-card: 0 1px 3px rgba(45, 55, 72, 0.04), 0 0 0 1px rgba(45, 55, 72, 0.03);
+  --xi-shadow-card-hover: 0 8px 24px -4px rgba(45, 55, 72, 0.12), 0 0 0 1px rgba(61, 139, 132, 0.08);
+  --xi-shadow-inner: inset 0 1px 2px rgba(45, 55, 72, 0.04);
 
-  --xi-radius: 10px;
-  --xi-radius-sm: 6px;
-  --xi-radius-lg: 14px;
+  /* Refined radii - smoother, more organic */
+  --xi-radius: 12px;
+  --xi-radius-sm: 8px;
+  --xi-radius-lg: 16px;
+  --xi-radius-xl: 20px;
 
-  --extra-light-fill: #f8f9fc;
-  --light-ill: #f3f4f8;
-  --light-border: #e5e7eb;
+  /* Rice paper inspired backgrounds */
+  --extra-light-fill: #fafaf8;
+  --light-ill: #f5f5f2;
+  --light-border: #e8e6e1;
   --header-actions-border: inset 0 -1px 0 0 var(--el-border-color-lighter);
-  --aside-backgound: #0f0f14;
-  --loadding-background: rgba(255, 255, 255, 0.8);
-  --dark-border: #d1d5db;
-  --base-fill: #f1f3f9;
-  --regular-text-color: #6b7280;
-  --light-border-color: #e5e7eb;
-  --aside-right-border: 0 0 15px rgba(99, 102, 241, 0.06);
+  --aside-backgound: #1a1f1e;
+  --loadding-background: rgba(250, 250, 248, 0.92);
+  --dark-border: #d4d2cd;
+  --base-fill: #f7f7f4;
+  --regular-text-color: #5a6366;
+  --light-border-color: #e8e6e1;
+  --aside-right-border: 0 0 20px rgba(45, 55, 72, 0.05);
   --choose-account-background: var(--el-color-primary-light-8);
   --el-text-color-regular: var(--el-text-color-primary);
-  --email-scroll-content-color: rgba(25, 41, 59, 0.4);
-  --email-hover-background: #f5f3ff;
+  --email-scroll-content-color: rgba(45, 55, 72, 0.45);
+  --email-hover-background: #f0f5f4;
   --login-border: none;
-  --form-desc-color: #71717a;
-  --login-switch-color: #6366f1;
-  --scrollbar-track-color: #A8ABB2;
-  --base-border-color: #e5e7eb;
-  --secondary-text-color: #9ca3af;
+  --form-desc-color: #6b7578;
+  --login-switch-color: #3d8b84;
+  --scrollbar-track-color: #c5c3be;
+  --base-border-color: #e8e6e1;
+  --secondary-text-color: #8a9092;
   --message-block-color: rgba(0, 0, 0, 0);
-  --loading-hide-transition: all 200ms;
+  --loading-hide-transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
   --vt-x: 50%;
   --vt-y: 50%;
-  --vt-duration: 520ms;
-  --vt-easing: ease-out;
+  --vt-duration: 480ms;
+  --vt-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Login gradient template orb colors (theme-aware) */
-  --xi-orb-1: rgba(99,102,241,0.62);
-  --xi-orb-2: rgba(139,92,246,0.54);
-  --xi-orb-3: rgba(59,130,246,0.46);
-  --xi-orb-bg-top:    rgba(99,102,241,0.34);
-  --xi-orb-bg-bottom: rgba(139,92,246,0.28);
-  --xi-orb-card-border: rgba(99,102,241,0.24);
+  /* Eastern-inspired accent colors */
+  --xi-accent-gold: #b8956e;
+  --xi-accent-vermillion: #c75d4a;
+  --xi-accent-ink: #2d3436;
+  --xi-accent-bamboo: #6b8e6b;
+
+  /* Login gradient template orb colors (Eastern theme) */
+  --xi-orb-1: rgba(61,139,132,0.55);
+  --xi-orb-2: rgba(90,158,150,0.45);
+  --xi-orb-3: rgba(122,179,172,0.35);
+  --xi-orb-bg-top: rgba(61,139,132,0.28);
+  --xi-orb-bg-bottom: rgba(90,158,150,0.22);
+  --xi-orb-card-border: rgba(61,139,132,0.18);
 }
 
+/* Dark mode: Ink-wash inspired / 水墨暗色主题 */
 .dark {
-  --extra-light-fill: #111114;
-  --light-ill: #1a1a1f;
-  --light-border: #2a2a30;
-  --aside-backgound: #0a0a0e;
+  --extra-light-fill: #12151a;
+  --light-ill: #181c21;
+  --light-border: #2a3038;
+  --aside-backgound: #0c0f12;
   --header-actions-border: inset 0 -1px 0 0 var(--el-border-color-lighter);
-  --loadding-background: rgba(0, 0, 0, 0.3);
-  --dark-border: #3f3f46;
-  --base-fill: #1e1e24;
-  --regular-text-color: #a1a1aa;
-  --light-border-color: #27272a;
-  --aside-right-border: 0 0 15px rgba(0, 0, 0, 0.3);
-  --choose-account-background: #27272a;
-  --email-scroll-content-color: rgba(255, 255, 255, 0.3);
-  --email-hover-background: #1e1b2e;
+  --loadding-background: rgba(12, 15, 18, 0.85);
+  --dark-border: #3a424a;
+  --base-fill: #1e2328;
+  --regular-text-color: #9ca3ab;
+  --light-border-color: #262c34;
+  --aside-right-border: 0 0 20px rgba(0, 0, 0, 0.35);
+  --choose-account-background: #262c34;
+  --email-scroll-content-color: rgba(255, 255, 255, 0.35);
+  --email-hover-background: #1c2a28;
   --login-border: none;
-  --form-desc-color: #8D9095;
-  --login-switch-color: #818cf8;
-  --scrollbar-track-color: #52525b;
-  --base-border-color: #3f3f46;
-  --secondary-text-color: #71717a;
-  --message-block-color: rgba(30, 30, 30, 0.2);
-  --el-border-color: #27272a !important;
+  --form-desc-color: #7a8288;
+  --login-switch-color: #5aa39c;
+  --scrollbar-track-color: #4a5258;
+  --base-border-color: #3a424a;
+  --secondary-text-color: #6b7378;
+  --message-block-color: rgba(20, 25, 30, 0.25);
+  --el-border-color: #262c34 !important;
 }
 
 /* ── Color theme overrides ──
    Each theme lives in src/themes/<name>.css
    To add a new theme: create the file and add an @import here.
    ── */
+@import './themes/jade.css';
 @import './themes/rose.css';
 @import './themes/emerald.css';
 @import './themes/amber.css';

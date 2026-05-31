@@ -1,0 +1,44 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Theme: Jade / 玉石 (Default Eastern Theme)
+   ───────────────────────────────────────────────────────────────────────────────
+   Primary: #3d8b84 (Jade Teal)  Dark: #2d726c
+   
+   This is the default theme for the Eastern aesthetic design system.
+   Inspired by traditional Chinese jade with its calming teal-green tones.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+[data-color-theme="jade"] {
+  --xi-orb-1: rgba(61,139,132,0.55);
+  --xi-orb-2: rgba(90,158,150,0.45);
+  --xi-orb-3: rgba(122,179,172,0.35);
+  --xi-orb-bg-top: rgba(61,139,132,0.28);
+  --xi-orb-bg-bottom: rgba(90,158,150,0.22);
+  --xi-orb-card-border: rgba(61,139,132,0.18);
+
+  --el-color-primary: #3d8b84;
+  --el-color-primary-dark-2: #2d726c;
+  --el-color-primary-light-3: #5aa39c;
+  --el-color-primary-light-5: #8ac4be;
+  --el-color-primary-light-7: #bce0dc;
+  --el-color-primary-light-8: #d5ebe9;
+  --el-color-primary-light-9: #e8f4f3;
+
+  --xi-gradient: linear-gradient(135deg, #3d8b84 0%, #5a9e96 50%, #7ab3ac 100%);
+  --xi-gradient-hover: linear-gradient(135deg, #2d726c 0%, #4a8e86 50%, #6aa39c 100%);
+  --xi-shadow-sm: 0 1px 2px rgba(45, 55, 72, 0.04);
+  --xi-shadow: 0 2px 8px rgba(45, 55, 72, 0.06), 0 1px 3px rgba(45, 55, 72, 0.04);
+  --xi-shadow-md: 0 4px 12px -2px rgba(45, 55, 72, 0.08), 0 2px 6px -2px rgba(45, 55, 72, 0.05);
+  --xi-shadow-lg: 0 12px 24px -4px rgba(45, 55, 72, 0.10), 0 6px 12px -6px rgba(45, 55, 72, 0.06);
+  --xi-shadow-card: 0 1px 3px rgba(45, 55, 72, 0.04), 0 0 0 1px rgba(45, 55, 72, 0.03);
+  --xi-shadow-card-hover: 0 8px 24px -4px rgba(45, 55, 72, 0.12), 0 0 0 1px rgba(61, 139, 132, 0.08);
+  --aside-right-border: 0 0 20px rgba(45, 55, 72, 0.05);
+  --choose-account-background: #d5ebe9;
+  --email-hover-background: #f0f5f4;
+  --login-switch-color: #3d8b84;
+}
+
+.dark[data-color-theme="jade"],
+.dark [data-color-theme="jade"] {
+  --email-hover-background: #1c2a28;
+  --choose-account-background: #1c2a28;
+}

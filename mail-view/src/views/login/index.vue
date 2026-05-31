@@ -465,6 +465,13 @@ function submitRegister() {
 </style>
 
 <style lang="scss" scoped>
+/* ══════════════════════════════════════════════════════════════════════════════
+   Login Page: Eastern Aesthetic Base Styles / 东方美学登录页
+   ──────────────────────────────────────────────────────────────────────────────
+   - Jade-inspired color palette
+   - Refined, calm visual design
+   - Organic animations
+   ══════════════════════════════════════════════════════════════════════════════ */
 /* ── Full-page centered layout ── */
 .login-page {
   position: relative;
@@ -474,21 +481,21 @@ function submitRegister() {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* Light mode: 淡紫渐变背景 */
+  /* Light mode: warm jade-tinted background */
   background:
-    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99,102,241,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(139,92,246,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.06) 0%, transparent 60%),
-    #f7f6ff;
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(61,139,132,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(90,158,150,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(122,179,172,0.05) 0%, transparent 60%),
+    #fafaf8;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 :global(.dark) .login-page {
   background:
-    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99,102,241,0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(139,92,246,0.14) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.08) 0%, transparent 60%),
-    #09090e;
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(61,139,132,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(90,158,150,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(122,179,172,0.06) 0%, transparent 60%),
+    #0c0f12;
 }
 
 /* ── Background decoration ── */
@@ -499,75 +506,75 @@ function submitRegister() {
   overflow: hidden;
 }
 
-/* 渐变网格线 */
+/* Subtle grid lines */
 .bg-grid {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px);
-  background-size: 44px 44px;
+    linear-gradient(rgba(61,139,132,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(61,139,132,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
 }
 
-/* 装饰光晕球 */
+/* Decorative orbs */
 .bg-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(72px);
+  filter: blur(80px);
 }
 
 .bg-orb-1 {
   width: 520px;
   height: 520px;
-  background: radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(61,139,132,0.18) 0%, transparent 70%);
   top: -180px;
   right: -80px;
-  animation: orb-drift-1 14s ease-in-out infinite;
+  animation: orb-drift-1 18s ease-in-out infinite;
 }
 
 .bg-orb-2 {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(90,158,150,0.14) 0%, transparent 70%);
   bottom: -120px;
   left: -60px;
-  animation: orb-drift-2 18s ease-in-out infinite;
+  animation: orb-drift-2 22s ease-in-out infinite;
 }
 
 .bg-orb-3 {
   width: 260px;
   height: 260px;
-  background: radial-gradient(circle, rgba(59,130,246,0.16) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(122,179,172,0.12) 0%, transparent 70%);
   top: 35%;
   right: 18%;
-  animation: orb-drift-3 22s ease-in-out infinite;
+  animation: orb-drift-3 26s ease-in-out infinite;
 }
 
 @keyframes orb-drift-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(-25px, 18px) scale(1.04); }
-  66%       { transform: translate(12px, -22px) scale(0.97); }
+  33%       { transform: translate(-20px, 15px) scale(1.03); }
+  66%       { transform: translate(10px, -18px) scale(0.98); }
 }
 @keyframes orb-drift-2 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(20px, -28px) scale(1.03); }
-  66%       { transform: translate(-18px, 15px) scale(0.98); }
+  33%       { transform: translate(18px, -24px) scale(1.02); }
+  66%       { transform: translate(-15px, 12px) scale(0.98); }
 }
 @keyframes orb-drift-3 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(-20px, -24px) scale(1.06); }
+  50%       { transform: translate(-15px, -20px) scale(1.04); }
 }
 
-/* 角落装饰色块 */
+/* Top decorative bar */
 .bg-layer::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6, #3b82f6);
-  opacity: 0.5;
+  height: 2px;
+  background: var(--xi-gradient);
+  opacity: 0.4;
 }
 
 /* ── Card wrapper ── */
@@ -580,65 +587,66 @@ function submitRegister() {
   width: 100%;
   max-height: 100vh;
   overflow-y: auto;
-  padding: 24px 16px;
+  padding: 28px 18px;
 }
 
 /* ── Auth card ── */
 .auth-card {
   width: 100%;
-  max-width: 380px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 18px;
-  padding: 28px 28px 24px;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--xi-radius-lg);
+  padding: 32px 32px 28px;
   box-shadow:
-    0 0 0 1px rgba(99, 102, 241, 0.06),
-    0 4px 24px -4px rgba(99, 102, 241, 0.12),
-    0 20px 60px -12px rgba(99, 102, 241, 0.10),
-    0 0 0 0 transparent;
+    0 0 0 1px rgba(61, 139, 132, 0.04),
+    0 4px 28px -4px rgba(61, 139, 132, 0.10),
+    0 20px 60px -12px rgba(61, 139, 132, 0.08);
 
   @media (max-width: 460px) {
-    padding: 22px 18px 20px;
-    border-radius: 14px;
+    padding: 24px 20px 22px;
+    border-radius: var(--xi-radius);
   }
 }
 
 :global(.dark) .auth-card {
-  background: rgba(15, 15, 22, 0.80);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border-color: rgba(99, 102, 241, 0.15);
+  background: rgba(18, 22, 26, 0.85);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border-color: rgba(61, 139, 132, 0.12);
   box-shadow:
-    0 0 0 1px rgba(99, 102, 241, 0.10),
-    0 4px 24px -4px rgba(0, 0, 0, 0.4),
-    0 20px 60px -12px rgba(0, 0, 0, 0.3);
+    0 0 0 1px rgba(61, 139, 132, 0.08),
+    0 4px 28px -4px rgba(0, 0, 0, 0.35),
+    0 20px 60px -12px rgba(0, 0, 0, 0.25);
 }
 
 /* ── Card header ── */
 .card-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .logo-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--xi-radius);
   background: var(--xi-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.30);
+  box-shadow: 
+    0 3px 12px rgba(61, 139, 132, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .app-name {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--el-text-color-primary);
   margin: 0;
@@ -677,29 +685,29 @@ function submitRegister() {
 /* ── Tab bar ── */
 .tab-bar {
   display: flex;
-  background: rgba(99, 102, 241, 0.07);
-  border-radius: 8px;
-  padding: 3px;
-  margin-bottom: 16px;
+  background: rgba(61, 139, 132, 0.06);
+  border-radius: var(--xi-radius);
+  padding: 4px;
+  margin-bottom: 18px;
 }
 
 .tab {
   flex: 1;
-  padding: 6px 0;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 8px 0;
+  font-size: 13.5px;
+  font-weight: 520;
   color: var(--el-text-color-secondary);
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--xi-radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.active {
     background: var(--el-bg-color);
-    color: #6366f1;
+    color: var(--el-color-primary);
     font-weight: 600;
-    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 1px 6px rgba(61, 139, 132, 0.12);
   }
 }
 
@@ -755,14 +763,14 @@ function submitRegister() {
 .input-group {
   display: flex;
   border: 1px solid var(--el-border-color);
-  border-radius: 9px;
+  border-radius: var(--xi-radius);
   overflow: hidden;
   background: var(--el-fill-color-blank);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:focus-within {
     border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.10);
+    box-shadow: 0 0 0 3px rgba(61, 139, 132, 0.08);
   }
 
   &.has-suffix .input-main {
@@ -778,13 +786,13 @@ function submitRegister() {
 
   &.standalone {
     border: 1px solid var(--el-border-color);
-    border-radius: 9px;
+    border-radius: var(--xi-radius);
     background: var(--el-fill-color-blank);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:focus-within {
       border-color: var(--el-color-primary);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.10);
+      box-shadow: 0 0 0 3px rgba(61, 139, 132, 0.08);
     }
 
     &.error {
@@ -795,9 +803,9 @@ function submitRegister() {
 
   input {
     flex: 1;
-    height: 36px;
-    padding: 0 10px 0 0;
-    font-size: 13.5px;
+    height: 40px;
+    padding: 0 12px 0 0;
+    font-size: 14px;
     color: var(--el-text-color-primary);
     min-width: 0;
 
@@ -863,26 +871,26 @@ function submitRegister() {
 /* ── Primary button ── */
 .primary-btn {
   width: 100%;
-  height: 37px;
+  height: 42px;
   border: none;
-  border-radius: 9px;
+  border-radius: var(--xi-radius);
   background: var(--xi-gradient);
   color: #fff;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s;
-  box-shadow: var(--xi-shadow-md), 0 0 0 1px rgba(0,0,0,0.08);
-  margin-top: 2px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--xi-shadow-md), 0 0 0 1px rgba(0,0,0,0.06);
+  margin-top: 4px;
   letter-spacing: 0.01em;
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: var(--xi-shadow-lg), 0 0 0 1px rgba(0,0,0,0.10);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(61, 139, 132, 0.30), 0 0 0 1px rgba(0,0,0,0.08);
     background: var(--xi-gradient-hover);
   }
 

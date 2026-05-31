@@ -1,10 +1,12 @@
-/* ═══════════════════════════════════════════
-   Login Template: minimal (简约)
-   Pure white background, zero decoration.
-   Dark mode: flat dark card.
-   ═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Login Template: minimal → "宣纸" (Rice Paper)
+   ───────────────────────────────────────────────────────────────────────────────
+   Pure, elegant simplicity inspired by traditional rice paper.
+   Warm off-white background, zero decoration, clean lines.
+   Dark mode: subtle ink-wash inspired dark card.
+   ═══════════════════════════════════════════════════════════════════════════════ */
 .template-minimal {
-  background: #ffffff;
+  background: #fafaf8;
 
   .bg-layer { display: none; }
 
@@ -12,44 +14,61 @@
     background: #ffffff;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid #e8e6e1;
+    border-radius: var(--xi-radius-lg);
+    box-shadow: 
+      0 1px 2px rgba(0,0,0,0.03), 
+      0 4px 16px rgba(0,0,0,0.04);
   }
 
-  .tab-bar { background: #f3f4f6; }
+  .tab-bar { 
+    background: #f5f5f2;
+    border-radius: var(--xi-radius);
+  }
 
   .tab.active {
     background: #fff;
     color: var(--el-color-primary);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
 
   .input-main, .input-group {
-    border-color: #d1d5db;
+    border-color: #d4d2cd;
     background: #fff;
-    &:focus-within { border-color: var(--el-color-primary); }
+    border-radius: var(--xi-radius);
+    
+    &:focus-within { 
+      border-color: var(--el-color-primary);
+      box-shadow: 0 0 0 3px rgba(61, 139, 132, 0.08);
+    }
   }
 
   .primary-btn {
-    background: var(--el-color-primary);
-    &:hover { background: var(--el-color-primary-dark-2); }
+    background: var(--xi-gradient);
+    border-radius: var(--xi-radius);
+    
+    &:hover { 
+      background: var(--xi-gradient-hover);
+      box-shadow: 0 4px 16px rgba(61, 139, 132, 0.25);
+    }
   }
 }
 
 :global(.dark) .template-minimal {
-  background: #0f0f13;
+  background: #0c0f12;
 
   .auth-card {
-    background: #18181c;
-    border-color: #2a2a30;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+    background: #151a1e;
+    border-color: #262c34;
+    box-shadow: 
+      0 1px 4px rgba(0,0,0,0.25), 
+      0 8px 24px rgba(0,0,0,0.2);
   }
 
-  .tab-bar { background: #1e1e24; }
+  .tab-bar { background: #1e2328; }
 
   .input-main, .input-group {
-    border-color: #3f3f46;
-    background: #1e1e24;
+    border-color: #3a424a;
+    background: #1e2328;
   }
 }
