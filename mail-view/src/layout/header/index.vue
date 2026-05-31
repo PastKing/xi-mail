@@ -25,7 +25,7 @@
         <Icon icon="mingcute:notification-line" width="18" height="18" />
       </button>
 
-      <el-dropdown ref="userinfoRef" @visible-change="e => userInfoShow = e" :teleported="false" popper-class="detail-dropdown">
+      <el-dropdown ref="userinfoRef" @visible-change="e => userInfoShow = e" popper-class="detail-dropdown">
         <button class="avatar-btn" @click="userInfoHide">
           <div class="avatar-circle">
             {{ formatName(userStore.user.email) }}
