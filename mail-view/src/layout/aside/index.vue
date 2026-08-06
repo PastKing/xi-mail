@@ -10,7 +10,7 @@
     <el-scrollbar class="aside-scroll">
       <nav class="nav-section">
         <el-tooltip
-          v-for="item in mainNav"
+          v-for="item in visibleMainNav"
           :key="item.name"
           :disabled="!isCompact"
           :content="$t(item.label)"
@@ -18,7 +18,6 @@
           :show-after="100"
         >
           <div
-            v-if="item.sendOnly ? canSend : (!item.perm || hasPerm(item.perm))"
             class="nav-item"
             :class="{ active: route.meta.name === item.name }"
             @click="router.push({ name: item.name })"
@@ -36,14 +35,14 @@
         </el-tooltip>
       </nav>
 
-      <div class="nav-divider" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query']">
+      <div v-if="visibleAdminNav.length" class="nav-divider">
         <span v-if="!isCompact" class="divider-text">{{ $t('manage') }}</span>
         <div v-else class="divider-line"></div>
       </div>
 
       <nav class="nav-section">
         <el-tooltip
-          v-for="item in adminNav"
+          v-for="item in visibleAdminNav"
           :key="item.name"
           :disabled="!isCompact"
           :content="$t(item.label)"
@@ -54,7 +53,6 @@
             class="nav-item"
             :class="{ active: route.meta.name === item.name }"
             @click="router.push({ name: item.name })"
-            v-perm="item.perm"
           >
             <div class="nav-icon-wrap">
               <Icon :icon="item.icon" :width="item.size || 18" :height="item.size || 18" />
@@ -73,46 +71,12 @@ import { useRoute } from "vue-router";
 import { computed } from "vue";
 import { Icon } from "@iconify/vue";
 import { useSettingStore } from "@/store/setting.js";
-import { useUserStore } from "@/store/user.js";
-import { useTransferStore } from "@/store/transfer.js";
-import { transferPendingList } from "@/request/account-transfer.js";
-import { hasPerm } from "@/perm/perm.js";
+import { useNavigationAccess } from "@/layout/nav-config.js";
 
 const settingStore = useSettingStore();
-const userStore = useUserStore();
 const isCompact = computed(() => settingStore.settings?.layoutMode === 'compact');
-const transferStore = useTransferStore();
 const route = useRoute();
-
-// Send/draft items are hidden if: global send is disabled, role is banned, or no email:send permission
-const canSend = computed(() => {
-  if (settingStore.settings.send === 1) return false;
-  const role = userStore.user?.role;
-  if (role?.sendType === 'ban') return false;
-  return hasPerm('email:send');
-});
-
-const mainNav = [
-  { name: 'email', icon: 'mingcute:inbox-line', label: 'inbox' },
-  { name: 'send', icon: 'mingcute:send-line', label: 'sent', sendOnly: true },
-  { name: 'draft', icon: 'mingcute:file-line', label: 'drafts', sendOnly: true },
-  { name: 'star', icon: 'mingcute:star-line', label: 'starred' },
-  { name: 'setting', icon: 'mingcute:settings-3-line', label: 'settings' },
-  { name: 'transfer', icon: 'mingcute:transfer-3-line', label: 'transferPending' },
-];
-
-const adminNav = [
-  { name: 'analysis', icon: 'mingcute:chart-pie-2-line', label: 'analytics', perm: 'analysis:query' },
-  { name: 'user', icon: 'mingcute:group-line', label: 'allUsers', perm: 'user:query' },
-  { name: 'all-email', icon: 'mingcute:mail-open-line', label: 'allMail', perm: 'all-email:query' },
-  { name: 'role', icon: 'mingcute:shield-line', label: 'permissions', perm: 'role:query' },
-  { name: 'reg-key', icon: 'mingcute:key-2-line', label: 'inviteCode', perm: 'reg-key:query' },
-  { name: 'sys-setting', icon: 'mingcute:settings-6-line', label: 'SystemSettings', perm: 'setting:query' },
-];
-
-transferPendingList().then(list => {
-  transferStore.pendingCount = list.length;
-}).catch(() => {});
+const {transferStore, visibleMainNav, visibleAdminNav} = useNavigationAccess();
 </script>
 
 <style lang="scss" scoped>

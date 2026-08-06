@@ -1,7 +1,7 @@
 <template>
-  <div class="header" :class="!hasPerm('email:send') ? 'not-send' : ''">
+  <div class="header" :class="{ 'not-send': !hasPerm('email:send'), 'is-navigation-shell': !hasAsideNav }">
     <div class="header-left">
-      <hanburger @click="changeAside" />
+      <hanburger v-if="hasAsideNav" @click="changeAside" />
       <span class="breadcrumb-item">{{ $t(route.meta.title) }}</span>
     </div>
 
@@ -108,6 +108,7 @@ const uiStore = useUiStore();
 const logoutLoading = ref(false)
 const userInfoShow = ref(false)
 const userinfoRef = ref({})
+const hasAsideNav = computed(() => ['default', 'compact'].includes(settingStore.settings?.layoutMode || 'default'))
 
 const accountCount = computed(() => userStore.user.role.accountCount)
 
@@ -265,6 +266,10 @@ function formatName(email) {
 
 .header.not-send .compose-btn {
   display: none;
+}
+
+.header.is-navigation-shell {
+  padding-left: 18px;
 }
 
 .header-left {

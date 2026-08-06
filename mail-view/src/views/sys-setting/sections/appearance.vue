@@ -52,6 +52,15 @@
                   <div class="lp-body"></div>
                 </div>
               </div>
+              <div v-else-if="mode.id === 'island'" class="layout-preview lp-island">
+                <div class="lp-island-rail">
+                  <i></i><i></i><i></i><i></i>
+                </div>
+                <div class="lp-island-workspace">
+                  <div class="lp-island-header"></div>
+                  <div class="lp-island-body"></div>
+                </div>
+              </div>
               <div v-else class="layout-preview lp-top">
                 <div class="lp-full-col">
                   <div class="lp-hbar">
@@ -112,6 +121,20 @@
                 </div>
                 <div class="tpl-geo-card"></div>
               </div>
+              <div v-else-if="tpl.id === 'envelope'" class="tpl-preview tpl-envelope">
+                <div class="tpl-envelope-flap"></div>
+                <div class="tpl-envelope-label"></div>
+                <div class="tpl-envelope-stamp"></div>
+              </div>
+              <div v-else-if="tpl.id === 'terminal'" class="tpl-preview tpl-terminal">
+                <div class="tpl-terminal-copy"></div>
+                <div class="tpl-terminal-form"></div>
+              </div>
+              <div v-else-if="tpl.id === 'passport'" class="tpl-preview tpl-passport">
+                <div class="tpl-passport-seam"></div>
+                <div class="tpl-passport-emblem"></div>
+                <div class="tpl-passport-lines"></div>
+              </div>
               <span class="tpl-label">{{ tpl.label }}</span>
             </button>
           </div>
@@ -147,6 +170,7 @@ const layoutModes = computed(() => [
   { id: 'default', label: t('layoutDefault') },
   { id: 'compact', label: t('layoutCompact') },
   { id: 'top',     label: t('layoutTop') },
+  { id: 'island',  label: t('layoutIsland') },
 ])
 
 const loginTemplates = computed(() => [
@@ -156,6 +180,9 @@ const loginTemplates = computed(() => [
   { id: 'glassmorphism', label: t('templateGlassmorphism') },
   { id: 'aurora',        label: t('templateAurora')        },
   { id: 'geometric',     label: t('templateGeometric')     },
+  { id: 'envelope',      label: t('templateEnvelope')      },
+  { id: 'terminal',      label: t('templateTerminal')      },
+  { id: 'passport',      label: t('templatePassport')      },
 ])
 
 function applyColorTheme(id) {
@@ -280,43 +307,45 @@ function applyLoginTemplate(id) {
   color: var(--el-text-color-secondary);
 }
 
-/* gradient preview - aurora style */
+/* ink editorial preview */
 .tpl-gradient {
-  background: #05050d;
+  background: linear-gradient(90deg, #090d0d 0 56%, #f3f0e8 56%);
   position: relative;
   overflow: hidden;
 
   &::before {
     content: '';
     position: absolute;
-    width: 200%; height: 150%;
-    top: -80%; right: -80%;
-    background: radial-gradient(circle at 40% 40%,
-      var(--xi-orb-1, rgba(99,102,241,0.55)) 0%, transparent 60%
-    );
-    filter: blur(20px);
+    width: 42px;
+    height: 42px;
+    top: -16px;
+    left: -12px;
+    border-radius: 50%;
+    background: var(--xi-orb-1);
+    filter: blur(12px);
   }
 
   &::after {
     content: '';
     position: absolute;
-    width: 160%; height: 140%;
-    bottom: -80%; left: -60%;
-    background: radial-gradient(circle at 60% 60%,
-      var(--xi-orb-2, rgba(139,92,246,0.48)) 0%, transparent 60%
-    );
-    filter: blur(18px);
+    left: 8px;
+    bottom: 10px;
+    width: 34px;
+    height: 3px;
+    border-top: 2px solid rgba(255,255,255,.75);
+    border-bottom: 1px solid rgba(255,255,255,.25);
   }
 
   .tpl-card-inner {
     position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 48px; height: 34px;
-    background: rgba(255,255,255,0.06);
-    backdrop-filter: blur(6px);
-    border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.12);
+    top: 13px;
+    right: 7px;
+    width: 34px;
+    height: 39px;
+    background:
+      linear-gradient(#cbc7bd 1px, transparent 1px) 4px 12px / 26px 9px repeat-y;
+    border: 0;
+    border-radius: 0;
     z-index: 1;
   }
 }
@@ -437,19 +466,73 @@ function applyLoginTemplate(id) {
   border-radius: 1px;
 }
 
+.lp-island {
+  gap: 5px;
+  padding: 5px;
+  background: var(--el-fill-color-extra-light) !important;
+}
+
+.lp-island-rail {
+  width: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 3px;
+  border-radius: 5px;
+  background: #171b24;
+  box-shadow: 0 2px 5px rgba(0,0,0,.16);
+
+  i {
+    width: 5px;
+    height: 5px;
+    border-radius: 2px;
+    background: #495064;
+
+    &:first-child { background: var(--el-color-primary); }
+  }
+}
+
+.lp-island-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 5px;
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 5px rgba(0,0,0,.06);
+}
+
+.lp-island-header {
+  height: 6px;
+  border-radius: 2px;
+  background: var(--el-fill-color);
+}
+
+.lp-island-body {
+  flex: 1;
+  border-radius: 3px;
+  background: var(--xi-gradient-subtle);
+}
+
 /* minimal preview */
 .tpl-minimal {
   background: #f4f5f7;
 
   .tpl-minimal-card {
     position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 48px; height: 34px;
-    background: #fff;
-    border-radius: 4px;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    top: 17px;
+    left: 16px;
+    width: 48px;
+    height: 34px;
+    background:
+      linear-gradient(#c7cac7 3px, transparent 3px) 0 0 / 32px 12px no-repeat,
+      linear-gradient(#e2e4e1 1px, transparent 1px) 0 13px / 42px 9px repeat-y;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
@@ -510,12 +593,21 @@ function applyLoginTemplate(id) {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 44px; height: 32px;
+    width: 54px; height: 38px;
     background: rgba(255,255,255,0.1);
     backdrop-filter: blur(4px);
     border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.2);
     z-index: 1;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 7px;
+      border-top: 1px solid rgba(255,255,255,.18);
+    }
   }
 }
 
@@ -553,8 +645,8 @@ function applyLoginTemplate(id) {
     top: 0; left: -50%;
     background: linear-gradient(180deg,
       transparent 0%,
-      rgba(0,255,136,0.1) 30%,
-      rgba(138,43,226,0.08) 60%,
+      var(--xi-orb-1) 30%,
+      var(--xi-orb-2) 60%,
       transparent 100%
     );
     filter: blur(8px);
@@ -611,6 +703,98 @@ function applyLoginTemplate(id) {
     border: 2px solid #1a1a1a;
     box-shadow: 3px 3px 0 #1a1a1a;
     z-index: 1;
+  }
+}
+
+/* physical envelope preview */
+.tpl-envelope {
+  background: #c7b999;
+
+  .tpl-envelope-flap {
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, 50% 62%, 100% 0);
+    background: #d9cdb2;
+    border-top: 1px solid #8d8067;
+  }
+
+  .tpl-envelope-label {
+    position: absolute;
+    width: 52px;
+    height: 28px;
+    left: 22px;
+    top: 25px;
+    border: 1px dashed #8f8269;
+    background:
+      linear-gradient(#a49a85 1px, transparent 1px) 7px 8px / 37px 7px repeat-y,
+      #eee8d8;
+    transform: rotate(1deg);
+  }
+
+  .tpl-envelope-stamp {
+    position: absolute;
+    width: 13px;
+    height: 16px;
+    right: 8px;
+    top: 8px;
+    border: 2px dotted var(--el-color-primary);
+    background: #eee8d8;
+  }
+}
+
+/* command terminal preview */
+.tpl-terminal {
+  display: flex;
+  background: #07100a;
+
+  .tpl-terminal-copy {
+    width: 43%;
+    margin: 9px 6px;
+    background: repeating-linear-gradient(0deg, #6f9d76 0 2px, transparent 2px 7px);
+    opacity: .6;
+  }
+
+  .tpl-terminal-form {
+    flex: 1;
+    margin: 7px 6px 7px 0;
+    border-top: 6px solid #b7f7c0;
+    background:
+      linear-gradient(#315838 1px, transparent 1px) 5px 12px / calc(100% - 10px) 9px repeat-y;
+  }
+}
+
+/* postal passport preview */
+.tpl-passport {
+  background: #e2d6b8;
+  box-shadow: inset 0 0 0 5px #263f50;
+
+  .tpl-passport-seam {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 43%;
+    width: 5px;
+    border-inline: 1px solid #a99d80;
+    background: repeating-linear-gradient(0deg, transparent 0 4px, #a99d80 4px 5px);
+  }
+
+  .tpl-passport-emblem {
+    position: absolute;
+    width: 21px;
+    height: 27px;
+    left: 11px;
+    top: 15px;
+    border-radius: 50%;
+    background: #263f50;
+  }
+
+  .tpl-passport-lines {
+    position: absolute;
+    top: 13px;
+    right: 9px;
+    width: 42px;
+    height: 38px;
+    background: linear-gradient(#8d8775 1px, transparent 1px) 0 0 / 100% 8px repeat-y;
   }
 }
 </style>

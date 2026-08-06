@@ -1,17 +1,18 @@
 <template>
   <div class="layout" :class="'lm-' + layoutMode">
     <aside
-      v-if="layoutMode !== 'top'"
+      v-if="hasAside"
       class="aside"
       :class="uiStore.asideShow ? 'aside-show' : 'aside-hide'"
     >
       <Aside />
     </aside>
     <div
-      v-if="layoutMode !== 'top'"
+      v-if="hasAside"
       :class="(uiStore.asideShow && isMobile) ? 'overlay-show' : 'overlay-hide'"
       @click="uiStore.asideShow = false"
     />
+    <IslandNav v-if="layoutMode === 'island'" />
     <div class="main-area">
       <header class="top-bar">
         <Header />
@@ -26,6 +27,7 @@
 <script setup>
 import Aside from '@/layout/aside/index.vue'
 import HNav from '@/layout/hnav/index.vue'
+import IslandNav from '@/layout/island/index.vue'
 import Header from '@/layout/header/index.vue'
 import Main from '@/layout/main/index.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
@@ -39,11 +41,14 @@ const writerRef = ref({})
 const isMobile = ref(window.innerWidth < 1025)
 
 const layoutMode = computed(() => settingStore.settings?.layoutMode || 'default')
+const hasAside = computed(() => ['default', 'compact'].includes(layoutMode.value))
 
 const handleResize = () => {
   isMobile.value = window.innerWidth < 1025
-  if (layoutMode.value !== 'top') {
+  if (hasAside.value) {
     uiStore.asideShow = window.innerWidth > 1024;
+  } else {
+    uiStore.asideShow = false;
   }
 }
 
@@ -138,5 +143,41 @@ onBeforeUnmount(() => {
 .overlay-hide {
   pointer-events: none;
   opacity: 0;
+}
+
+.lm-island {
+  padding: 0;
+  background:
+    radial-gradient(circle at 8% 4%, var(--xi-orb-bg-top), transparent 24%),
+    var(--el-fill-color-extra-light);
+
+  .main-area {
+    margin: 14px 14px 14px 0;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 22px;
+    background: var(--el-bg-color);
+    background-image: var(--xi-gradient-subtle);
+    box-shadow: 0 20px 55px rgba(18, 24, 32, .08);
+  }
+
+  .top-bar {
+    height: 60px;
+    border-bottom-color: var(--el-border-color-extra-light);
+    background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
+  }
+}
+
+@media (max-width: 720px) {
+  .lm-island {
+    .main-area {
+      margin: 0;
+      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .top-bar { height: 54px; }
+  }
 }
 </style>

@@ -70,7 +70,7 @@
   }
 
   /* Inputs - brutalist style */
-  .input-main,
+  .input-main.standalone,
   .input-group {
     background: #ffffff;
     border: 2px solid #1a1a1a;
@@ -122,24 +122,25 @@
 
   /* Primary button */
   .primary-btn {
-    background: #1a1a1a;
+    background: var(--xi-gradient);
     color: #ffffff;
     border: 2px solid #1a1a1a;
     border-radius: 14px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 6px 6px 0 0 #5f27cd;
+    box-shadow: 6px 6px 0 0 #1a1a1a;
     transition: all 0.15s ease;
 
     &:hover:not(:disabled) {
+      background: var(--xi-gradient-hover);
       transform: translate(-3px, -3px);
-      box-shadow: 9px 9px 0 0 #5f27cd;
+      box-shadow: 9px 9px 0 0 #1a1a1a;
     }
 
     &:active:not(:disabled) {
       transform: translate(0, 0);
-      box-shadow: 3px 3px 0 0 #5f27cd;
+      box-shadow: 3px 3px 0 0 #1a1a1a;
     }
   }
 
@@ -196,6 +197,36 @@
     linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
   background-size: 50px 50px;
+}
+
+.geo-copy {
+  position: absolute;
+  z-index: 2;
+  left: 4.5vw;
+  bottom: 9vh;
+  width: min(25vw, 330px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #1a1a1a;
+
+  span {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .18em;
+  }
+
+  strong {
+    font-size: clamp(36px, 4.2vw, 62px);
+    font-weight: 950;
+    line-height: .9;
+    letter-spacing: -.055em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 900px) {
+    display: none;
+  }
 }
 
 .geo-shape {
@@ -287,7 +318,7 @@
     box-shadow: 4px 4px 0 0 #ffffff;
   }
 
-  .input-main,
+  .input-main.standalone,
   .input-group {
     background: #333333;
     border-color: #ffffff;
@@ -316,13 +347,14 @@
   }
 
   .primary-btn {
-    background: #ffffff;
-    color: #1a1a1a;
+    background: var(--xi-gradient);
+    color: #ffffff;
     border-color: #ffffff;
-    box-shadow: 6px 6px 0 0 #feca57;
+    box-shadow: 6px 6px 0 0 #ffffff;
 
     &:hover:not(:disabled) {
-      box-shadow: 9px 9px 0 0 #feca57;
+      background: var(--xi-gradient-hover);
+      box-shadow: 9px 9px 0 0 #ffffff;
     }
   }
 
@@ -340,6 +372,10 @@
   .page-footer a { 
     color: #999999; 
     &:hover { color: #ffffff; } 
+  }
+
+  .geo-copy {
+    color: #ffffff;
   }
 }
 

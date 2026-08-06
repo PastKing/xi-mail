@@ -14,9 +14,8 @@
       <!-- Main nav items -->
       <div class="hnav-items">
         <div
-          v-for="item in mainNav"
+          v-for="item in visibleMainNav"
           :key="item.name"
-          v-show="item.sendOnly ? canSend : (!item.perm || hasPerm(item.perm))"
           class="hnav-item"
           :class="{ active: route.meta.name === item.name }"
           @click="router.push({ name: item.name })"
@@ -34,12 +33,11 @@
 
         <!-- Admin nav -->
         <div
-          v-for="item in adminNav"
+          v-for="item in visibleAdminNav"
           :key="'admin-' + item.name"
           class="hnav-item"
           :class="{ active: route.meta.name === item.name }"
           @click="router.push({ name: item.name })"
-          v-perm="item.perm"
         >
           <div class="hnav-icon">
             <Icon :icon="item.icon" :width="item.size || 16" :height="item.size || 16" />
@@ -54,42 +52,13 @@
 <script setup>
 import router from '@/router/index.js'
 import { useRoute } from 'vue-router'
-import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useSettingStore } from '@/store/setting.js'
-import { useUserStore } from '@/store/user.js'
-import { useTransferStore } from '@/store/transfer.js'
-import { hasPerm } from '@/perm/perm.js'
+import { useNavigationAccess } from '@/layout/nav-config.js'
 
 const settingStore = useSettingStore()
-const userStore = useUserStore()
-const transferStore = useTransferStore()
 const route = useRoute()
-
-const canSend = computed(() => {
-  if (settingStore.settings.send === 1) return false
-  const role = userStore.user?.role
-  if (role?.sendType === 'ban') return false
-  return hasPerm('email:send')
-})
-
-const mainNav = [
-  { name: 'email',    icon: 'mingcute:inbox-line',      label: 'inbox' },
-  { name: 'send',     icon: 'mingcute:send-line',       label: 'sent',          sendOnly: true },
-  { name: 'draft',    icon: 'mingcute:file-line',       label: 'drafts',        sendOnly: true },
-  { name: 'star',     icon: 'mingcute:star-line',       label: 'starred' },
-  { name: 'setting',  icon: 'mingcute:settings-3-line', label: 'settings' },
-  { name: 'transfer', icon: 'mingcute:transfer-3-line', label: 'transferPending' },
-]
-
-const adminNav = [
-  { name: 'analysis',    icon: 'mingcute:chart-pie-2-line', label: 'analytics',     perm: 'analysis:query' },
-  { name: 'user',        icon: 'mingcute:group-line',        label: 'allUsers',      perm: 'user:query' },
-  { name: 'all-email',   icon: 'mingcute:mail-open-line',    label: 'allMail',       perm: 'all-email:query' },
-  { name: 'role',        icon: 'mingcute:shield-line',       label: 'permissions',   perm: 'role:query' },
-  { name: 'reg-key',     icon: 'mingcute:key-2-line',        label: 'inviteCode',    perm: 'reg-key:query' },
-  { name: 'sys-setting', icon: 'mingcute:settings-6-line',   label: 'SystemSettings',perm: 'setting:query' },
-]
+const {transferStore, visibleMainNav, visibleAdminNav} = useNavigationAccess()
 </script>
 
 <style lang="scss" scoped>

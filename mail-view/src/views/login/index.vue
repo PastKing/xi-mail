@@ -8,6 +8,32 @@
       <div class="bg-grid"></div>
     </div>
 
+    <!-- Ink template: editorial poster, intentionally separate from the form -->
+    <section v-if="loginTemplate === 'gradient'" class="ink-poster" aria-hidden="true">
+      <div class="ink-poster-top">
+        <span class="ink-index">01</span>
+        <span class="ink-rule"></span>
+        <span class="ink-caption">{{ $t('privateMailbox') }}</span>
+      </div>
+      <div class="ink-poster-copy">
+        <span class="ink-eyebrow">XI / MAIL</span>
+        <h2>{{ settingStore.settings.title }}</h2>
+        <p>{{ $t('mailInYourControl') }}</p>
+      </div>
+      <div class="ink-stamp">
+        <Icon icon="mingcute:mail-send-fill" width="22" height="22"/>
+      </div>
+    </section>
+
+    <!-- Minimal template: an editorial masthead instead of a decorative scene -->
+    <header v-if="loginTemplate === 'minimal'" class="minimal-masthead">
+      <div class="minimal-brand">
+        <Icon icon="mingcute:mail-send-line" width="19" height="19"/>
+        <span>{{ settingStore.settings.title }}</span>
+      </div>
+      <span class="minimal-edition">{{ $t('simpleAndFocused') }}</span>
+    </header>
+
     <!-- Split template: left brand panel -->
     <div v-if="loginTemplate === 'split'" class="split-left">
       <div class="split-brand">
@@ -27,6 +53,15 @@
       <div class="glass-orb glass-orb-1"></div>
       <div class="glass-orb glass-orb-2"></div>
       <div class="glass-orb glass-orb-3"></div>
+      <div class="glass-noise"></div>
+      <div class="glass-float glass-float-mail">
+        <Icon icon="mingcute:mail-open-line" width="18" height="18"/>
+        <span>{{ $t('mailReady') }}</span>
+      </div>
+      <div class="glass-float glass-float-lock">
+        <Icon icon="mingcute:shield-check-line" width="18" height="18"/>
+        <span>{{ $t('privateMailbox') }}</span>
+      </div>
     </div>
 
     <!-- Aurora template: right side brand panel -->
@@ -46,15 +81,15 @@
         <div class="aurora-features">
           <div class="aurora-feature">
             <Icon icon="mingcute:shield-check-fill" width="18" height="18" />
-            <span>{{ $t('featureSecure') || 'Secure & Private' }}</span>
+            <span>{{ $t('featureSecure') }}</span>
           </div>
           <div class="aurora-feature">
             <Icon icon="mingcute:flash-fill" width="18" height="18" />
-            <span>{{ $t('featureFast') || 'Lightning Fast' }}</span>
+            <span>{{ $t('featureFast') }}</span>
           </div>
           <div class="aurora-feature">
             <Icon icon="mingcute:planet-fill" width="18" height="18" />
-            <span>{{ $t('featureGlobal') || 'Global Access' }}</span>
+            <span>{{ $t('featureGlobal') }}</span>
           </div>
         </div>
       </div>
@@ -67,11 +102,62 @@
       <div class="geo-shape geo-triangle"></div>
       <div class="geo-shape geo-donut"></div>
       <div class="geo-grid"></div>
+      <div class="geo-copy">
+        <span>MAIL / 06</span>
+        <strong>{{ $t('mailWithoutLimits') }}</strong>
+      </div>
     </div>
+
+    <!-- Envelope template: tactile mail piece and sliding registration letter -->
+    <section v-if="loginTemplate === 'envelope'" class="envelope-scene" aria-hidden="true">
+      <div class="envelope-return">
+        <Icon icon="mingcute:mail-send-line" width="17" height="17" />
+        <span>{{ settingStore.settings.title }}</span>
+      </div>
+      <div class="envelope-postmark">
+        <span>XI MAIL</span>
+        <b>{{ new Date().getFullYear() }}</b>
+      </div>
+      <div class="envelope-airmail"></div>
+      <p>{{ $t('envelopeNote') }}</p>
+    </section>
+
+    <!-- Terminal template: deliberately plain text workstation -->
+    <section v-if="loginTemplate === 'terminal'" class="terminal-aside" aria-hidden="true">
+      <pre>XI-MAIL SYSTEM
+----------------
+SMTP  READY
+IMAP  READY
+AUTH  WAITING
+
+{{ $t('terminalHint') }}</pre>
+      <span class="terminal-cursor">_</span>
+    </section>
+
+    <!-- Passport template: postal identity booklet -->
+    <section v-if="loginTemplate === 'passport'" class="passport-scene" aria-hidden="true">
+      <div class="passport-number">XM · {{ new Date().getFullYear() }} · 09</div>
+      <div class="passport-stamp">
+        <Icon icon="mingcute:mail-send-line" width="25" height="25" />
+        <span>XI MAIL</span>
+      </div>
+      <div class="passport-route">
+        <i></i><span>{{ $t('passportRoute') }}</span><i></i>
+      </div>
+    </section>
 
     <!-- Centered card -->
     <div class="card-wrapper">
-      <div class="auth-card" v-motion :initial="{ opacity: 0, y: 24, scale: 0.98 }" :enter="{ opacity: 1, y: 0, scale: 1, transition: { duration: 400 } }">
+      <div v-if="loginTemplate === 'glassmorphism'" class="glass-window-bar" aria-hidden="true">
+        <div class="glass-window-dots"><span></span><span></span><span></span></div>
+        <span>{{ settingStore.settings.title }}</span>
+        <Icon icon="mingcute:more-2-fill" width="15" height="15"/>
+      </div>
+      <div v-if="loginTemplate === 'terminal'" class="terminal-window-bar" aria-hidden="true">
+        <span>[ XI-MAIL / AUTH ]</span>
+        <span>tty-07</span>
+      </div>
+      <div class="auth-card" :class="{ 'is-register': show !== 'login' }" v-motion :initial="{ opacity: 0, y: 24, scale: 0.98 }" :enter="{ opacity: 1, y: 0, scale: 1, transition: { duration: 400 } }">
         <!-- Logo + Title -->
         <div class="card-header">
           <div class="logo-icon">
@@ -109,8 +195,8 @@
         <!-- Forms -->
         <Transition name="form" mode="out-in">
           <!-- LOGIN -->
-          <div v-if="show === 'login'" key="login" class="fields">
-            <div class="field">
+          <div v-if="show === 'login'" key="login" class="fields login-fields">
+            <div class="field field-email">
               <label>{{ $t('emailAccount') }}</label>
               <div class="input-group" :class="{ 'has-suffix': settingStore.settings.loginDomain === 0 && hasDomains }">
                 <div class="input-main">
@@ -128,7 +214,7 @@
               </div>
             </div>
 
-            <div class="field">
+            <div class="field field-password">
               <label>{{ $t('password') }}</label>
               <div class="input-main standalone">
                 <Icon class="input-icon" icon="mingcute:lock-line" width="16" height="16" />
@@ -154,8 +240,8 @@
           </div>
 
           <!-- REGISTER -->
-          <div v-else key="register" class="fields">
-            <div class="field">
+          <div v-else key="register" class="fields register-fields">
+            <div class="field field-email">
               <label>{{ $t('emailAccount') }}</label>
               <div class="input-group" :class="{ 'has-suffix': hasDomains }">
                 <div class="input-main">
@@ -173,7 +259,7 @@
               </div>
             </div>
 
-            <div class="field">
+            <div class="field field-password">
               <label>{{ $t('password') }}</label>
               <div class="input-main standalone">
                 <Icon class="input-icon" icon="mingcute:lock-line" width="16" height="16" />
@@ -184,7 +270,7 @@
               </div>
             </div>
 
-            <div class="field">
+            <div class="field field-confirm">
               <label>{{ $t('confirmPwd') }}</label>
               <div class="input-main standalone" :class="{ error: registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword }">
                 <Icon class="input-icon" icon="mingcute:lock-check-line" width="16" height="16" />
@@ -195,7 +281,7 @@
               </div>
             </div>
 
-            <div v-if="settingStore.settings.regKey === 0 || settingStore.settings.regKey === 2" class="field">
+            <div v-if="settingStore.settings.regKey === 0 || settingStore.settings.regKey === 2" class="field field-reg-key">
               <label>{{ settingStore.settings.regKey === 0 ? $t('regKey') : $t('regKeyOptional') }}</label>
               <div class="input-main standalone">
                 <Icon class="input-icon" icon="mingcute:key-2-line" width="16" height="16" />
@@ -337,7 +423,9 @@ const registerForm = reactive({ email: '', password: '', confirmPassword: '', co
 const domainList = settingStore.domainList;
 const hasDomains = computed(() => domainList && domainList.length > 0);
 const suffixPopperClass = computed(() =>
-  settingStore.settings?.loginTemplate === 'gradient' ? 'xi-aurora-dropdown' : ''
+  ['glassmorphism', 'aurora', 'terminal'].includes(settingStore.settings?.loginTemplate)
+    ? 'xi-dark-login-dropdown'
+    : ''
 );
 const registerLoading = ref(false);
 suffix.value = domainList[0];
@@ -497,26 +585,26 @@ function submitRegister() {
 <style>
 .el-select-dropdown__item { padding: 0 15px; }
 
-/* ── Aurora template: dark suffix dropdown ── */
-.xi-aurora-dropdown {
+/* ── Dark login templates: readable suffix dropdown ── */
+.xi-dark-login-dropdown {
   background: #16121e !important;
   border-color: rgba(255, 255, 255, 0.10) !important;
 }
-.xi-aurora-dropdown .el-select-dropdown__list {
+.xi-dark-login-dropdown .el-select-dropdown__list {
   padding: 4px 0;
 }
-.xi-aurora-dropdown .el-select-dropdown__item {
+.xi-dark-login-dropdown .el-select-dropdown__item {
   color: rgba(240, 240, 255, 0.80);
 }
-.xi-aurora-dropdown .el-select-dropdown__item.is-hovering {
+.xi-dark-login-dropdown .el-select-dropdown__item.is-hovering {
   background: rgba(255, 255, 255, 0.08) !important;
   color: #f0f0ff;
 }
-.xi-aurora-dropdown .el-select-dropdown__item.is-selected {
+.xi-dark-login-dropdown .el-select-dropdown__item.is-selected {
   color: var(--el-color-primary);
   font-weight: 600;
 }
-.xi-aurora-dropdown .el-popper__arrow::before {
+.xi-dark-login-dropdown .el-popper__arrow::before {
   background: #16121e !important;
   border-color: rgba(255, 255, 255, 0.10) !important;
 }
@@ -776,6 +864,47 @@ function submitRegister() {
   gap: 11px;
 }
 
+.register-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+
+  > * {
+    grid-column: 1 / -1;
+  }
+
+  > .field-password {
+    grid-column: 1;
+  }
+
+  > .field-confirm {
+    grid-column: 2;
+  }
+
+  @media (max-width: 340px) {
+    grid-template-columns: 1fr;
+
+    > .field-password,
+    > .field-confirm {
+      grid-column: 1;
+    }
+  }
+}
+
+.auth-card.is-register {
+  .card-header {
+    margin-bottom: 14px;
+  }
+
+  .card-heading {
+    margin-bottom: 12px;
+  }
+
+  .tab-bar {
+    margin-bottom: 12px;
+  }
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -893,6 +1022,8 @@ function submitRegister() {
   flex-shrink: 0;
   transition: all 0.15s;
   user-select: none;
+  background: transparent;
+  box-shadow: none;
 
   &:hover {
     background: var(--el-fill-color-light);
@@ -1061,4 +1192,30 @@ function submitRegister() {
 @import './templates/glassmorphism';
 @import './templates/aurora';
 @import './templates/geometric';
+@import './templates/envelope';
+@import './templates/terminal';
+@import './templates/passport';
+
+/* Keep the registration layout compact even when a template customizes
+   the generic .fields container. These rules intentionally follow imports. */
+.login-page .register-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+
+  > * { grid-column: 1 / -1; }
+  > .field-password { grid-column: 1; }
+  > .field-confirm { grid-column: 2; }
+}
+
+@media (max-width: 340px) {
+  .login-page .register-fields {
+    grid-template-columns: 1fr;
+
+    > .field-password,
+    > .field-confirm {
+      grid-column: 1;
+    }
+  }
+}
 </style>

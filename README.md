@@ -6,7 +6,7 @@
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.4.0-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.4.1-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -21,13 +21,13 @@
 
 ## 📸 预览
 
-| 系统设置 | 外观 / 主题 |
+| 登录模板 | 浮岛导航 |
 |:---:|:---:|
-| ![系统设置](doc/images/system-setting-view.png) | ![主题外观](doc/images/system-setting-theme.png) |
-| **数据分析** | **邮箱转移** |
-| ![数据分析](doc/images/analysis-view.png) | ![邮箱转移](doc/images/transfer-view.png) |
+| ![分栏登录模板](doc/images/template/Split.png) | ![浮岛导航](doc/images/layout/FloatingIsland.png) |
+| **域名管理** | **数据分析** |
+| ![域名管理](doc/images/system-setting-domain.png) | ![数据分析](doc/images/analysis.png) |
 
-更多截图见 [doc/images/](doc/images/)。
+更多模板、布局与功能截图见 [界面预览](doc/PREVIEW.md)。
 
 ## 🔑 在线体验
 
@@ -38,7 +38,7 @@
 ## ✨ 主要特性
 
 **界面**
-6 套登录模板 + 6 套主题色，三种登录后布局（完整侧边栏 / 图标侧边栏 / 顶栏导航），全部在系统设置中一键切换并持久化。图标统一使用 `mingcute`，中英文双语，语言偏好随账号跨设备同步。
+9 套拥有独立构图的登录模板（包含拆信、邮件终端和邮政护照）+ 6 套主题色，四种登录后布局（完整侧边栏 / 图标侧边栏 / 顶栏导航 / 浮岛导航），全部在系统设置中一键切换并持久化。浮岛布局在桌面端使用悬浮轨道，手机端自动切换为底部 Dock。图标统一使用 `mingcute`，中英文双语，语言偏好随账号跨设备同步。
 
 **用户与账号**
 用户 ID 为随机字母数字组合并支持点击复制；单用户最多 100 个邮箱账号，删除后可重建；支持将邮箱连同全部邮件转移给其他用户，接收方可确认或拒绝；角色带 `level` 字段，只能签发权限低于自己的邀请码。
@@ -110,11 +110,10 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 ## 📋 版本记录
 
-版本号规则 `3.x.y`：`x` 为小功能，`y` 为修 bug / 优化。完整变更见项目内 `git.md`。
-
 | 版本 | 要点 |
 |------|------|
-| **v3.4.0** | 域名管理改为内联面板并支持排序；系统设置拆分为独立子路由 `/system-setting/:section`，刷新不再回到首个分区 |
+| **v3.4.1** | 登录模板扩展至 9 套，新增拆信、邮件终端和邮政护照；新增桌面悬浮轨道、移动底部 Dock 的浮岛导航，并优化注册页高度与后缀选择样式 |
+| **v3.4.0** | 域名管理改为内联面板并支持排序；系统设置拆分为独立子页面，刷新保留当前分区 |
 | **v3.3.x** | 发件人白名单模式；黑白名单合并入同一入口；`/settings` 重排与 ID 点击复制；图标与尺寸统一 |
 | **v3.2.x** | 发件人域名屏蔽修复（信封 + From 双检）；侧边栏收窄至 200px |
 | **v3.1.0** | 子 Worker 聚合；语言偏好持久化到用户账号 |

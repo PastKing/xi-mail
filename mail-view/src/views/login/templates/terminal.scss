@@ -1,0 +1,300 @@
+/* Template 08: Mail terminal
+   Monochrome workstation: typography and command structure, no decorative glow. */
+.template-terminal {
+  --terminal-ink: #b7f7c0;
+  --terminal-dim: #6f9d76;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  background: #07100a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: .08;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, #fff 3px 4px);
+    pointer-events: none;
+  }
+
+  .bg-layer { display: none; }
+
+  .card-wrapper {
+    z-index: 3;
+    flex: 0 0 49vw;
+    min-width: 480px;
+    min-height: 100vh;
+    align-items: stretch;
+    justify-content: center;
+    padding: 54px 6vw 42px 3vw;
+    border-left: 1px solid #28452e;
+    background: #09130c;
+  }
+
+  .terminal-window-bar {
+    width: 100%;
+    max-width: 520px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 13px;
+    color: #07100a;
+    background: var(--terminal-ink);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .06em;
+  }
+
+  .auth-card {
+    max-width: 520px;
+    padding: 26px 4px 4px;
+    color: var(--terminal-ink);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .card-header {
+    margin-bottom: 22px;
+
+    &::before {
+      content: 'root@mail:~$';
+      margin-right: 8px;
+      color: var(--terminal-dim);
+      font-size: 11px;
+    }
+  }
+
+  .logo-icon { display: none; }
+
+  .app-name {
+    color: var(--terminal-ink);
+    font: 700 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-transform: uppercase;
+  }
+
+  .card-heading {
+    margin-bottom: 20px;
+    padding: 13px 0;
+    border-block: 1px dashed #28452e;
+
+    h2 {
+      color: var(--terminal-ink);
+      font: 700 20px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+
+      &::before { content: '> '; color: var(--el-color-primary-light-3); }
+    }
+
+    p {
+      margin-top: 7px;
+      color: var(--terminal-dim);
+      font-size: 10px;
+
+      &::before { content: '// '; }
+    }
+  }
+
+  .server-selector {
+    margin-bottom: 15px;
+    filter: grayscale(1);
+  }
+
+  .tab-bar {
+    justify-content: flex-start;
+    gap: 22px;
+    margin-bottom: 20px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    padding: 4px 0;
+    color: var(--terminal-dim);
+    border-radius: 0;
+    font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    &::before { content: '[ '; }
+    &::after { content: ' ]'; }
+
+    &.active {
+      color: #07100a;
+      background: var(--terminal-ink);
+      box-shadow: none;
+    }
+  }
+
+  .fields { gap: 14px; }
+
+  .field {
+    position: relative;
+    gap: 5px;
+    padding-left: 14px;
+
+    &::before {
+      content: '>';
+      position: absolute;
+      left: 0;
+      bottom: 13px;
+      color: var(--el-color-primary-light-3);
+      font-weight: 800;
+    }
+
+    label {
+      color: var(--terminal-dim);
+      font: 700 9px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+  }
+
+  .input-main.standalone,
+  .input-group {
+    border: 0;
+    border-bottom: 1px solid #315838;
+    border-radius: 0;
+    background: transparent;
+
+    &:focus-within {
+      border-color: var(--terminal-ink);
+      background: rgba(183, 247, 192, .035);
+      box-shadow: none;
+    }
+  }
+
+  input {
+    height: 40px;
+    color: var(--terminal-ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    caret-color: var(--terminal-ink);
+
+    &::placeholder { color: #46694c; }
+  }
+
+  .input-icon { display: none; }
+  .toggle-pwd { color: var(--terminal-dim); }
+
+  .input-suffix {
+    color: var(--terminal-ink);
+    border-left-color: #315838;
+    font-size: 10px;
+  }
+
+  .reg-key-hint { color: var(--terminal-dim); }
+  .reg-key-link { color: var(--terminal-ink); }
+
+  .primary-btn {
+    width: auto;
+    min-width: 170px;
+    height: 42px;
+    align-self: flex-start;
+    border: 1px solid var(--terminal-ink);
+    border-radius: 0;
+    color: #07100a;
+    background: var(--terminal-ink);
+    box-shadow: none;
+    font: 800 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-transform: uppercase;
+
+    &::before { content: './'; }
+
+    &:hover:not(:disabled) {
+      color: var(--terminal-ink);
+      background: transparent;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  .divider {
+    color: var(--terminal-dim);
+    &::before,
+    &::after { background: #28452e; }
+  }
+
+  .social-btn {
+    color: var(--terminal-ink);
+    border-color: #315838;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .page-footer {
+    max-width: 520px;
+    align-self: stretch;
+    margin-top: 16px;
+    a { color: var(--terminal-dim); }
+  }
+}
+
+.terminal-aside {
+  position: absolute;
+  inset: 0 49vw 0 0;
+  padding: 9vh 5vw;
+  color: var(--terminal-dim);
+  pointer-events: none;
+
+  &::before {
+    content: 'MAIL OPERATIONS CONSOLE';
+    display: block;
+    margin-bottom: 12vh;
+    padding-bottom: 12px;
+    color: var(--terminal-ink);
+    border-bottom: 1px solid #28452e;
+    font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .14em;
+  }
+
+  pre {
+    margin: 0;
+    color: inherit;
+    font: 500 clamp(12px, 1.15vw, 17px)/1.85 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap;
+  }
+}
+
+.terminal-cursor {
+  display: inline-block;
+  margin-top: 24px;
+  color: var(--terminal-ink);
+  font-size: 22px;
+  animation: terminal-blink 1s steps(1) infinite;
+}
+
+@keyframes terminal-blink {
+  50% { opacity: 0; }
+}
+
+@media (max-width: 840px) {
+  .terminal-aside { display: none; }
+
+  .template-terminal {
+    justify-content: center;
+
+    .card-wrapper {
+      flex: 1;
+      min-width: 0;
+      padding: 34px 24px 24px;
+      border-left: 0;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .template-terminal {
+    .card-wrapper { padding: 18px 18px 14px; }
+    .terminal-window-bar { max-width: none; }
+    .auth-card { padding-top: 20px; }
+    .card-heading h2 { font-size: 18px; }
+    .primary-btn { width: 100%; align-self: stretch; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-cursor { animation: none; }
+}

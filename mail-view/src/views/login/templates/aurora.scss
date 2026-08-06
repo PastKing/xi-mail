@@ -1,311 +1,319 @@
-/* ═══════════════════════════════════════════════════════════════════════════════
-   Login Template: aurora → "极光" (Aurora)
-   ───────────────────────────────────────────────────────────────────────────────
-   Reversed split layout: left form panel, right aurora brand panel.
-   Dark theme with animated northern lights effect and star particles.
-   ═══════════════════════════════════════════════════════════════════════════════ */
+/* Template 05: Aurora console
+   A compact dark control pane beside a full atmospheric landscape. */
 .template-aurora {
-  flex-direction: row;
-  background: #0a0a12;
+  align-items: stretch;
+  justify-content: flex-start;
+  background: #05070b;
 
-  .bg-layer { display: none; }
+  .bg-layer {
+    display: none;
+  }
 
-  /* Left form panel */
   .card-wrapper {
-    flex: 0 0 480px;
+    z-index: 4;
+    flex: 0 0 450px;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 48px 40px;
-    background: #0d0d16;
-    border-right: 1px solid rgba(255,255,255,0.06);
-    position: relative;
-    z-index: 10;
+    padding: 54px 46px 32px;
+    background: rgba(8,11,16,.94);
+    border-right: 1px solid rgba(255,255,255,.07);
   }
 
   .auth-card {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    max-width: 400px;
-    width: 100%;
+    max-width: 360px;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
-  .page-footer { 
-    margin-top: 24px;
-    position: relative;
-    z-index: 10;
+  .card-header {
+    margin-bottom: 48px;
   }
-
-  /* Typography */
-  .app-name { color: #e0f0e0; }
-  .card-heading h2 { color: #f0fff0; font-weight: 700; }
-  .card-heading p { color: rgba(255, 255, 255, 0.5); }
-  .field label { color: rgba(255, 255, 255, 0.6); }
 
   .logo-icon {
-    background: linear-gradient(135deg, rgba(0,255,136,0.15) 0%, rgba(0,212,255,0.15) 100%);
-    border: 1px solid rgba(0,255,136,0.2);
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--xi-orb-card-border);
+    border-radius: 8px;
+    color: #fff;
+    background: var(--xi-gradient);
+    box-shadow: 0 0 24px var(--xi-orb-card-border);
   }
 
-  /* Inputs */
-  .input-main,
+  .app-name,
+  .card-heading h2 {
+    color: #f3f6f8;
+  }
+
+  .card-heading {
+    margin-bottom: 20px;
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    p {
+      color: rgba(255,255,255,.38);
+    }
+  }
+
+  .tab-bar {
+    gap: 22px;
+    margin-bottom: 25px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    padding: 0 0 8px;
+    color: rgba(255,255,255,.32);
+    border-radius: 0;
+
+    &.active {
+      color: var(--el-color-primary-light-3);
+      background: transparent;
+      box-shadow: inset 0 -1px 0 var(--el-color-primary);
+    }
+  }
+
+  .fields {
+    gap: 12px;
+  }
+
+  .field label {
+    color: rgba(255,255,255,.48);
+    font-weight: 500;
+  }
+
+  .input-main.standalone,
   .input-group {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 7px;
+    background: rgba(255,255,255,.035);
 
     &:focus-within {
-      border-color: rgba(0, 255, 136, 0.4);
-      box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.08), 0 0 20px -5px rgba(0, 255, 136, 0.15);
+      border-color: var(--el-color-primary);
+      background: rgba(255,255,255,.055);
+      box-shadow: 0 0 0 2px var(--xi-orb-card-border);
     }
   }
 
   input {
-    color: #e8f0e8;
-    caret-color: #00ff88;
-    &::placeholder { color: rgba(255, 255, 255, 0.3); }
+    color: #e9edf0;
+    caret-color: var(--el-color-primary-light-3);
+
+    &::placeholder {
+      color: rgba(255,255,255,.22);
+    }
   }
 
-  .input-icon { color: rgba(255, 255, 255, 0.4); }
+  .input-icon,
   .toggle-pwd {
-    color: rgba(255, 255, 255, 0.4);
-    &:hover { color: #00ff88; }
+    color: rgba(255,255,255,.32);
   }
 
   .input-suffix {
-    color: rgba(255, 255, 255, 0.6);
-    border-left-color: rgba(255, 255, 255, 0.08);
-    &:hover { background: rgba(255, 255, 255, 0.06); }
-  }
-
-  /* Tab bar */
-  .tab-bar {
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 12px;
-  }
-  .tab { color: rgba(255, 255, 255, 0.4); }
-  .tab.active {
-    background: linear-gradient(135deg, rgba(0,255,136,0.12) 0%, rgba(0,212,255,0.12) 100%);
-    color: #00ff88;
-  }
-
-  /* Primary button */
-  .primary-btn {
-    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-    color: #0a0a12;
-    font-weight: 700;
-    border: none;
-    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.25);
-
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(0, 255, 136, 0.35);
-    }
-  }
-
-  /* Divider */
-  .divider span { color: rgba(255, 255, 255, 0.3); }
-  .divider::before,
-  .divider::after { background: rgba(255, 255, 255, 0.1); }
-
-  /* Social button */
-  .social-btn {
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #d0e0d0;
-    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255,255,255,.52);
+    border-left-color: rgba(255,255,255,.08);
 
     &:hover {
-      background: rgba(0, 255, 136, 0.06);
-      border-color: rgba(0, 255, 136, 0.2);
+      color: #fff;
+      background: rgba(255,255,255,.06);
     }
+  }
+
+  .primary-btn {
+    height: 44px;
+    border-radius: 7px;
+    color: #fff;
+    background: var(--xi-gradient);
+    box-shadow: 0 10px 24px var(--xi-orb-card-border);
+
+    &:hover:not(:disabled) {
+      background: var(--xi-gradient-hover);
+      box-shadow: 0 14px 32px var(--xi-orb-card-border);
+    }
+  }
+
+  .divider {
+    color: rgba(255,255,255,.25);
+
+    &::before,
+    &::after {
+      background: rgba(255,255,255,.08);
+    }
+  }
+
+  .social-btn {
+    color: rgba(255,255,255,.75);
+    border-color: rgba(255,255,255,.09);
+    border-radius: 7px;
+    background: rgba(255,255,255,.035);
   }
 
   .page-footer a {
-    color: rgba(255, 255, 255, 0.3);
-    &:hover { color: #00ff88; }
-  }
-
-  /* Responsive */
-  @media (max-width: 900px) {
-    flex-direction: column-reverse;
-
-    .aurora-panel { 
-      display: none;
-    }
-
-    .card-wrapper {
-      flex: 1;
-      min-height: 100vh;
-      padding: 36px 20px;
-      border-right: none;
-    }
+    color: rgba(255,255,255,.26);
   }
 }
 
-/* ── Right Aurora Brand Panel ── */
 .aurora-panel {
-  flex: 1;
-  min-height: 100vh;
+  position: absolute;
+  inset: 0 0 0 450px;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, #0a0a12 0%, #0d1520 50%, #0a0a12 100%);
+  background:
+    linear-gradient(180deg, transparent 52%, rgba(0,0,0,.75) 100%),
+    radial-gradient(ellipse at 50% 115%, var(--xi-orb-bg-bottom), transparent 45%),
+    #070b12;
 }
 
-/* Aurora wave animations */
+.aurora-panel::after {
+  content: '';
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -14%;
+  height: 42%;
+  border-radius: 50% 50% 0 0;
+  background: #030508;
+  box-shadow: 0 -1px 40px rgba(0,0,0,.7);
+}
+
 .aurora-waves {
   position: absolute;
-  inset: 0;
-  overflow: hidden;
+  inset: -15%;
+  filter: blur(44px);
 }
 
 .aurora-wave {
   position: absolute;
-  width: 200%;
-  height: 100%;
-  left: -50%;
-  top: 0;
+  width: 76%;
+  height: 120%;
+  top: -18%;
+  border-radius: 50%;
+  opacity: .55;
+  mix-blend-mode: screen;
 }
 
 .aurora-wave-1 {
-  background: linear-gradient(180deg,
-    transparent 0%,
-    rgba(0, 255, 136, 0.08) 20%,
-    rgba(0, 212, 255, 0.12) 40%,
-    rgba(138, 43, 226, 0.08) 60%,
-    transparent 100%
-  );
-  filter: blur(60px);
-  animation: aurora-drift-1 12s ease-in-out infinite;
-  transform-origin: center;
+  left: -12%;
+  background: radial-gradient(ellipse, var(--xi-orb-1), transparent 64%);
+  animation: aurora-sweep 12s ease-in-out infinite;
 }
 
 .aurora-wave-2 {
-  background: linear-gradient(180deg,
-    transparent 0%,
-    rgba(138, 43, 226, 0.1) 25%,
-    rgba(0, 255, 136, 0.08) 50%,
-    transparent 100%
-  );
-  filter: blur(80px);
-  animation: aurora-drift-2 16s ease-in-out infinite;
-  animation-delay: -4s;
+  left: 22%;
+  background: radial-gradient(ellipse, var(--xi-orb-2), transparent 65%);
+  animation: aurora-sweep 16s ease-in-out -5s infinite reverse;
 }
 
 .aurora-wave-3 {
-  background: linear-gradient(180deg,
-    transparent 0%,
-    rgba(0, 212, 255, 0.08) 30%,
-    rgba(0, 255, 136, 0.06) 60%,
-    transparent 100%
-  );
-  filter: blur(100px);
-  animation: aurora-drift-3 20s ease-in-out infinite;
-  animation-delay: -8s;
+  right: -18%;
+  background: radial-gradient(ellipse, var(--xi-orb-3), transparent 62%);
+  animation: aurora-sweep 19s ease-in-out -8s infinite;
 }
 
-/* Star particles */
 .aurora-stars {
   position: absolute;
   inset: 0;
+  opacity: .6;
   background-image:
-    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
-    radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 50% 30%, rgba(255,255,255,0.7) 0%, transparent 100%),
-    radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 20% 90%, rgba(255,255,255,0.6) 0%, transparent 100%),
-    radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 60% 50%, rgba(255,255,255,0.3) 0%, transparent 100%);
-  animation: twinkle 5s ease-in-out infinite;
+    radial-gradient(1px 1px at 8% 14%, #fff, transparent),
+    radial-gradient(1px 1px at 24% 41%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 46% 17%, #fff, transparent),
+    radial-gradient(1px 1px at 68% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 87% 12%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 76% 58%, #fff, transparent);
 }
 
-/* Brand content */
 .aurora-brand {
   position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 48px;
-  max-width: 400px;
+  z-index: 2;
+  width: min(70%, 580px);
+  padding: 0 0 8vh;
+  color: #fff;
+  text-align: left;
 }
 
 .aurora-logo {
-  width: 80px;
-  height: 80px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, rgba(0,255,136,0.2) 0%, rgba(0,212,255,0.2) 100%);
-  border: 1px solid rgba(0,255,136,0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #00ff88;
-  margin-bottom: 24px;
-  box-shadow: 
-    0 0 40px rgba(0,255,136,0.2),
-    0 0 80px rgba(0,255,136,0.1);
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 28px;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 50px var(--xi-orb-card-border);
 }
 
 .aurora-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: #fff;
   margin: 0 0 12px;
-  letter-spacing: -0.02em;
+  color: #fff;
+  font-size: clamp(40px, 5vw, 72px);
+  font-weight: 600;
+  line-height: .95;
+  letter-spacing: -.055em;
 }
 
 .aurora-desc {
-  font-size: 16px;
-  color: rgba(255,255,255,0.5);
-  margin: 0 0 36px;
-  line-height: 1.6;
+  max-width: 430px;
+  margin: 0 0 34px;
+  color: rgba(255,255,255,.48);
+  font-size: 14px;
 }
 
 .aurora-features {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .aurora-feature {
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: rgba(255,255,255,0.7);
-  font-size: 14px;
+  gap: 7px;
+  padding: 8px 11px;
+  color: rgba(255,255,255,.66);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,.04);
+  font-size: 11px;
 
   svg {
-    color: #00ff88;
-    opacity: 0.8;
+    color: var(--el-color-primary-light-3);
   }
 }
 
-@keyframes aurora-drift-1 {
-  0%, 100% { transform: translateX(0) scaleY(1) rotate(-3deg); opacity: 0.8; }
-  50% { transform: translateX(5%) scaleY(1.3) rotate(3deg); opacity: 1; }
+@keyframes aurora-sweep {
+  0%, 100% { transform: translate3d(-4%, 0, 0) rotate(-8deg) scaleY(1); }
+  50% { transform: translate3d(10%, 5%, 0) rotate(8deg) scaleY(1.2); }
 }
 
-@keyframes aurora-drift-2 {
-  0%, 100% { transform: translateX(0) scaleY(1) rotate(2deg); opacity: 0.7; }
-  50% { transform: translateX(-5%) scaleY(1.2) rotate(-2deg); opacity: 0.9; }
-}
+@media (max-width: 900px) {
+  .aurora-panel {
+    display: none;
+  }
 
-@keyframes aurora-drift-3 {
-  0%, 100% { transform: translateX(0) scaleY(1); opacity: 0.6; }
-  50% { transform: translateX(3%) scaleY(1.15); opacity: 0.8; }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  .template-aurora {
+    .card-wrapper {
+      flex: 1;
+      padding: 38px 22px;
+      border: 0;
+      background:
+        radial-gradient(circle at 90% 0, var(--xi-orb-bg-top), transparent 38%),
+        #080b10;
+    }
+  }
 }

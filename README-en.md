@@ -6,7 +6,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.4.0-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.4.1-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -21,13 +21,13 @@ With a single domain hosted on Cloudflare you can deploy a complete mail platfor
 
 ## 📸 Preview
 
-| System settings | Appearance / themes |
+| Login template | Floating Island |
 |:---:|:---:|
-| ![System settings](doc/images/system-setting-view.png) | ![Themes](doc/images/system-setting-theme.png) |
-| **Analytics** | **Mailbox transfer** |
-| ![Analytics](doc/images/analysis-view.png) | ![Transfer](doc/images/transfer-view.png) |
+| ![Split login template](doc/images/template/Split.png) | ![Floating Island navigation](doc/images/layout/FloatingIsland.png) |
+| **Domain management** | **Analytics** |
+| ![Domain management](doc/images/system-setting-domain.png) | ![Analytics](doc/images/analysis.png) |
 
-More screenshots in [doc/images/](doc/images/).
+More templates, layouts and feature screenshots: [Screenshots](doc/PREVIEW-en.md).
 
 ## 🔑 Live demo
 
@@ -38,7 +38,7 @@ Try it at [mail.azx.us](https://mail.azx.us) using invite code `viewUser` (limit
 ## ✨ Highlights
 
 **Interface**
-Six login templates and six color themes, plus three post-login layouts (full sidebar, icon-only sidebar, top navigation), all switchable from system settings and persisted server-side. Icons are unified on `mingcute`; the UI ships in English and Chinese, and the language preference follows the account across devices.
+Nine login templates with genuinely different compositions, including Open Letter, Mail Terminal and Postal Passport, and six color themes, plus four post-login layouts (full sidebar, icon-only sidebar, top navigation and Floating Island), all switchable from system settings and persisted server-side. Floating Island uses a detached rail on desktop and a bottom dock on mobile. Icons are unified on `mingcute`; the UI ships in English and Chinese, and the language preference follows the account across devices.
 
 **Users and accounts**
 User IDs are random alphanumeric strings and can be copied with one click. Each user can hold up to 100 mailbox accounts, and a deleted mailbox can be recreated. Mailboxes can be transferred to another user along with all their mail, subject to the recipient's approval. Roles carry a `level` field, so a user can only issue invite codes for roles below their own.
@@ -110,11 +110,10 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 ## 📋 Release history
 
-Versions follow `3.x.y`, where `x` is a small feature and `y` is a fix or refinement. The full changelog lives in `git.md` inside the repository.
-
 | Version | Summary |
 |---------|---------|
-| **v3.4.0** | Domain management became an inline, sortable panel; system settings split into `/system-setting/:section` sub-routes so a refresh keeps you on the current section |
+| **v3.4.1** | Expanded login templates to nine with Open Letter, Mail Terminal and Postal Passport; added Floating Island navigation with a desktop rail and mobile dock; refined registration height and suffix selection |
+| **v3.4.0** | Domain management became an inline sortable panel; system settings split into dedicated sub-pages so a refresh keeps the current section |
 | **v3.3.x** | Sender whitelist mode; blacklist and whitelist merged into one entry point; `/settings` reordered with click-to-copy IDs; icon set and sizes unified |
 | **v3.2.x** | Sender-domain blocking fixed (envelope + header `From`); sidebar narrowed to 200px |
 | **v3.1.0** | Sub-worker aggregation; language preference persisted to the user account |
