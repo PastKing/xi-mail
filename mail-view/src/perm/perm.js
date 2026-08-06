@@ -36,6 +36,20 @@ export function permsToRouter(permKeys) {
     return routerList;
 }
 
+const sysSettingSectionModules = import.meta.glob('../views/sys-setting/sections/*.vue')
+
+const sysSettingSections = [
+    'website',
+    'security',
+    'registration',
+    'domain',
+    'integration',
+    'sub-workers',
+    'appearance',
+    'servers',
+    'about'
+]
+
 const routers = {
     'email:send': [
         {
@@ -83,11 +97,22 @@ const routers = {
         path: '/system-setting',
         name: 'sys-setting',
         component: () => import('@/views/sys-setting/index.vue'),
+        redirect: '/system-setting/website',
         meta: {
             title: 'SystemSettings',
             name: 'sys-setting',
             menu: true
-        }
+        },
+        children: sysSettingSections.map(section => ({
+            path: section,
+            name: `sys-setting-${section}`,
+            component: sysSettingSectionModules[`../views/sys-setting/sections/${section}.vue`],
+            meta: {
+                title: 'SystemSettings',
+                name: 'sys-setting',
+                menu: true
+            }
+        }))
     }],
     'reg-key:query': [{
         path: '/invite-code',

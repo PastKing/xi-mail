@@ -2,13 +2,12 @@
 
 # Xi-Mail
 
-**基于 Cloudflare 全家桶的自托管临时邮箱服务**
+**基于 Cloudflare 全家桶的自托管邮箱服务**
 
-二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail) · UI 全面重设计 · 功能持续扩展
+二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.3.1-6366f1)](https://github.com/PastKing/xi-mail)
+[![Version](https://img.shields.io/badge/Version-v3.4.0-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/PastKing/xi-mail?color=6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
 
@@ -16,9 +15,11 @@
 
 </div>
 
+只需一个托管在 Cloudflare 的域名，即可免费部署一套支持多账户、多域名、层级权限的完整邮箱平台。运行在 Workers + D1 + KV + R2 之上，无服务器成本。
+
 ---
 
-## 📸 界面预览
+## 📸 预览
 
 | 系统设置 | 外观 / 主题 |
 |:---:|:---:|
@@ -26,271 +27,129 @@
 | **数据分析** | **邮箱转移** |
 | ![数据分析](doc/images/analysis-view.png) | ![邮箱转移](doc/images/transfer-view.png) |
 
-> 更多截图见 [doc/images/](doc/images/)
-
----
+更多截图见 [doc/images/](doc/images/)。
 
 ## 🔑 在线体验
 
-> 演示站：[https://mail.azx.us](https://mail.azx.us)
-
-测试账号使用注册码注册，仅限 `@nlfree.me` 后缀，**仅供系统预览，请勿存放真实邮件**：
-
-| 注册码 | 可用域名 | 说明 |
-|--------|----------|------|
-| `viewUser` | `@nlfree.me` | 普通用户体验账号 |
+演示站 [mail.azx.us](https://mail.azx.us)，用注册码 `viewUser` 注册（仅限 `@nlfree.me` 后缀）。仅供预览，请勿存放真实邮件。
 
 ---
 
-## 📖 项目简介
+## ✨ 主要特性
 
-Xi-Mail 是基于 **Cloudflare Workers / D1 / KV / R2** 构建的全栈自托管邮箱服务，在 [cloud-mail](https://github.com/eoao/cloud-mail) 开源项目基础上进行二次开发，带来全面 UI 重设计与一系列新功能。
+**界面**
+6 套登录模板 + 6 套主题色，三种登录后布局（完整侧边栏 / 图标侧边栏 / 顶栏导航），全部在系统设置中一键切换并持久化。图标统一使用 `mingcute`，中英文双语，语言偏好随账号跨设备同步。
 
-只需一个托管于 Cloudflare 的域名，即可免费部署支持多账户、多域名、层级权限的完整邮箱平台。
+**用户与账号**
+用户 ID 为随机字母数字组合并支持点击复制；单用户最多 100 个邮箱账号，删除后可重建；支持将邮箱连同全部邮件转移给其他用户，接收方可确认或拒绝；角色带 `level` 字段，只能签发权限低于自己的邀请码。
 
----
+**收发控制**
+发件人域名过滤支持黑名单 / 白名单两种模式，白名单模式下只接收授权服务商的邮件；同时校验 SMTP 信封发件人与邮件头 From 地址，支持子域名匹配。另有邮件地址关键词黑名单、注册码提示与获取链接（中英文分别配置）。
 
-## ✨ 相比上游新增 / 改动
+**域名管理**
+无需改 `wrangler.toml`，在系统设置中直接增删域名、启用禁用，并可拖拽或用上下按钮排序 —— 顺序即注册页邮箱后缀的展示顺序，第一个为默认值。
 
-### 🎨 UI 全面重设计（Linear 风格）
-- 采用 **TailwindCSS 4** + **@vueuse/motion** 动画库重构前端样式系统
-- 登录 / 注册页：5 套模板（极光 / 简约 / 分栏 / 极光动效 / 毛玻璃），7 套主题色预设，系统设置可一键切换并持久化
-- 登录后布局：完整侧边栏 / 精简侧边栏（仅图标）/ 顶栏导航，三种模式自由切换
-- 侧边栏：宽度 200px，深色极简风格；精简模式收缩至 56px 并显示 Tooltip
-- 顶栏：紧凑布局，渐变 Compose 按钮，用户信息面板优化
-- **全站图标统一**：功能图标统一为 `mingcute` 图标集，工具栏尺寸统一 18px，视觉风格一致
-- 全局设计 Token：indigo-violet 渐变色系、彩色阴影、统一圆角
-- **顶栏语言切换按钮**：一键切换中文 / 英文界面，实时生效并持久化保存到用户账号（跨设备同步）
+**部署形态**
+支持前后端一体部署，也支持 `build:standalone` 构建纯静态前端部署到 CF Pages / Vercel。前端可同时连接多个 Worker 实例并聚合数据；`mail-worker-sub/` 提供轻量子 Worker 模板，只负责收信和 API，不含用户系统与页面。
 
-### 👤 用户系统增强
-- **Display ID**：用户 ID 改为随机字母数字组合（`xxxx-xxxx-xxxx`），不再使用纯数字自增
-- Display ID 展示于：用户详情面板、个人设置页、顶栏头像悬浮卡片，**支持点击复制**
-- **个人设置页**（`/settings`）：信息顺序重排（邮箱 → 用户 ID → 用户名 → 密码），邮箱与用户 ID 均可点击复制
-- **邮箱转移**：用户可将邮箱账户及其全部邮件转移给其他用户（通过 Display ID 指定），接收方可确认或拒绝
-
-### 📬 账号管理优化
-- 收件箱 / 已发送页侧边栏账号列表：新增搜索过滤，显示完整邮件地址，账号上限提升至 100 个
-- 账号操作下拉菜单始终可见（含邮箱转移入口）
-- **已发送 / 草稿箱**：无发送权限或角色被禁止发送时，侧边栏自动隐藏这两个菜单项
-- **邮箱可重建**：已删除的邮箱可重新创建（自动恢复历史数据）
-
-### 🔄 转移功能页（`/transfer`）
-- 独立侧边栏页面，支持发起转移、查看待处理 / 已发送转移请求
-- **已处理收到记录**：保留所有已接受 / 已拒绝的传入请求历史，不再消失
-- 顶栏 Badge 实时显示待处理数量
-
-### 🛡️ 权限系统重设计
-- 角色新增 `level` 字段（数值越大权限越高）
-- 用户只能为权限等级低于自身的角色生成邀请码
-- 邀请码生成时服务端严格校验等级约束
-
-### 🗂️ 批量操作（用户管理）
-- 支持批量封禁、批量解封、批量删除选中用户
-- 用户关联邮箱账号支持批量删除
-
-### ⚙️ 系统设置增强
-- **外观模板系统**：系统设置重构为「左侧导航 + 右侧内容」双栏布局，分 7 个分区（网站 / 安全 / 注册 / 域名 / 服务集成 / 外观 / 关于），移动端适配顶部 Tab 导航
-- **域名在线管理**：无需修改 `wrangler.toml`，直接在系统设置中新增、删除、启用 / 禁用邮箱域名，配置完成后 `domain` 变量可留空
-- **全局 API Token**：管理员可开启并生成全局 Token，通过 `x-admin-auth` 请求头无需登录直接查询邮件
-- **邮件地址关键词黑名单**：防注册敏感词
-- **发件人域名屏蔽**（黑名单 / 白名单二合一）：
-  - **黑名单模式**（默认）：屏蔽名单内的发件域名，其他都收
-  - **白名单模式**：仅接收授权域名的邮件，未授权服务商一律拒收
-  - 同时检查 SMTP 信封发件人与邮件头 From 地址，支持子域名匹配
-- **注册码提示与获取链接**：启用注册码后可配置提示文字及跳转链接，支持中英文分别配置
-- **子 Worker 管理**：系统设置中可添加 / 测试 / 启用禁用子 Worker，聚合多 Worker 邮件数据
-
-### 🌐 前后端分离 & 多 Server
-- **独立前端部署**：`npm run build:standalone` 构建纯静态前端，可部署到 CF Pages / Vercel / 任意静态托管
-- **多 Server 架构**：前端支持连接多个 Worker 实例，每个 Server 独立 URL + JWT token，可切换活跃 Server
-- **子 Worker 模板**：`mail-worker-sub/` 轻量子 Worker，仅负责接收邮件 + API 查询，无用户系统、无页面
-- **全新部署零配置**：`domain` 可留空，管理员首次注册时自动跳过域名限制，完成初始化后在系统设置中配置域名
-
-### 🔎 搜索增强
-- **用户管理子账号搜索**：在 `/all-users` 搜索邮箱时，可同时匹配该用户名下创建的所有子账号邮箱
-
----
-
-## 📋 版本记录
-
-> 当前版本：**v3.3.1** · 版本号规则：`2.x.y`（`x` = 小功能，`y` = 修 bug / 优化）
-
-| 版本 | 要点 |
-|------|------|
-| **v3.3.1** | 发件人过滤合并入域名屏蔽；`/settings` 重排 + ID 点击复制；工具栏图标尺寸统一 18px |
-| **v3.3.0** | 发件人白名单模式（仅授权域名可收件）；全站图标统一 mingcute |
-| **v3.2.x** | 发件人域名屏蔽修复（信封 + From 双检）；侧边栏收窄；刷新图标统一 |
-| **v3.1.0** | 子 Worker 聚合；语言偏好持久化到用户账号 |
-| **v3.0.0** | 前后端分离；多 Server 架构；standalone 独立部署 |
-| **v2.0.0** | 外观模板系统；登录后主布局切换；系统设置页重构 |
-
-完整变更记录见项目内 `git.md`（本地维护，不上传 GitHub）。
-
----
-
-## 🛠️ 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| 运行时 | Cloudflare Workers |
-| Web 框架 | Hono |
-| ORM | Drizzle ORM |
-| 数据库 | Cloudflare D1 (SQLite) |
-| 缓存 / 会话 | Cloudflare KV |
-| 文件存储 | Cloudflare R2 |
-| 前端框架 | Vue 3 + Vite |
-| UI 组件库 | Element Plus |
-| CSS 工具 | TailwindCSS 4 |
-| 动画库 | @vueuse/motion |
-| 状态管理 | Pinia |
-| 路由 | Vue Router |
-| 国际化 | vue-i18n（中文 / 英文）|
-
----
-
-## 📁 目录结构
-
-```
-xi-mail/
-├── mail-worker/                 # Cloudflare Worker 后端（主 Worker）
-│   ├── src/
-│   │   ├── api/                 # 接口路由层
-│   │   ├── service/             # 业务逻辑层
-│   │   ├── entity/              # Drizzle 数据库实体
-│   │   ├── security/            # JWT 身份认证 + 权限中间件
-│   │   ├── init/                # 数据库初始化 / 版本迁移
-│   │   └── index.js             # Worker 入口
-│   └── wrangler.example.toml    # 配置模板（复制为 wrangler.toml 后填写）
-│
-├── mail-view/                   # Vue 3 前端
-│   ├── src/
-│   │   ├── layout/              # 布局组件（侧边栏 / 顶栏 / 顶栏导航）
-│   │   ├── views/               # 页面组件
-│   │   │   └── login/templates/ # 登录模板 CSS（gradient / minimal / split / aurora / glassmorphism）
-│   │   ├── themes/              # 主题色 CSS（indigo / rose / emerald / amber / sky / purple / jade）
-│   │   ├── store/               # Pinia 状态管理（含 serverStore 多 Server 管理）
-│   │   ├── i18n/                # 国际化（zh / en）
-│   │   └── style.css            # 全局样式 / 设计 Token
-│   └── vite.config.js
-│
-├── mail-worker-sub/             # 子 Worker 模板（纯邮件接收 + API）
-│   ├── src/index.js             # 入口：邮件处理 + Hono API
-│   ├── wrangler.example.toml
-│   └── README.md                # 部署说明 & API 文档
-│
-└── doc/images/                  # 截图预览
-```
-
----
-
-## 🚀 快速部署
-
-### 前置要求
-
-- Node.js ≥ 20
-- 已登录 Cloudflare 账户：`npx wrangler login`
-- 一个托管在 Cloudflare 的域名，并配置好邮件路由（Email Routing）
-
-### 步骤
-
-```bash
-# 1. 克隆项目
-git clone https://github.com/PastKing/xi-mail.git
-cd xi-mail/mail-worker
-
-# 2. 安装依赖
-npm install
-
-# 3. 创建 Cloudflare 资源
-npx wrangler d1 create xi-mail          # 记录输出的 database_id
-npx wrangler kv namespace create kv     # 记录输出的 id
-npx wrangler r2 bucket create xi-mail
-
-# 4. 配置 wrangler.toml
-cp wrangler.example.toml wrangler.toml
-# 编辑 wrangler.toml，填入上一步获得的 ID、域名列表、管理员邮箱、JWT 密钥
-
-# 5. 构建前端
-cd ../mail-view
-npm install
-npm run build
-
-# 6. 部署
-cd ../mail-worker
-npx wrangler deploy
-
-# 7. 初始化数据库表结构（首次部署后访问）
-# 在浏览器中访问：https://your-worker.workers.dev/api/init/<JWT_SECRET>
-```
-
-### 独立前端部署（可选）
-
-若只需部署前端、后端 Worker 单独托管：
-
-```bash
-cd mail-view
-npm install
-npm run build:standalone   # 输出到 dist/
-# 部署 dist/ 到 CF Pages / Vercel 等静态托管
-# 构建时通过环境变量指定 Worker 地址：VITE_BASE_URL=https://your-worker.workers.dev/api
-```
-
-首次启动会自动跳转 `/setup` 引导配置 Worker 地址；也可在 `vercel.json` 中配置构建命令与输出目录。
-
-### wrangler.toml 关键字段说明
-
-```toml
-[vars]
-domain      = ["mail.example.com"]   # 邮箱域名列表（JSON 数组）；在系统设置中配置域名管理后可留空
-admin       = "admin@example.com"    # 管理员邮箱（首次初始化后无法更改）
-jwt_secret  = "your-secret"          # JWT 签名密钥（至少 32 位随机字符串）
-```
-
-> 部署更详细的说明请参考上游项目：[cloud-mail 部署文档](https://github.com/eoao/cloud-mail)
-
----
-
-## 📡 全局 API Token
-
-系统设置 → 安全 → **全局 API Token** 中开启并生成 Token 后，可通过以下接口无需登录查询邮件：
+**运维接口**
+可生成全局 API Token，用 `x-admin-auth` 请求头免登录查询邮件：
 
 ```http
 GET /api/admin/mails?limit=20&offset=0&address=user@domain.com
 x-admin-auth: <your-token>
 ```
 
-响应格式：
+---
 
-```json
-{
-  "results": [...],
-  "count": 100
-}
+## 🚀 部署
+
+前置条件：Node.js ≥ 20、已 `npx wrangler login`、一个托管在 Cloudflare 并开启 Email Routing 的域名。
+
+```bash
+git clone https://github.com/PastKing/xi-mail.git
+cd xi-mail/mail-worker && npm install
+
+# 创建 Cloudflare 资源，记录输出的 ID
+npx wrangler d1 create xi-mail
+npx wrangler kv namespace create kv
+npx wrangler r2 bucket create xi-mail
+
+# 填写配置
+cp wrangler.example.toml wrangler.toml
+
+# 构建前端并部署
+cd ../mail-view && npm install && npm run build
+cd ../mail-worker && npx wrangler deploy
+```
+
+部署完成后访问 `https://your-worker.workers.dev/api/init/<JWT_SECRET>` 初始化 / 迁移数据库表结构。
+
+`wrangler.toml` 关键字段：
+
+```toml
+[vars]
+domain      = ["mail.example.com"]   # 域名列表；改用系统设置管理域名后可留空
+admin       = "admin@example.com"    # 管理员邮箱，初始化后无法更改
+jwt_secret  = "your-secret"          # JWT 密钥，至少 32 位随机字符串
+```
+
+### 独立部署前端
+
+```bash
+cd mail-view
+VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
+# 将 dist/ 部署到 CF Pages / Vercel 等静态托管
+```
+
+未配置 `VITE_BASE_URL` 时，首次打开会跳转 `/setup` 引导手动填写 Worker 地址。
+
+更详细的部署说明可参考上游项目 [cloud-mail 文档](https://github.com/eoao/cloud-mail)。
+
+---
+
+## 📋 版本记录
+
+版本号规则 `3.x.y`：`x` 为小功能，`y` 为修 bug / 优化。完整变更见项目内 `git.md`。
+
+| 版本 | 要点 |
+|------|------|
+| **v3.4.0** | 域名管理改为内联面板并支持排序；系统设置拆分为独立子路由 `/system-setting/:section`，刷新不再回到首个分区 |
+| **v3.3.x** | 发件人白名单模式；黑白名单合并入同一入口；`/settings` 重排与 ID 点击复制；图标与尺寸统一 |
+| **v3.2.x** | 发件人域名屏蔽修复（信封 + From 双检）；侧边栏收窄至 200px |
+| **v3.1.0** | 子 Worker 聚合；语言偏好持久化到用户账号 |
+| **v3.0.0** | 前后端分离；多 Server 架构；standalone 独立部署 |
+| **v2.0.0** | 外观模板系统；登录后主布局切换；系统设置页重构 |
+
+---
+
+## 🛠️ 技术栈与结构
+
+后端 Cloudflare Workers + Hono + Drizzle ORM + D1 / KV / R2；前端 Vue 3 + Vite + Element Plus + Pinia + TailwindCSS 4 + vue-i18n。
+
+```
+xi-mail/
+├── mail-worker/       # 主 Worker：API、业务逻辑、鉴权、数据库迁移
+├── mail-view/         # Vue 3 前端：布局、页面、登录模板、主题色、i18n
+├── mail-worker-sub/   # 子 Worker 模板：仅收信 + API，附部署与接口文档
+└── doc/images/        # 截图
 ```
 
 ---
 
-## 💬 社区 & 支持
+## 💬 社区与支持
 
-| 渠道 | 链接 |
-|------|------|
-| GitHub | [PastKing/xi-mail](https://github.com/PastKing/xi-mail) |
-| Telegram 频道 | [@pk_oa](https://t.me/pk_oa) |
-| 上游项目 | [eoao/cloud-mail](https://github.com/eoao/cloud-mail) |
+[GitHub](https://github.com/PastKing/xi-mail) · [Telegram @pk_oa](https://t.me/pk_oa) · 上游项目 [eoao/cloud-mail](https://github.com/eoao/cloud-mail)
 
-### 捐款 (USDT)
-
-如果本项目对你有帮助，欢迎捐款支持持续开发：
+若本项目对你有帮助，欢迎捐赠 USDT 支持持续开发：
 
 | 网络 | 地址 |
 |------|------|
 | BEP20 (BSC) | `0x555390f5c07cf76cc344f42612196e8669e3586b` |
-| TRC20 (TRON) | `TVqK4thJCsaaVvp1Dah9F5CFZ1iqw75f4G` |
+| TRC20 (TRON) | `TVqK4thJCsaaWvp1Dah9F5CFZ1iqw75f4G` |
 
 ---
 
 ## 📄 许可证
 
-本项目基于 [MIT License](LICENSE) 开源。
-
-原项目 [eoao/cloud-mail](https://github.com/eoao/cloud-mail) 同样采用 MIT 许可证，本项目保留原始版权声明。
+[MIT License](LICENSE)。上游项目 [eoao/cloud-mail](https://github.com/eoao/cloud-mail) 同样采用 MIT 许可证，本项目保留其原始版权声明。

@@ -2,224 +2,154 @@
 
 # Xi-Mail
 
-**Self-hosted temporary email service powered by the Cloudflare stack**
+**Self-hosted mail service built entirely on Cloudflare**
 
-Forked from [cloud-mail](https://github.com/eoao/cloud-mail) · Complete UI redesign · Ongoing feature extensions
+A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
+[![Version](https://img.shields.io/badge/Version-v3.4.0-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/PastKing/xi-mail?color=6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
 
-[简体中文](README.md) | English
+[简体中文](README.md) | [English](README-en.md)
 
 </div>
 
----
-
-## 📖 Introduction
-
-Xi-Mail is a full-stack self-hosted email service built on **Cloudflare Workers / D1 / KV / R2**, forked from [cloud-mail](https://github.com/eoao/cloud-mail) with a complete UI redesign and a series of new features.
-
-With just a single domain managed by Cloudflare, you can deploy a full-featured email platform — completely free — supporting multiple accounts, multiple domains, and role-based access control.
+With a single domain hosted on Cloudflare you can deploy a complete mail platform — multi-account, multi-domain, tiered permissions — at no cost. It runs on Workers + D1 + KV + R2, with no servers to maintain.
 
 ---
 
-## ✨ What's New
+## 📸 Preview
 
-### 🎨 Complete UI Redesign (Linear-inspired)
-- Rebuilt with **TailwindCSS 4** + **@vueuse/motion** animation library
-- Login / Register: frosted glass card, animated gradient orbs, subtle grid background
-- Sidebar: dark minimal style with unified navigation icons
-- Header: compact layout, gradient Compose button, improved user info panel
-- Global design tokens: indigo-violet gradients, colored shadows, unified border-radius
-- **Header language toggle**: switch between Chinese / English instantly; preference is persisted
+| System settings | Appearance / themes |
+|:---:|:---:|
+| ![System settings](doc/images/system-setting-view.png) | ![Themes](doc/images/system-setting-theme.png) |
+| **Analytics** | **Mailbox transfer** |
+| ![Analytics](doc/images/analysis-view.png) | ![Transfer](doc/images/transfer-view.png) |
 
-### 👤 User System Enhancements
-- **Display ID**: User IDs are now random alphanumeric strings (`xxxx-xxxx-xxxx`) instead of sequential integers
-- Display ID shown in: user detail panel, personal settings page, avatar hover card in header
-- **Account Transfer**: Users can transfer an email account (along with all its emails) to another user by Display ID; the recipient can accept or reject
+More screenshots in [doc/images/](doc/images/).
 
-### 📬 Account Management Improvements
-- Inbox / Sent sidebar: search/filter support, shows full email address for easy multi-account distinction; account list limit raised to 100
-- Account actions dropdown always visible (includes Transfer entry)
-- **Sent / Drafts menu items**: automatically hidden in the sidebar when the user has no send permission or the role is banned from sending
-- **Re-create deleted email accounts**: soft-deleted email addresses can be re-registered and their associated data is automatically restored
+## 🔑 Live demo
 
-### 🔄 Transfer Page (`/transfer`)
-- Dedicated sidebar page to initiate transfers and manage pending / sent transfer requests
-- **Received history**: All accepted / rejected incoming transfer requests are preserved in a separate history section — they no longer disappear after processing
-- Header badge shows real-time pending count
-
-### 🛡️ Permission System Redesign
-- Roles now have a `level` field (higher value = higher privilege)
-- Users can only generate invite codes for roles with a **lower** level than their own
-- Level constraint strictly enforced server-side at invite code creation
-
-### 🗂️ Batch Operations (User Management)
-- Batch ban, batch unban, batch delete selected users
-- Batch delete email accounts associated with a user
-
-### ⚙️ System Settings Enhancements
-- **Web-based domain management**: Add, delete, enable, or disable email domains directly in the System Settings UI — no need to edit `wrangler.toml`. The `domain` variable in `wrangler.toml` can be left empty once domains are configured here
-- **Global API Token**: Admins can enable and generate a global token; use the `x-admin-auth` header to query emails via API without login (`GET /api/admin/mails`)
-- **Email keyword blocklist**: Prevents regular users from registering email addresses containing sensitive keywords like `admin` (admins bypass this check)
-- **Sender domain blacklist**: Block emails from specified sender domains; the system rejects them immediately to defend against email bombing attacks
-- **Turnstile admin bypass**: When Turnstile bot verification is enabled, the admin account is exempt from completing the challenge on registration and when adding email addresses
-- **Registration code hint & link**: When registration codes are required, admins can configure a hint message (e.g. "Contact admin to get one") and an external link shown as "Get Registration Code" on the register page
-- **Announcement dialog redesign**: Centered Dialog with custom title, width, and HTML content; obsolete position/offset/type/duration options removed
-- Domain mapping UI improvement: existing system domains shown for quick selection
-- Auto-ban months input alignment fix; removed redundant "Login Background" and "Login Opacity" settings
-
-### 🔍 Tooltip Coverage
-- All action icons (search, refresh, sort, batch operations, etc.) now have consistent Tooltip hints on hover
-
-### 🔎 Search Enhancements
-- **Sub-account email search in User Management**: When searching in `/all-users`, the query matches not only the primary email but also all sub-account emails created by the user (e.g. searching `zjp2i3kzvz8m@domain.com` will surface the owning primary account)
+Try it at [mail.azx.us](https://mail.azx.us) using invite code `viewUser` (limited to the `@nlfree.me` suffix). For preview only — do not store real mail there.
 
 ---
 
-## 🛠️ Tech Stack
+## ✨ Highlights
 
-| Layer | Technology |
-|-------|------------|
-| Runtime | Cloudflare Workers |
-| Web Framework | Hono |
-| ORM | Drizzle ORM |
-| Database | Cloudflare D1 (SQLite) |
-| Cache / Session | Cloudflare KV |
-| File Storage | Cloudflare R2 |
-| Frontend | Vue 3 + Vite |
-| UI Components | Element Plus |
-| CSS Utility | TailwindCSS 4 |
-| Animation | @vueuse/motion |
-| State Management | Pinia |
-| Router | Vue Router |
-| i18n | vue-i18n (zh / en) |
+**Interface**
+Six login templates and six color themes, plus three post-login layouts (full sidebar, icon-only sidebar, top navigation), all switchable from system settings and persisted server-side. Icons are unified on `mingcute`; the UI ships in English and Chinese, and the language preference follows the account across devices.
 
----
+**Users and accounts**
+User IDs are random alphanumeric strings and can be copied with one click. Each user can hold up to 100 mailbox accounts, and a deleted mailbox can be recreated. Mailboxes can be transferred to another user along with all their mail, subject to the recipient's approval. Roles carry a `level` field, so a user can only issue invite codes for roles below their own.
 
-## 📁 Project Structure
+**Delivery control**
+Sender-domain filtering runs in either blacklist or whitelist mode; in whitelist mode only authorized providers are accepted. Both the SMTP envelope sender and the header `From` address are checked, with subdomain matching. There is also an address keyword blacklist and configurable invite-code hints and links (separately for English and Chinese).
 
-```
-xi-mail/
-├── mail-worker/                 # Cloudflare Worker backend
-│   ├── src/
-│   │   ├── api/                 # Route handlers
-│   │   ├── service/             # Business logic
-│   │   ├── entity/              # Drizzle database entities
-│   │   ├── security/            # JWT auth + permission middleware
-│   │   ├── init/                # DB init / version migrations
-│   │   └── index.js             # Worker entry point
-│   └── wrangler.example.toml    # Config template (copy to wrangler.toml and fill in)
-│
-└── mail-view/                   # Vue 3 frontend
-    ├── src/
-    │   ├── layout/              # Layout components (sidebar / header / account panel)
-    │   ├── views/               # Page components
-    │   ├── components/          # Shared components
-    │   ├── store/               # Pinia stores
-    │   ├── i18n/                # i18n (zh / en)
-    │   └── style.css            # Global styles / design tokens
-    └── vite.config.js
-```
+**Domain management**
+No need to edit `wrangler.toml` — add, remove, enable and disable domains directly in system settings, and reorder them by dragging or with the up/down buttons. That order is exactly the order of mailbox suffixes on the registration page, with the first entry as the default.
 
----
+**Deployment shapes**
+Deploy the frontend and Worker together, or run `build:standalone` to produce a static frontend for CF Pages, Vercel or any static host. The frontend can connect to several Worker instances at once and aggregate their data, and `mail-worker-sub/` provides a lightweight sub-worker template that only receives mail and serves the API — no user system, no pages.
 
-## 🚀 Quick Deploy
-
-### Prerequisites
-
-- Node.js ≥ 20
-- Logged in to Cloudflare: `npx wrangler login`
-- A domain managed by Cloudflare with Email Routing configured
-
-### Steps
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/PastKing/xi-mail.git
-cd xi-mail/mail-worker
-
-# 2. Install dependencies
-npm install
-
-# 3. Create Cloudflare resources
-npx wrangler d1 create xi-mail          # note the database_id
-npx wrangler kv namespace create kv     # note the id
-npx wrangler r2 bucket create xi-mail
-
-# 4. Configure wrangler.toml
-cp wrangler.example.toml wrangler.toml
-# Edit wrangler.toml — fill in the IDs from step 3, domain list, admin email, JWT secret
-
-# 5. Build the frontend
-cd ../mail-view
-npm install
-npm run build
-
-# 6. Deploy
-cd ../mail-worker
-npx wrangler deploy
-
-# 7. Initialize the database (first deployment only)
-# Visit in browser: https://your-worker.workers.dev/api/init/<JWT_SECRET>
-```
-
-### Key wrangler.toml fields
-
-```toml
-[vars]
-domain      = ["mail.example.com"]   # Email domain list (JSON array); can be left empty once configured via the web Domain Management UI
-admin       = "admin@example.com"    # Admin email (cannot be changed after init)
-jwt_secret  = "your-secret"          # JWT signing key (min 32 random characters)
-```
-
-> For detailed deployment instructions, refer to the upstream project: [cloud-mail docs](https://github.com/eoao/cloud-mail)
-
----
-
-## 📡 Global API Token
-
-Enable and generate a token in **System Settings → Security → Global API Token**, then query emails without login:
+**Admin API**
+Generate a global API token and query mail without logging in via the `x-admin-auth` header:
 
 ```http
 GET /api/admin/mails?limit=20&offset=0&address=user@domain.com
 x-admin-auth: <your-token>
 ```
 
-Response format:
+---
 
-```json
-{
-  "results": [...],
-  "count": 100
-}
+## 🚀 Deployment
+
+Prerequisites: Node.js ≥ 20, `npx wrangler login` completed, and a domain hosted on Cloudflare with Email Routing enabled.
+
+```bash
+git clone https://github.com/PastKing/xi-mail.git
+cd xi-mail/mail-worker && npm install
+
+# Create Cloudflare resources and note the returned IDs
+npx wrangler d1 create xi-mail
+npx wrangler kv namespace create kv
+npx wrangler r2 bucket create xi-mail
+
+# Fill in the configuration
+cp wrangler.example.toml wrangler.toml
+
+# Build the frontend and deploy
+cd ../mail-view && npm install && npm run build
+cd ../mail-worker && npx wrangler deploy
+```
+
+After deploying, visit `https://your-worker.workers.dev/api/init/<JWT_SECRET>` to initialize or migrate the database schema.
+
+Key `wrangler.toml` fields:
+
+```toml
+[vars]
+domain      = ["mail.example.com"]   # Domain list; may be left empty once domains are managed in system settings
+admin       = "admin@example.com"    # Admin address, immutable after initialization
+jwt_secret  = "your-secret"          # JWT secret, at least 32 random characters
+```
+
+### Standalone frontend
+
+```bash
+cd mail-view
+VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
+# Deploy dist/ to CF Pages, Vercel or any static host
+```
+
+Without `VITE_BASE_URL`, the first visit redirects to `/setup` so the Worker address can be entered manually.
+
+For a more detailed walkthrough, see the upstream [cloud-mail docs](https://github.com/eoao/cloud-mail).
+
+---
+
+## 📋 Release history
+
+Versions follow `3.x.y`, where `x` is a small feature and `y` is a fix or refinement. The full changelog lives in `git.md` inside the repository.
+
+| Version | Summary |
+|---------|---------|
+| **v3.4.0** | Domain management became an inline, sortable panel; system settings split into `/system-setting/:section` sub-routes so a refresh keeps you on the current section |
+| **v3.3.x** | Sender whitelist mode; blacklist and whitelist merged into one entry point; `/settings` reordered with click-to-copy IDs; icon set and sizes unified |
+| **v3.2.x** | Sender-domain blocking fixed (envelope + header `From`); sidebar narrowed to 200px |
+| **v3.1.0** | Sub-worker aggregation; language preference persisted to the user account |
+| **v3.0.0** | Frontend/backend split; multi-server architecture; standalone deployment |
+| **v2.0.0** | Appearance template system; switchable post-login layout; system settings rewrite |
+
+---
+
+## 🛠️ Stack and layout
+
+Backend: Cloudflare Workers with Hono, Drizzle ORM and D1 / KV / R2. Frontend: Vue 3, Vite, Element Plus, Pinia, TailwindCSS 4 and vue-i18n.
+
+```
+xi-mail/
+├── mail-worker/       # Main worker: API, business logic, auth, migrations
+├── mail-view/         # Vue 3 frontend: layout, pages, login templates, themes, i18n
+├── mail-worker-sub/   # Sub-worker template: mail receiving + API, with its own docs
+└── doc/images/        # Screenshots
 ```
 
 ---
 
-## 💬 Community & Support
+## 💬 Community and support
 
-| Channel | Link |
-|---------|------|
-| GitHub | [PastKing/xi-mail](https://github.com/PastKing/xi-mail) |
-| Telegram Channel | [@pk_oa](https://t.me/pk_oa) |
-| Upstream Project | [eoao/cloud-mail](https://github.com/eoao/cloud-mail) |
+[GitHub](https://github.com/PastKing/xi-mail) · [Telegram @pk_oa](https://t.me/pk_oa) · upstream [eoao/cloud-mail](https://github.com/eoao/cloud-mail)
 
-### Donate (USDT)
-
-If this project helps you, consider supporting ongoing development:
+If this project helps you, USDT donations are welcome:
 
 | Network | Address |
 |---------|---------|
 | BEP20 (BSC) | `0x555390f5c07cf76cc344f42612196e8669e3586b` |
-| TRC20 (TRON) | `TVqK4thJCsaaVvp1Dah9F5CFZ1iqw75f4G` |
+| TRC20 (TRON) | `TVqK4thJCsaaWvp1Dah9F5CFZ1iqw75f4G` |
 
 ---
 
 ## 📄 License
 
-This project is open-source under the [MIT License](LICENSE).
-
-The upstream project [eoao/cloud-mail](https://github.com/eoao/cloud-mail) is also MIT licensed. Original copyright notices are retained.
+[MIT License](LICENSE). The upstream project [eoao/cloud-mail](https://github.com/eoao/cloud-mail) is also MIT licensed, and its original copyright notice is preserved here.

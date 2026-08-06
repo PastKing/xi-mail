@@ -1,0 +1,310 @@
+/* Shared styles for the system settings page and all of its sections.
+   Loaded once (unscoped) by sys-setting/index.vue, because the sections live in
+   separate components and the dialogs are teleported to <body>. Everything is
+   namespaced under .sys-setting / .sys-setting-section / .sys-setting-dialog so
+   it cannot leak into other pages. */
+
+.sys-setting {
+  height: 100%;
+  overflow: hidden;
+  background: var(--extra-light-fill) !important;
+  position: relative;
+
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    z-index: 2;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .loading-show {
+    transition: all 200ms ease 200ms;
+    opacity: 1;
+  }
+
+  .loading-hide {
+    transition: var(--loading-hide-transition);
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  /* ── Two-column layout ── */
+  .settings-layout {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+
+    @media (max-width: 680px) {
+      flex-direction: column;
+    }
+  }
+
+  .settings-nav {
+    width: 200px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--el-border-color-lighter);
+    background: var(--el-bg-color);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+
+    @media (max-width: 680px) {
+      width: 100%;
+      height: auto;
+      flex-direction: row;
+      border-right: none;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      padding: 8px 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      gap: 4px;
+      flex-shrink: 0;
+
+      &::-webkit-scrollbar { display: none; }
+    }
+  }
+
+  .sn-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 450;
+    color: var(--el-text-color-secondary);
+    text-decoration: none;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      color: var(--el-text-color-primary);
+    }
+
+    &.active {
+      background: var(--el-color-primary-light-9);
+      color: var(--el-color-primary);
+      font-weight: 550;
+    }
+
+    @media (max-width: 680px) {
+      flex-shrink: 0;
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      white-space: nowrap;
+      gap: 6px;
+    }
+  }
+
+  .settings-body {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+  }
+
+  .sb-inner {
+    padding: 0;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+/* ── Cards & rows, shared by every section component ── */
+.sys-setting-section {
+  .settings-card {
+    background-color: var(--el-bg-color);
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    transition: none;
+    overflow: visible;
+    box-shadow: none;
+
+    &:hover {
+      box-shadow: none;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 20px 24px 8px;
+    border-bottom: none;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--el-text-color-secondary);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .card-content {
+    padding: 0 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    @media (max-width: 480px) { padding: 0 16px 16px; }
+  }
+
+  .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-weight: normal;
+    font-size: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--el-border-color-extra-light);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    > div:first-child {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      color: var(--el-text-color-primary);
+    }
+
+    > div:last-child {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      font-weight: normal;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 500px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+
+      > div:last-child {
+        justify-content: flex-start;
+        width: 100%;
+
+        .el-input,
+        .el-select {
+          width: 100% !important;
+        }
+      }
+    }
+  }
+
+  .forward {
+    span {
+      display: flex;
+      align-items: center;
+    }
+
+    .el-button {
+      width: 48px;
+      margin: 0 0 0 10px;
+    }
+  }
+
+  .opt-button {
+    width: fit-content !important;
+  }
+}
+
+/* Element Plus control sizing, applied both to the page body and to every
+   settings dialog (dialogs are teleported out of the page subtree). */
+.sys-setting-section,
+.sys-setting-dialog {
+  .warning {
+    color: var(--el-text-color-placeholder);
+    cursor: help;
+    margin-left: 4px;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: var(--el-color-warning);
+    }
+  }
+
+  .el-switch {
+    height: 28px;
+  }
+
+  .el-button--small {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+    height: 24px;
+  }
+
+  .el-select__wrapper {
+    min-height: 28px;
+  }
+}
+
+.sys-setting-dialog {
+  form .el-button {
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .dialog-input {
+    margin-bottom: 15px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .el-input-tag {
+    background: var(--el-fill-color-light);
+    border-color: var(--el-border-color);
+
+    .el-input-tag__inner {
+      background: transparent;
+    }
+
+    &:focus-within {
+      border-color: var(--el-color-primary);
+    }
+  }
+}
+
+/* Default dialog width; wider dialogs opt out by omitting this class. */
+.ss-dialog-sm.el-dialog {
+  width: 400px !important;
+
+  @media (max-width: 440px) {
+    width: calc(100% - 40px) !important;
+    margin-right: 20px !important;
+    margin-left: 20px !important;
+  }
+}
