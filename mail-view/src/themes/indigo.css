@@ -1,18 +1,40 @@
 /* ═══════════════════════════════════════════════════
-   Theme: Indigo (default)
-   This is the base theme defined in :root (style.css).
-   The variables here are already set in :root and need
-   no explicit [data-color-theme] override.
-   ═══════════════════════════════════════════════════
+   Theme: Indigo
    Primary: #6366f1  Dark: #4f46e5
-*/
+   ═══════════════════════════════════════════════════ */
 
-/* Login gradient orb colors */
-:root {
+[data-color-theme="indigo"] {
   --xi-orb-1: rgba(99,102,241,0.62);
   --xi-orb-2: rgba(139,92,246,0.54);
   --xi-orb-3: rgba(59,130,246,0.46);
   --xi-orb-bg-top:    rgba(99,102,241,0.34);
   --xi-orb-bg-bottom: rgba(139,92,246,0.28);
   --xi-orb-card-border: rgba(99,102,241,0.24);
+
+  --el-color-primary:         #6366f1;
+  --el-color-primary-dark-2:  #4f46e5;
+  --el-color-primary-light-3: #818cf8;
+  --el-color-primary-light-5: #a5b4fc;
+  --el-color-primary-light-7: #c7d2fe;
+  --el-color-primary-light-8: #e0e7ff;
+  --el-color-primary-light-9: #eef2ff;
+
+  --xi-gradient:              linear-gradient(135deg, #6366f1, #4f46e5);
+  --xi-gradient-hover:        linear-gradient(135deg, #4f46e5, #4338ca);
+  --xi-shadow-sm:             0 1px 2px rgba(99,102,241,0.05);
+  --xi-shadow:                0 1px 3px rgba(99,102,241,0.08), 0 1px 2px rgba(99,102,241,0.06);
+  --xi-shadow-md:             0 4px 6px -1px rgba(99,102,241,0.08), 0 2px 4px -2px rgba(99,102,241,0.06);
+  --xi-shadow-lg:             0 10px 15px -3px rgba(99,102,241,0.08), 0 4px 6px -4px rgba(99,102,241,0.06);
+  --xi-shadow-card:           0 1px 3px rgba(99,102,241,0.06), 0 0 0 1px rgba(99,102,241,0.04);
+  --xi-shadow-card-hover:     0 8px 25px -5px rgba(99,102,241,0.12), 0 0 0 1px rgba(99,102,241,0.08);
+  --aside-right-border:       0 0 15px rgba(99,102,241,0.06);
+  --choose-account-background: #e0e7ff;
+  --email-hover-background:   #eef2ff;
+  --login-switch-color:       #6366f1;
+}
+
+.dark[data-color-theme="indigo"],
+.dark [data-color-theme="indigo"] {
+  --email-hover-background: #1e1b4b;
+  --choose-account-background: #1e1b4b;
 }

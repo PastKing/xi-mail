@@ -227,6 +227,7 @@
    To add a new theme: create the file and add an @import here.
    ── */
 @import './themes/jade.css';
+@import './themes/indigo.css';
 @import './themes/rose.css';
 @import './themes/emerald.css';
 @import './themes/amber.css';

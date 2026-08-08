@@ -12,6 +12,7 @@
           :content="$t(item.label)"
           placement="right"
           :show-after="180"
+          :disabled="isMobile"
         >
           <button
             class="island-item"
@@ -41,10 +42,7 @@
       <div v-if="launcherOpen" class="launcher-backdrop" @click="launcherOpen = false">
         <section class="island-launcher" role="dialog" aria-modal="true" @click.stop>
           <header class="launcher-head">
-            <div>
-              <span class="launcher-kicker">XI / NAVIGATION</span>
-              <h2>{{ $t('islandNavigation') }}</h2>
-            </div>
+            <h2>{{ $t('islandNavigation') }}</h2>
             <button :aria-label="$t('close')" @click="launcherOpen = false">
               <Icon icon="mingcute:close-line" width="19" height="19" />
             </button>
@@ -105,6 +103,8 @@ import {useNavigationAccess} from '@/layout/nav-config.js'
 const route = useRoute()
 const settingStore = useSettingStore()
 const launcherOpen = ref(false)
+const isMobile = ref(false)
+let mobileMediaQuery
 const {transferStore, visibleMainNav, visibleAdminNav} = useNavigationAccess()
 
 const primaryNav = computed(() => visibleMainNav.value.filter(item => item.primary).slice(0, 4))
@@ -132,12 +132,25 @@ function handleEscape(event) {
   if (event.key === 'Escape') launcherOpen.value = false
 }
 
+function syncMobileState(event) {
+  isMobile.value = event.matches
+}
+
 watch(() => route.fullPath, () => {
   launcherOpen.value = false
 })
 
-onMounted(() => window.addEventListener('keydown', handleEscape))
-onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
+onMounted(() => {
+  window.addEventListener('keydown', handleEscape)
+  mobileMediaQuery = window.matchMedia('(max-width: 720px)')
+  isMobile.value = mobileMediaQuery.matches
+  mobileMediaQuery.addEventListener('change', syncMobileState)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleEscape)
+  mobileMediaQuery?.removeEventListener('change', syncMobileState)
+})
 </script>
 
 <style scoped lang="scss">
@@ -159,8 +172,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
   padding: 10px 8px;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(28,34,45,.98), rgba(17,21,29,.98));
+  background: #171c25;
   box-shadow:
     0 18px 45px rgba(10,14,20,.24),
     inset 0 1px 0 rgba(255,255,255,.07);
@@ -186,8 +198,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
     0 9px 22px var(--xi-orb-card-border),
     inset 0 1px 0 rgba(255,255,255,.2);
   transition: transform .2s ease;
-
-  &:hover { transform: translateY(-2px) rotate(-3deg); }
 }
 
 .island-primary {
@@ -210,16 +220,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
   background: transparent;
   transition: color .18s ease, background .18s ease, transform .18s ease;
 
-  &:hover {
-    color: #fff;
-    background: rgba(255,255,255,.075);
-    transform: translateY(-1px);
-  }
-
   &.active {
     color: #fff;
-    background: var(--xi-gradient);
-    box-shadow: 0 8px 22px var(--xi-orb-card-border);
+    background: color-mix(in srgb, var(--el-color-primary) 22%, transparent);
 
     &::after {
       content: '';
@@ -229,8 +232,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
       height: 14px;
       border-radius: 3px;
       background: var(--el-color-primary);
-      box-shadow: 0 0 10px var(--xi-orb-1);
     }
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .island-logo:hover { transform: translateY(-2px); }
+
+  .island-item:hover {
+    color: #fff;
+    background: rgba(255,255,255,.075);
+    transform: translateY(-1px);
+  }
+
+  .island-item.active:hover {
+    background: color-mix(in srgb, var(--el-color-primary) 28%, transparent);
   }
 }
 
@@ -257,7 +273,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
   z-index: 300;
   inset: 0;
   background: rgba(7,10,14,.36);
-  backdrop-filter: blur(5px);
 }
 
 .island-launcher {
@@ -271,7 +286,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
   color: var(--el-text-color-primary);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 22px;
-  background: color-mix(in srgb, var(--el-bg-color) 94%, transparent);
+  background: var(--el-bg-color);
   box-shadow: 0 28px 90px rgba(0,0,0,.25);
 }
 
@@ -283,10 +298,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
   border-bottom: 1px solid var(--el-border-color-lighter);
 
   h2 {
-    margin: 6px 0 0;
-    font-size: 24px;
-    line-height: 1;
-    letter-spacing: -.04em;
+    margin: 0;
+    font-size: 20px;
+    line-height: 34px;
+    letter-spacing: -.02em;
   }
 
   button {
@@ -302,7 +317,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
   }
 }
 
-.launcher-kicker,
 .launcher-title {
   color: var(--el-color-primary);
   font: 650 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -400,14 +414,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
 
   .island-rail {
     position: fixed;
-    inset: auto 12px calc(10px + env(safe-area-inset-bottom));
-    height: 64px;
+    inset: auto 8px calc(8px + env(safe-area-inset-bottom));
+    height: 60px;
     flex-direction: row;
     justify-content: center;
-    gap: 2px;
-    padding: 6px;
-    border-radius: 20px;
-    background: color-mix(in srgb, #151b24 94%, transparent);
+    gap: 0;
+    padding: 5px 6px;
+    border-color: var(--el-border-color-lighter);
+    border-radius: 16px;
+    background: var(--el-bg-color);
+    box-shadow: 0 8px 28px rgba(0,0,0,.14);
   }
 
   .island-logo { display: none; }
@@ -424,9 +440,32 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
     height: 50px;
     flex-direction: column;
     gap: 3px;
-    border-radius: 14px;
+    color: var(--el-text-color-secondary);
+    border-radius: 10px;
 
-    &.active::after { display: none; }
+    &.active {
+      color: var(--el-color-primary);
+      background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+
+      &::after {
+        right: auto;
+        bottom: 2px;
+        width: 14px;
+        height: 2px;
+        border-radius: 2px;
+      }
+    }
+
+    &:hover {
+      color: var(--el-text-color-secondary);
+      background: transparent;
+      transform: none;
+    }
+
+    &.active:hover {
+      color: var(--el-color-primary);
+      background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+    }
   }
 
   .island-more {
@@ -439,7 +478,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
     max-width: 60px;
     overflow: hidden;
     color: inherit;
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -465,7 +504,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleEscape))
 }
 
 @media (max-width: 390px) {
-  .island-rail { inset-inline: 8px; }
   .launcher-grid { grid-template-columns: 1fr; }
 }
 

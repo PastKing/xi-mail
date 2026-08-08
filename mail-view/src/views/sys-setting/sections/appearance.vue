@@ -11,8 +11,9 @@
               v-for="theme in colorThemes"
               :key="theme.id"
               :class="['swatch', { active: setting.colorTheme === theme.id }]"
-              :style="{ background: theme.color }"
+              :style="{ background: theme.background }"
               :title="theme.label"
+              :aria-label="theme.label"
               @click="applyColorTheme(theme.id)"
             >
               <Icon v-if="setting.colorTheme === theme.id" icon="mingcute:check-fill" width="14" height="14" color="#fff" />
@@ -158,12 +159,12 @@ const {t} = useI18n()
 const {setting, editSetting} = useSysSetting()
 
 const colorThemes = [
-  { id: 'indigo',  color: '#6366f1', label: 'Indigo'  },
-  { id: 'rose',    color: '#f43f5e', label: 'Rose'    },
-  { id: 'emerald', color: '#10b981', label: 'Emerald' },
-  { id: 'amber',   color: '#f59e0b', label: 'Amber'   },
-  { id: 'sky',     color: '#0ea5e9', label: 'Sky'     },
-  { id: 'purple',  color: '#a855f7', label: 'Purple'  },
+  { id: 'indigo',  background: 'linear-gradient(135deg, #6366f1, #4f46e5)', label: 'Indigo'  },
+  { id: 'rose',    background: 'linear-gradient(135deg, #f43f5e, #e11d48)', label: 'Rose'    },
+  { id: 'emerald', background: 'linear-gradient(135deg, #10b981, #059669)', label: 'Emerald' },
+  { id: 'amber',   background: 'linear-gradient(135deg, #f59e0b, #d97706)', label: 'Amber'   },
+  { id: 'sky',     background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', label: 'Sky'     },
+  { id: 'purple',  background: 'linear-gradient(135deg, #a855f7, #9333ea)', label: 'Purple'  },
 ]
 
 const layoutModes = computed(() => [
