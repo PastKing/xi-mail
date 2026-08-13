@@ -7,6 +7,11 @@ import { sql } from 'drizzle-orm';
 import { t } from '../i18n/i18n';
 import userService from './user-service';
 
+async function isPrimaryAccount(c, userId, email) {
+    const user = await userService.selectByIdIncludeDel(c, userId);
+    return user?.email?.toLowerCase() === email?.toLowerCase();
+}
+
 const accountTransferService = {
 
     async create(c, params, fromUserId) {
@@ -23,6 +28,10 @@ const accountTransferService = {
 
         if (accountRow.isDel === 1) {
             throw new BizError(t('accountNotFound'));
+        }
+
+        if (await isPrimaryAccount(c, fromUserId, accountRow.email)) {
+            throw new BizError(t('cannotTransferPrimaryAccount'));
         }
 
         // Find target user by displayId
@@ -65,6 +74,10 @@ const accountTransferService = {
 
         if (!transferRow) {
             throw new BizError(t('transferNotFound'));
+        }
+
+        if (await isPrimaryAccount(c, transferRow.fromUserId, transferRow.accountEmail)) {
+            throw new BizError(t('cannotTransferPrimaryAccount'));
         }
 
         // Update account ownership (emails follow naturally via account_id)

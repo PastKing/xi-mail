@@ -30,7 +30,7 @@
         class="island-item island-more"
         :class="{ active: launcherOpen || launcherHasActiveRoute }"
         :aria-label="$t('moreNavigation')"
-        @click="launcherOpen = true"
+        @click="launcherOpen = !launcherOpen"
       >
         <Icon icon="mingcute:grid-2-line" width="19" height="19" />
         <span class="mobile-label">{{ $t('moreNavigation') }}</span>
@@ -66,7 +66,6 @@
                   />
                 </span>
                 <span>{{ $t(item.label) }}</span>
-                <Icon icon="mingcute:right-small-line" width="16" height="16" class="launcher-arrow" />
               </button>
             </div>
           </div>
@@ -82,7 +81,6 @@
               >
                 <span class="launcher-icon"><Icon :icon="item.icon" width="19" height="19" /></span>
                 <span>{{ $t(item.label) }}</span>
-                <Icon icon="mingcute:right-small-line" width="16" height="16" class="launcher-arrow" />
               </button>
             </div>
           </div>
@@ -155,27 +153,26 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .island-nav-shell {
-  width: 88px;
+  width: 72px;
   height: 100%;
-  flex: 0 0 88px;
+  flex: 0 0 72px;
   position: relative;
   z-index: 105;
 }
 
 .island-rail {
   position: absolute;
-  inset: 14px 10px;
+  z-index: 310;
+  inset: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 10px 8px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 22px;
-  background: #171c25;
-  box-shadow:
-    0 18px 45px rgba(10,14,20,.24),
-    inset 0 1px 0 rgba(255,255,255,.07);
+  gap: 6px;
+  padding: 8px 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 8px rgba(18,24,32,.06);
 }
 
 .island-logo,
@@ -186,18 +183,25 @@ onBeforeUnmount(() => {
 }
 
 .island-logo {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  margin-bottom: 8px;
-  color: #fff;
-  border-radius: 14px;
-  background: var(--xi-gradient);
-  box-shadow:
-    0 9px 22px var(--xi-orb-card-border),
-    inset 0 1px 0 rgba(255,255,255,.2);
+  margin-bottom: 10px;
+  color: var(--el-color-primary);
+  border-radius: 8px;
+  background: transparent;
   transition: transform .2s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 56px;
+    left: 14px;
+    right: 14px;
+    height: 1px;
+    background: var(--el-border-color-lighter);
+  }
 }
 
 .island-primary {
@@ -210,49 +214,47 @@ onBeforeUnmount(() => {
 
 .island-item {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(237,242,247,.55);
-  border-radius: 13px;
+  color: var(--el-text-color-secondary);
+  border-radius: 8px;
   background: transparent;
   transition: color .18s ease, background .18s ease, transform .18s ease;
 
   &.active {
-    color: #fff;
-    background: color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+    color: var(--el-color-primary);
+    background: var(--el-fill-color-light);
 
     &::after {
       content: '';
       position: absolute;
-      right: -13px;
-      width: 4px;
-      height: 14px;
-      border-radius: 3px;
+      left: -7px;
+      width: 2px;
+      height: 18px;
+      border-radius: 0 2px 2px 0;
       background: var(--el-color-primary);
     }
   }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .island-logo:hover { transform: translateY(-2px); }
+  .island-logo:hover { background: var(--el-fill-color-light); }
 
   .island-item:hover {
-    color: #fff;
-    background: rgba(255,255,255,.075);
-    transform: translateY(-1px);
+    color: var(--el-text-color-primary);
+    background: var(--el-fill-color-light);
   }
 
   .island-item.active:hover {
-    background: color-mix(in srgb, var(--el-color-primary) 28%, transparent);
+    color: var(--el-color-primary);
   }
 }
 
 .island-more {
   flex-shrink: 0;
-  border: 1px solid rgba(255,255,255,.07);
 }
 
 .island-dot {
@@ -261,7 +263,7 @@ onBeforeUnmount(() => {
   right: 8px;
   width: 6px;
   height: 6px;
-  border: 2px solid #171c25;
+  border: 2px solid var(--el-bg-color);
   border-radius: 50%;
   background: var(--el-color-danger);
 }
@@ -272,126 +274,119 @@ onBeforeUnmount(() => {
   position: fixed;
   z-index: 300;
   inset: 0;
-  background: rgba(7,10,14,.36);
+  background: rgba(12,15,18,.18);
 }
 
 .island-launcher {
   position: absolute;
-  top: 14px;
-  bottom: 14px;
-  left: 88px;
-  width: min(480px, calc(100vw - 110px));
+  top: 8px;
+  bottom: 8px;
+  left: 72px;
+  width: min(320px, calc(100vw - 88px));
   overflow: auto;
-  padding: 24px;
+  padding: 18px 14px;
   color: var(--el-text-color-primary);
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 22px;
+  border-radius: 12px;
   background: var(--el-bg-color);
-  box-shadow: 0 28px 90px rgba(0,0,0,.25);
+  box-shadow: 0 10px 30px rgba(0,0,0,.14);
 }
 
 .launcher-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding-bottom: 20px;
+  padding: 0 4px 14px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 
   h2 {
     margin: 0;
-    font-size: 20px;
-    line-height: 34px;
-    letter-spacing: -.02em;
+    font-size: 16px;
+    line-height: 32px;
+    letter-spacing: 0;
   }
 
   button {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     display: grid;
     place-items: center;
     color: var(--el-text-color-secondary);
     border: 0;
-    border-radius: 10px;
-    background: var(--el-fill-color-light);
+    border-radius: 6px;
+    background: transparent;
     cursor: pointer;
+
+    &:hover { background: var(--el-fill-color-light); }
   }
 }
 
 .launcher-title {
-  color: var(--el-color-primary);
-  font: 650 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: .14em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-.launcher-section { margin-top: 22px; }
+.launcher-section { margin-top: 18px; }
 .launcher-title {
   display: block;
-  margin: 0 0 10px 3px;
+  margin: 0 0 6px 8px;
   color: var(--el-text-color-placeholder);
 }
 
 .launcher-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 2px;
 
   > button {
     min-width: 0;
-    height: 52px;
+    height: 44px;
     display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) 16px;
+    grid-template-columns: 28px minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
-    padding: 0 11px;
+    gap: 10px;
+    padding: 0 8px;
     color: var(--el-text-color-regular);
-    border: 1px solid var(--el-border-color-extra-light);
-    border-radius: 12px;
-    background: var(--el-fill-color-extra-light);
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
     cursor: pointer;
     text-align: left;
-    transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    transition: color .16s ease, background .16s ease;
 
     &:hover {
       color: var(--el-text-color-primary);
-      border-color: var(--el-color-primary-light-7);
-      background: var(--el-color-primary-light-9);
-      transform: translateY(-1px);
+      background: var(--el-fill-color-light);
     }
 
     &.active {
       color: var(--el-color-primary);
-      border-color: var(--el-color-primary-light-6);
-      background: var(--el-color-primary-light-9);
+      background: var(--el-fill-color-light);
     }
 
     > span:nth-child(2) {
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
-      font-size: 12px;
-      font-weight: 550;
+      font-size: 13px;
+      font-weight: 500;
     }
   }
 }
 
 .launcher-icon {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  color: var(--el-color-primary);
-  border-radius: 9px;
-  background: var(--el-color-primary-light-9);
+  color: currentColor;
 }
-
-.launcher-arrow { color: var(--el-text-color-placeholder); }
 
 .launcher-badge {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -7px;
+  right: -9px;
 }
 
 .launcher-enter-active,
@@ -401,7 +396,7 @@ onBeforeUnmount(() => {
 .launcher-enter-from,
 .launcher-leave-to { opacity: 0; }
 .launcher-enter-from .island-launcher,
-.launcher-leave-to .island-launcher { transform: translateX(-14px) scale(.98); opacity: 0; }
+.launcher-leave-to .island-launcher { transform: translateX(-10px); opacity: 0; }
 
 @media (max-width: 720px) {
   .island-nav-shell {
@@ -414,16 +409,17 @@ onBeforeUnmount(() => {
 
   .island-rail {
     position: fixed;
-    inset: auto 8px calc(8px + env(safe-area-inset-bottom));
-    height: 60px;
+    inset: auto 0 0;
+    height: calc(58px + env(safe-area-inset-bottom));
     flex-direction: row;
     justify-content: center;
     gap: 0;
-    padding: 5px 6px;
+    padding: 4px 8px env(safe-area-inset-bottom);
     border-color: var(--el-border-color-lighter);
-    border-radius: 16px;
+    border-width: 1px 0 0;
+    border-radius: 0;
     background: var(--el-bg-color);
-    box-shadow: 0 8px 28px rgba(0,0,0,.14);
+    box-shadow: 0 -4px 14px rgba(0,0,0,.05);
   }
 
   .island-logo { display: none; }
@@ -445,13 +441,15 @@ onBeforeUnmount(() => {
 
     &.active {
       color: var(--el-color-primary);
-      background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+      background: transparent;
 
       &::after {
+        top: -4px;
         right: auto;
-        bottom: 2px;
-        width: 14px;
+        left: 50%;
+        width: 22px;
         height: 2px;
+        transform: translateX(-50%);
         border-radius: 2px;
       }
     }
@@ -464,7 +462,7 @@ onBeforeUnmount(() => {
 
     &.active:hover {
       color: var(--el-color-primary);
-      background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+      background: transparent;
     }
   }
 
@@ -488,23 +486,21 @@ onBeforeUnmount(() => {
 
   .island-launcher {
     top: auto;
-    right: 8px;
-    bottom: 8px;
-    left: 8px;
+    right: 0;
+    bottom: calc(58px + env(safe-area-inset-bottom));
+    left: 0;
     width: auto;
-    max-height: min(76vh, 650px);
-    padding: 20px 16px calc(22px + env(safe-area-inset-bottom));
-    border-radius: 24px;
+    max-height: min(68vh, 620px);
+    padding: 16px 12px 18px;
+    border-width: 1px 0 0;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.12);
   }
 
   .launcher-enter-from .island-launcher,
   .launcher-leave-to .island-launcher {
-    transform: translateY(20px) scale(.98);
+    transform: translateY(16px);
   }
-}
-
-@media (max-width: 390px) {
-  .launcher-grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

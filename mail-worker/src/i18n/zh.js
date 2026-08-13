@@ -92,6 +92,7 @@ const zh = {
 	accountNotFound: '邮箱不存在',
 	userNotFound: '用户不存在',
 	cannotTransferToSelf: '不能转移给自己',
+	cannotTransferPrimaryAccount: '主账号邮箱用于登录，不能转移',
 	transferAlreadyPending: '该邮箱已有待处理的转移请求',
 	transferNotFound: '转移请求不存在或已处理',
 	perms: {

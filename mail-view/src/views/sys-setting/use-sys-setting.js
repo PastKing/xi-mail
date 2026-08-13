@@ -7,7 +7,7 @@ import {useAccountStore} from "@/store/account.js";
 import {useUserStore} from "@/store/user.js";
 import i18n from "@/i18n/index.js";
 
-export const SYS_SETTING_VERSION = 'v3.4.2'
+export const SYS_SETTING_VERSION = 'v3.4.3'
 
 let context = null
 

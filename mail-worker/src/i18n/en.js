@@ -92,6 +92,7 @@ const en = {
 	accountNotFound: 'Mailbox not found',
 	userNotFound: 'User not found',
 	cannotTransferToSelf: 'Cannot transfer to yourself',
+	cannotTransferPrimaryAccount: 'The primary mailbox is used to sign in and cannot be transferred',
 	transferAlreadyPending: 'This mailbox already has a pending transfer request',
 	transferNotFound: 'Transfer request not found or already processed',
 	perms: {

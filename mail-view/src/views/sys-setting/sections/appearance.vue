@@ -480,17 +480,21 @@ function applyLoginTemplate(id) {
   align-items: center;
   gap: 4px;
   padding: 5px 3px;
-  border-radius: 5px;
-  background: #171b24;
-  box-shadow: 0 2px 5px rgba(0,0,0,.16);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 3px;
+  background: var(--el-bg-color);
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
 
   i {
     width: 5px;
     height: 5px;
-    border-radius: 2px;
-    background: #495064;
+    border-radius: 1px;
+    background: var(--el-text-color-placeholder);
 
-    &:first-child { background: var(--el-color-primary); }
+    &:first-child {
+      background: var(--el-color-primary);
+      box-shadow: -3px 0 0 -2px var(--el-color-primary);
+    }
   }
 }
 
@@ -515,7 +519,7 @@ function applyLoginTemplate(id) {
 .lp-island-body {
   flex: 1;
   border-radius: 3px;
-  background: var(--xi-gradient-subtle);
+  background: var(--el-fill-color-extra-light);
 }
 
 /* minimal preview */

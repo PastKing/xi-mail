@@ -147,23 +147,21 @@ onBeforeUnmount(() => {
 
 .lm-island {
   padding: 0;
-  background:
-    radial-gradient(circle at 8% 4%, var(--xi-orb-bg-top), transparent 24%),
-    var(--el-fill-color-extra-light);
+  background: var(--el-fill-color-extra-light);
 
   .main-area {
-    margin: 14px 14px 14px 0;
+    margin: 8px 8px 8px 0;
     border: 1px solid var(--el-border-color-lighter);
-    border-radius: 22px;
+    border-radius: 12px;
     background: var(--el-bg-color);
-    background-image: var(--xi-gradient-subtle);
-    box-shadow: 0 20px 55px rgba(18, 24, 32, .08);
+    background-image: none;
+    box-shadow: 0 2px 8px rgba(18,24,32,.05);
   }
 
   .top-bar {
-    height: 60px;
+    height: 56px;
     border-bottom-color: var(--el-border-color-extra-light);
-    background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
+    background: var(--el-bg-color);
   }
 }
 
@@ -171,7 +169,7 @@ onBeforeUnmount(() => {
   .lm-island {
     .main-area {
       margin: 0;
-      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+      padding-bottom: calc(58px + env(safe-area-inset-bottom));
       border: 0;
       border-radius: 0;
       box-shadow: none;

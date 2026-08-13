@@ -63,7 +63,11 @@
                     v-if="item.accountId !== userStore.user.account.accountId && hasPerm('account:delete')"
                     @click="remove(item)"
                   >{{ $t('delete') }}</el-dropdown-item>
-                  <el-dropdown-item @click="openTransfer(item)">{{ $t('transferAccount') }}</el-dropdown-item>
+                  <el-dropdown-item
+                    v-if="item.accountId !== userStore.user.account?.accountId
+                      && item.email?.toLowerCase() !== userStore.user.email?.toLowerCase()"
+                    @click="openTransfer(item)"
+                  >{{ $t('transferAccount') }}</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>

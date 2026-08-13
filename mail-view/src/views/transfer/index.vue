@@ -162,12 +162,14 @@ import {
 import { accountList } from '@/request/account.js'
 import { tzDayjs } from '@/utils/day.js'
 import { useTransferStore } from '@/store/transfer.js'
+import { useUserStore } from '@/store/user.js'
 import { ElMessage } from 'element-plus'
 
 defineOptions({ name: 'transfer' })
 
 const { t } = useI18n()
 const transferStore = useTransferStore()
+const userStore = useUserStore()
 
 const incomingTransfers = ref([])
 const sentTransfers = ref([])
@@ -185,8 +187,14 @@ async function loadMyAccounts() {
   accountsLoading.value = true
   try {
     const list = await accountList(0, 200, null)
-    myAccounts.value = list
-    if (list.length > 0 && !createForm.accountId) createForm.accountId = list[0].accountId
+    const primaryAccountId = userStore.user.account?.accountId
+    const primaryEmail = userStore.user.email?.toLowerCase()
+    myAccounts.value = list.filter(account =>
+      account.accountId !== primaryAccountId && account.email?.toLowerCase() !== primaryEmail
+    )
+    if (!myAccounts.value.some(account => account.accountId === createForm.accountId)) {
+      createForm.accountId = myAccounts.value[0]?.accountId ?? null
+    }
   } finally { accountsLoading.value = false }
 }
 
