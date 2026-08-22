@@ -27,6 +27,6 @@ mail-vue/dist
 .venv
 mail-worker/wrangler.local.toml
 task.md
-mail-worker/wrangler.toml
+# mail-worker/wrangler.toml
 
 git.md
