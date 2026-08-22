@@ -62,7 +62,20 @@ x-admin-auth: <your-token>
 
 ---
 
-## 🚀 部署
+## ☁️ Cloudflare 一键部署
+
+为避免本地环境部署复杂问题，本仓库已适配 Cloudflare 自动部署。
+
+<a href="https://deploy.workers.cloudflare.com/?repository=https://github.com/PastKing/xi-mail" target="_blank" rel="noopener">
+  <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare" />
+</a>
+
+点击按钮，或前往 **Workers & Pages → Create application → Import a repository** 选择本仓库。
+绑定 D1/KV、设置变量后即可运行，详见 [CF 直连部署教程](doc/DEPLOY_CF.md)。
+
+---
+
+## 🚀 手动部署（wrangler CLI）
 
 前置条件：Node.js ≥ 20、已 `npx wrangler login`、一个托管在 Cloudflare 并开启 Email Routing 的域名。
 

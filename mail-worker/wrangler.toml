@@ -1,0 +1,32 @@
+name = "xi-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+# 敏感信息一律不写入仓库：
+# D1/KV/R2 绑定与 domain/admin/jwt_secret 等变量请在 Cloudflare Dashboard 配置。
+# Worker > Settings > Bindings
+#   - D1 database  绑定名 db（固定，勿改）
+#   - KV namespace 绑定名 kv（固定，勿改）
+#   - R2 bucket    绑定名 r2（可选，不绑则附件回退到 KV）
+# Worker > Settings > Variables and Secrets
+#   - domain（JSON 数组）、admin、jwt_secret、orm_log
+
+[assets]
+binding = "assets"
+directory = "./dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+crons = ["0 16 * * *"]
+
+[vars]
+orm_log = false
+
+# 使用与上游一致的 pnpm 构建前端
+[build]
+command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"
