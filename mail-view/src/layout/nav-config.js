@@ -10,8 +10,8 @@ export const mainNav = Object.freeze([
   { name: 'send', icon: 'mingcute:send-line', label: 'sent', sendOnly: true, primary: true },
   { name: 'draft', icon: 'mingcute:file-line', label: 'drafts', sendOnly: true },
   { name: 'star', icon: 'mingcute:star-line', label: 'starred', primary: true },
+  { name: 'transfer', icon: 'mingcute:transfer-3-line', label: 'transferPending', badge: 'transfer', primary: true },
   { name: 'setting', icon: 'mingcute:settings-3-line', label: 'settings', primary: true },
-  { name: 'transfer', icon: 'mingcute:transfer-3-line', label: 'transferPending', badge: 'transfer' },
 ])
 
 export const adminNav = Object.freeze([

@@ -22,6 +22,7 @@
           >
             <Icon :icon="item.icon" width="19" height="19" />
             <span class="mobile-label">{{ $t(item.label) }}</span>
+            <span v-if="item.badge === 'transfer' && transferStore.pendingCount > 0" class="island-dot"></span>
           </button>
         </el-tooltip>
       </div>
@@ -34,7 +35,7 @@
       >
         <Icon icon="mingcute:grid-2-line" width="19" height="19" />
         <span class="mobile-label">{{ $t('moreNavigation') }}</span>
-        <span v-if="transferStore.pendingCount > 0" class="island-dot"></span>
+        <span v-if="moreHasTransferBadge" class="island-dot"></span>
       </button>
     </nav>
 
@@ -105,12 +106,13 @@ const isMobile = ref(false)
 let mobileMediaQuery
 const {transferStore, visibleMainNav, visibleAdminNav} = useNavigationAccess()
 
-const primaryNav = computed(() => visibleMainNav.value.filter(item => item.primary).slice(0, 4))
+const primaryNav = computed(() => visibleMainNav.value.filter(item => item.primary))
 const launcherNames = computed(() => [
   ...visibleMainNav.value.filter(item => !primaryNav.value.some(primary => primary.name === item.name)),
   ...visibleAdminNav.value,
 ].map(item => item.name))
 const launcherHasActiveRoute = computed(() => launcherNames.value.includes(route.meta.name))
+const moreHasTransferBadge = computed(() => launcherNames.value.includes('transfer') && transferStore.pendingCount > 0)
 
 function isActive(item) {
   return route.meta.name === item.name
@@ -432,7 +434,7 @@ onBeforeUnmount(() => {
   }
 
   .island-item {
-    width: min(17vw, 66px);
+    width: min(15vw, 58px);
     height: 50px;
     flex-direction: column;
     gap: 3px;

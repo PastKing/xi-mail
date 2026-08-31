@@ -39,9 +39,6 @@
               {{ formatName(userStore.user.email) }}
             </div>
             <div class="panel-name">{{ userStore.user.name }}</div>
-            <div class="panel-email" @click="copyEmail(userStore.user.email)">
-              {{ userStore.user.email }}
-            </div>
             <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
               <div class="panel-id" v-if="userStore.user.displayId" @click="copyEmail(userStore.user.displayId)">
                 <Icon icon="mingcute:idcard-line" width="12" height="12" />
@@ -49,6 +46,9 @@
                 <Icon icon="mingcute:copy-2-line" width="11" height="11" class="panel-id-copy" />
               </div>
             </el-tooltip>
+            <div class="panel-email" @click="copyEmail(userStore.user.email)">
+              {{ userStore.user.email }}
+            </div>
             <div class="panel-role">
               <el-tag size="small" effect="plain">{{ userStore.user.role.name }}</el-tag>
             </div>
@@ -462,6 +462,7 @@ function formatName(email) {
   color: var(--el-text-color-placeholder);
   letter-spacing: 0.3px;
   margin-top: 4px;
+  margin-bottom: 2px;
   cursor: pointer;
   transition: color 0.15s ease;
 

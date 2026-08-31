@@ -6,7 +6,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.5.1-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.2-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,13 +112,10 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
+| **v3.5.2** | Floating Island now pins mailbox transfer on the rail above Settings; user ID sits above the email; 3.4.x release notes collapsed |
 | **v3.5.1** | Code extraction is on by default under Integrations, with a Workers AI model picker; the model runs first and regex is only a fallback; sub-worker now supports plus-address queries and day-based auto cleanup |
 | **v3.5.0** | Email lists now fetch summary columns with lazy-loaded bodies plus new database indexes; added auto email cleaning, hard-delete switch, verification code extraction with one-click copy, sub-addressing and new email notifications |
-| **v3.4.4** | Inline images now insert in a single step with multi-select and auto compression; fixed 0-byte images caused by the attachment route always reading KV, and inline images lost on reply/forward |
-| **v3.4.3** | Reworked Floating Island into a restrained compact rail and standard mobile bottom bar; replaced the card launcher with a list; blocked primary-mailbox transfers in both frontend and backend |
-| **v3.4.2** | Refined the mobile Floating Island dock, active states and navigation launcher; corrected theme previews and Indigo colors; updated the vulnerable XML parser dependency |
-| **v3.4.1** | Expanded login templates to nine with Open Letter, Mail Terminal and Postal Passport; added Floating Island navigation with a desktop rail and mobile dock; refined registration height and suffix selection |
-| **v3.4.0** | Domain management became an inline sortable panel; system settings split into dedicated sub-pages so a refresh keeps the current section |
+| **v3.4.x** | Floating Island (desktop rail + mobile dock) and nine login templates; settings split into sub-pages with inline domain sorting; primary-mailbox transfers blocked; one-step inline images and send-loss fixes |
 | **v3.3.x** | Sender whitelist mode; blacklist and whitelist merged into one entry point; `/settings` reordered with click-to-copy IDs; icon set and sizes unified |
 | **v3.2.x** | Sender-domain blocking fixed (envelope + header `From`); sidebar narrowed to 200px |
 | **v3.1.0** | Sub-worker aggregation; language preference persisted to the user account |
