@@ -86,7 +86,12 @@
                         {{ item.subject || '\u200B' }}
                       </slot>
                     </span>
-                    <span class="email-content">{{ item.formatText || '\u200B' }}</span>
+                    <span class="email-content">
+                      <span class="code-chip" v-if="item.code" @click.stop="copyEmailCode(item.code)">
+                        <Icon icon="mingcute:copy-2-line" width="12" height="12"/>{{ item.code }}
+                      </span>
+                      {{ item.formatText || '\u200B' }}
+                    </span>
                   </div>
                   <div class="user-info" v-if="showUserInfo">
                     <div class="user">
@@ -211,7 +216,7 @@
           <el-dropdown-item @click="rightDelete(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
-                <Icon icon="mingcute:delete-2-line" width="18" height="18" style="margin-left: 1px;margin-right: 3px" />
+                <Icon icon="mingcute:delete-2-line" width="18" height="18" />
                 <span>{{t('delete')}}</span>
               </div>
             </template>
@@ -232,6 +237,7 @@ import {useSettingStore} from "@/store/setting.js";
 import {sleep} from "@/utils/time-utils.js"
 import {fromNow} from "@/utils/day.js";
 import {useI18n} from "vue-i18n";
+import {ElMessage} from "element-plus";
 import {EmailUnreadEnum} from "@/enums/email-enum.js";
 import { UseVirtualList } from '@vueuse/components'
 import { useScroll } from '@vueuse/core'
@@ -562,6 +568,15 @@ function htmlToText(email) {
     return ''
   }
 
+}
+
+async function copyEmailCode(code) {
+  try {
+    await navigator.clipboard.writeText(code);
+    ElMessage({ message: t('copySuccessMsg'), type: 'success', plain: true });
+  } catch (err) {
+    ElMessage({ message: t('copyFailMsg'), type: 'error', plain: true });
+  }
 }
 
 function cleanSpace(text) {
@@ -1213,6 +1228,27 @@ function loadData() {
           margin-top: 0;
         }
       }
+
+      .code-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 1px 7px;
+        margin-right: 4px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 16px;
+        cursor: pointer;
+        color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
+        border: 1px solid var(--el-color-primary-light-7);
+        vertical-align: middle;
+        transition: background 0.15s;
+
+        &:hover {
+          background: var(--el-color-primary-light-8);
+        }
+      }
     }
   }
 
@@ -1346,7 +1382,15 @@ function loadData() {
 
 .right-dropdown-item {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+
+  svg {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+  }
 }
 
 :deep(.el-dropdown-menu__item:last-child) {

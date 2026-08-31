@@ -41,6 +41,12 @@
               />
             </div>
             <span class="row-email">{{ item.email }}</span>
+            <Icon
+              v-if="item.sort > 0 && item.accountId !== userStore.user.account?.accountId"
+              icon="mingcute:pin-fill"
+              width="12" height="12"
+              class="pin-flag"
+            />
           </div>
           <div class="row-actions" @click.stop>
             <Icon
@@ -57,17 +63,40 @@
               />
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">{{ $t('rename') }}</el-dropdown-item>
-                  <el-dropdown-item v-if="item.accountId !== userStore.user.account.accountId" @click="setAsTop(item, index)">{{ $t('pin') }}</el-dropdown-item>
+                  <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">
+                    <div class="row-menu-item">
+                      <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
+                      <span>{{ $t('rename') }}</span>
+                    </div>
+                  </el-dropdown-item>
                   <el-dropdown-item
-                    v-if="item.accountId !== userStore.user.account.accountId && hasPerm('account:delete')"
-                    @click="remove(item)"
-                  >{{ $t('delete') }}</el-dropdown-item>
+                    v-if="item.accountId !== userStore.user.account.accountId"
+                    @click="item.sort > 0 ? cancelTop(item) : setAsTop(item, index)"
+                  >
+                    <div class="row-menu-item">
+                      <Icon :icon="item.sort > 0 ? 'mingcute:pin-line' : 'mingcute:pin-fill'" width="16" height="16"/>
+                      <span>{{ item.sort > 0 ? $t('unpin') : $t('pin') }}</span>
+                    </div>
+                  </el-dropdown-item>
                   <el-dropdown-item
                     v-if="item.accountId !== userStore.user.account?.accountId
                       && item.email?.toLowerCase() !== userStore.user.email?.toLowerCase()"
                     @click="openTransfer(item)"
-                  >{{ $t('transferAccount') }}</el-dropdown-item>
+                  >
+                    <div class="row-menu-item">
+                      <Icon icon="mingcute:transfer-3-line" width="16" height="16"/>
+                      <span>{{ $t('transferAccount') }}</span>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item
+                    v-if="item.accountId !== userStore.user.account.accountId && hasPerm('account:delete')"
+                    @click="remove(item)"
+                  >
+                    <div class="row-menu-item">
+                      <Icon icon="mingcute:delete-2-line" width="16" height="16"/>
+                      <span>{{ $t('delete') }}</span>
+                    </div>
+                  </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -193,7 +222,8 @@ import {
   accountDelete,
   accountSetName,
   accountSetAllReceive,
-  accountSetAsTop
+  accountSetAsTop,
+  accountCancelTop
 } from "@/request/account.js";
 import { sleep } from "@/utils/time-utils.js";
 import { isEmail } from "@/utils/verify-utils.js";
@@ -367,7 +397,15 @@ function setAsTop(acc, index) {
   accountSetAsTop(acc.accountId).then(() => {
     ElMessage({ message: t('setSuccess'), type: 'success', plain: true });
     const [item] = accounts.splice(index, 1);
+    item.sort = Math.max(1, item.sort || 0);
     accounts.splice(1, 0, item);
+  });
+}
+
+function cancelTop(acc) {
+  accountCancelTop(acc.accountId).then(() => {
+    ElMessage({ message: t('setSuccess'), type: 'success', plain: true });
+    refresh();
   });
 }
 
@@ -587,6 +625,12 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
       color: var(--el-text-color-regular);
       line-height: 1;
     }
+
+    .pin-flag {
+      flex-shrink: 0;
+      color: var(--el-color-primary);
+      opacity: 0.7;
+    }
   }
 
   .row-actions {
@@ -616,6 +660,19 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
   display: flex;
   align-items: center;
   margin: 1px 6px;
+}
+
+.row-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+
+  svg {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .foot-tip {

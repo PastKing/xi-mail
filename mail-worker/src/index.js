@@ -30,6 +30,7 @@ export default {
 		await verifyRecordService.clearRecord({ env })
 		await userService.resetDaySendCount({ env })
 		await emailService.completeReceiveAll({ env })
+		await emailService.autoClean({ env })
 		await oauthService.clearNoBindOathUser({ env })
 		await userService.autoBanInactiveUsers({ env })
 	},

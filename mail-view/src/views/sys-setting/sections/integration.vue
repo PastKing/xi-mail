@@ -1,6 +1,47 @@
 <template>
   <div class="sys-setting-section">
     <div class="settings-card">
+      <div class="card-title">{{ $t('aiCode') }}</div>
+      <div class="card-content">
+        <p class="ai-code-desc">{{ $t('aiCodeDesc') }}</p>
+        <div class="setting-item">
+          <div>
+            <span>{{ $t('workersAi') }}</span>
+            <el-tooltip effect="dark" :content="$t('workersAiDesc')">
+              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+            </el-tooltip>
+          </div>
+          <div class="forward">
+            <el-tag :type="setting.hasAi ? 'success' : 'info'" size="small">
+              {{ setting.hasAi ? $t('workersAiBound') : $t('workersAiUnbound') }}
+            </el-tag>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div><span>{{ $t('aiModel') }}</span></div>
+          <div class="forward">
+            <span class="ai-model-name">{{ setting.aiModel || '@cf/meta/llama-3.1-8b-instruct-fast' }}</span>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <span>{{ $t('aiCodeEnable') }}</span>
+            <el-tooltip effect="dark" :content="$t('aiCodeEnableDesc')">
+              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+            </el-tooltip>
+          </div>
+          <div class="forward" style="display: flex; gap: 8px; align-items: center;">
+            <el-button class="opt-button" size="small" type="primary" @click="aiCodeFilterShow = true">
+              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
+            </el-button>
+            <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
+                       v-model="setting.aiCode"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-card">
       <div class="card-title">{{ $t('oss') }}</div>
       <div class="card-content">
         <div class="r2domain-item">
@@ -333,6 +374,15 @@
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="aiCodeFilterShow" :title="$t('aiCodeFilter')"
+               @closed="resetAiCodeFilter">
+      <div class="tag-editor">
+        <div class="tag-editor-hint">{{ $t('aiCodeFilterHint') }}</div>
+        <el-input-tag v-model="aiCodeFilterData" :placeholder="$t('aiCodeFilterPlaceholder')" />
+        <el-button type="primary" :loading="settingLoading" @click="saveAiCodeFilter">{{ $t('save') }}</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -364,6 +414,8 @@ const regVerifyCountShow = ref(false)
 const addVerifyCountShow = ref(false)
 const regVerifyCount = ref(1)
 const addVerifyCount = ref(1)
+const aiCodeFilterShow = ref(false)
+const aiCodeFilterData = ref([])
 
 const turnstileForm = reactive({siteKey: '', secretKey: ''})
 
@@ -435,7 +487,20 @@ onSettingsLoaded(() => {
   addVerifyCount.value = setting.value.addVerifyCount
   resetS3Form()
   resetNoticeForm()
+  resetAiCodeFilter()
 })
+
+function resetAiCodeFilter() {
+  aiCodeFilterData.value = Array.isArray(setting.value.aiCodeFilter)
+    ? [...setting.value.aiCodeFilter]
+    : (setting.value.aiCodeFilter || '').split(',').filter(Boolean)
+}
+
+function saveAiCodeFilter() {
+  editSetting({aiCodeFilter: aiCodeFilterData.value.join(',')}, true).then(ok => {
+    if (ok) aiCodeFilterShow.value = false
+  })
+}
 
 function openTgSetting() {
   tgBotStatus.value = setting.value.tgBotStatus
@@ -759,14 +824,34 @@ function saveNoticePopup() {
   }
 }
 
-:deep(.notice-popup.el-dialog) {
-  min-height: 300px;
-  width: 820px !important;
+.ai-code-desc {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
 
-  @media (max-width: 860px) {
-    width: calc(100% - 40px) !important;
-    margin-right: 20px !important;
-    margin-left: 20px !important;
+.ai-model-name {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  word-break: break-all;
+  max-width: 240px;
+  text-align: right;
+}
+
+.tag-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .tag-editor-hint {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .el-button {
+    width: 100%;
+    margin: 0;
   }
 }
 </style>

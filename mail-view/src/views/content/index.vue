@@ -29,13 +29,18 @@
               <div class="date">
                 <div>{{ formatDetailDate(email.createTime) }}</div>
               </div>
+              <div class="code-row" v-if="email.code" @click="copyEmailCode(email.code)">
+                <Icon icon="mingcute:copy-2-line" width="14" height="14"/>
+                <span>{{ email.code }}</span>
+              </div>
             </div>
             <el-alert v-if="email.status === 3" :closable="false" :title="toMessage(email.message)" class="email-msg" type="error" show-icon />
             <el-alert v-if="email.status === 4" :closable="false" :title="$t('complained')" class="email-msg" type="warning" show-icon />
             <el-alert v-if="email.status === 5" :closable="false" :title="$t('delayed')" class="email-msg" type="warning" show-icon />
           </div>
           <el-scrollbar class="htm-scrollbar" :class="email.attList.length === 0 ? 'bottom-distance' : ''">
-            <ShadowHtml class="shadow-html" :html="formatImage(email.content)" v-if="email.content" />
+            <el-skeleton v-if="contentLoading" class="content-skeleton" :rows="6" animated />
+            <ShadowHtml class="shadow-html" :html="formatImage(email.content)" v-else-if="email.content" />
             <pre v-else class="email-text" >{{email.text}}</pre>
           </el-scrollbar>
           <div class="att" v-if="email.attList.length > 0">
@@ -78,7 +83,7 @@ import ShadowHtml from '@/components/shadow-html/index.vue'
 import {reactive, ref, watch, onMounted, onUnmounted} from "vue";
 import {useRouter} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {emailDelete, emailRead} from "@/request/email.js";
+import {emailDelete, emailRead, ensureEmailContent} from "@/request/email.js";
 import {Icon} from "@iconify/vue";
 import {useEmailStore} from "@/store/email.js";
 import {useAccountStore} from "@/store/account.js";
@@ -101,6 +106,7 @@ const router = useRouter()
 const email = emailStore.contentData.email
 const showPreview = ref(false)
 const srcList = reactive([])
+const contentLoading = ref(false)
 
 const { t } = useI18n()
 watch(() => accountStore.currentAccountId, () => {
@@ -111,6 +117,14 @@ onMounted(() => {
   if (emailStore.contentData.showUnread && email.unread === EmailUnreadEnum.UNREAD) {
     email.unread = EmailUnreadEnum.READ;
     emailRead([email.emailId]);
+  }
+
+  // 列表只带摘要，进入详情时懒加载完整正文
+  if (!email.contentFull) {
+    contentLoading.value = !email.content && !email.text
+    ensureEmailContent(email).finally(() => {
+      contentLoading.value = false
+    })
   }
 })
 
@@ -128,6 +142,15 @@ function openForward() {
 
 function toMessage(message) {
   return  message ? JSON.parse(message).message : '';
+}
+
+async function copyEmailCode(code) {
+  try {
+    await navigator.clipboard.writeText(code);
+    ElMessage({ message: t('copySuccessMsg'), type: 'success', plain: true });
+  } catch (err) {
+    ElMessage({ message: t('copyFailMsg'), type: 'error', plain: true });
+  }
 }
 
 function formatImage(content) {
@@ -418,6 +441,29 @@ const handleDelete = () => {
   white-space: pre-wrap;
   word-break: break-word;
   margin: 0;
+}
+
+.content-skeleton {
+  padding: 4px 2px;
+}
+
+.code-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--el-color-primary-light-8);
+  }
 }
 
 .bottom-distance {

@@ -1,7 +1,8 @@
 import orm from '../entity/orm';
 import email from '../entity/email';
+import { emailBriefColumns } from '../lib/email-list-columns';
 import { attConst, emailConst, isDel, settingConst } from '../const/entity-const';
-import { and, desc, eq, gt, inArray, lt, count, asc, sql, ne, or, like, lte, gte } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, notInArray, lt, count, asc, sql, ne, or, like, lte, gte } from 'drizzle-orm';
 import { star } from '../entity/star';
 import settingService from './setting-service';
 import accountService from './account-service';
@@ -20,6 +21,7 @@ import { t } from '../i18n/i18n'
 import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
+import permService from './perm-service';
 
 const emailService = {
 
@@ -54,7 +56,7 @@ const emailService = {
 
 		const query = orm(c)
 			.select({
-				...email,
+				...emailBriefColumns,
 				starId: star.starId
 			})
 			.from(email)
@@ -64,7 +66,7 @@ const emailService = {
 					eq(star.emailId, email.emailId),
 					eq(star.userId, userId)
 				)
-			).leftJoin(
+			).innerJoin(
 				account,
 				eq(account.accountId, email.accountId)
 			)
@@ -88,7 +90,7 @@ const emailService = {
 		const listQuery = query.limit(size).all();
 
 		const totalQuery = orm(c).select({ total: count() }).from(email)
-			.leftJoin(
+			.innerJoin(
 				account,
 				eq(account.accountId, email.accountId)
 			)
@@ -102,7 +104,11 @@ const emailService = {
 				)
 		).get();
 
-		const latestEmailQuery = orm(c).select().from(email).where(
+		const latestEmailQuery = orm(c).select({
+			emailId: email.emailId,
+			accountId: email.accountId,
+			userId: email.userId
+		}).from(email).where(
 			and(
 				allReceive ? eq(1,1) : eq(email.accountId, accountId),
 				eq(email.userId, userId),
@@ -135,6 +141,19 @@ const emailService = {
 	async delete(c, params, userId) {
 		const { emailIds } = params;
 		const emailIdList = emailIds.split(',').map(Number);
+		const { syncDelete } = await settingService.query(c);
+
+		if (syncDelete === settingConst.syncDelete.OPEN) {
+			const ownedRows = await orm(c).select({ emailId: email.emailId }).from(email)
+				.where(and(eq(email.userId, userId), inArray(email.emailId, emailIdList)))
+				.all();
+			const ownedIds = ownedRows.map(row => row.emailId);
+			if (ownedIds.length) {
+				await this.physicsDelete(c, { emailIds: ownedIds.join(',') });
+			}
+			return;
+		}
+
 		await orm(c).update(email).set({ isDel: isDel.DELETE }).where(
 			and(
 				eq(email.userId, userId),
@@ -529,6 +548,39 @@ const emailService = {
 			.get();
 	},
 
+	// 懒加载正文：列表只返回摘要，打开邮件时再取全文
+	async content(c, params, userId) {
+		const emailId = Number(params.emailId);
+
+		const emailRow = await orm(c).select({
+			emailId: email.emailId,
+			userId: email.userId,
+			content: email.content,
+			text: email.text
+		}).from(email).where(eq(email.emailId, emailId)).get();
+
+		if (!emailRow) {
+			throw new BizError(t('unauthorized'), 404);
+		}
+
+		// 非本人邮件需要管理员或全部邮件查看权限
+		if (emailRow.userId !== userId) {
+			const userRow = c.get('user');
+			if (userRow?.email !== c.env.admin) {
+				const permKeys = await permService.userPermKeys(c, userId);
+				if (!permKeys.includes('all-email:query')) {
+					throw new BizError(t('unauthorized'), 403);
+				}
+			}
+		}
+
+		return {
+			emailId: emailRow.emailId,
+			content: emailRow.content,
+			text: emailRow.text
+		};
+	},
+
 	async latest(c, params, userId) {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
@@ -538,8 +590,8 @@ const emailService = {
 			allReceive = accountRow.allReceive;
 		}
 
-		let list = await orm(c).select({...email}).from(email)
-			.leftJoin(
+		let list = await orm(c).select({...emailBriefColumns}).from(email)
+			.innerJoin(
 				account,
 				eq(account.accountId, email.accountId)
 			)
@@ -670,15 +722,20 @@ const emailService = {
 			conditions.unshift(lt(email.emailId, emailId));
 		}
 
-		const query = orm(c).select({ ...email, userEmail: user.email })
+		const query = orm(c).select({ ...emailBriefColumns, userEmail: user.email })
 			.from(email)
 			.leftJoin(user, eq(email.userId, user.userId))
 			.where(and(...conditions));
 
-		const queryCount = orm(c).select({ total: count() })
-			.from(email)
-			.leftJoin(user, eq(email.userId, user.userId))
-			.where(and(...countConditions));
+		// 不按用户搜索时 count 无需 join user
+		const queryCount = userEmail
+			? orm(c).select({ total: count() })
+				.from(email)
+				.leftJoin(user, eq(email.userId, user.userId))
+				.where(and(...countConditions))
+			: orm(c).select({ total: count() })
+				.from(email)
+				.where(and(...countConditions));
 
 		if (timeSort) {
 			query.orderBy(asc(email.emailId));
@@ -688,7 +745,11 @@ const emailService = {
 
 		const listQuery = await query.limit(size).all();
 		const totalQuery = await queryCount.get();
-		const latestEmailQuery = await orm(c).select().from(email)
+		const latestEmailQuery = await orm(c).select({
+			emailId: email.emailId,
+			accountId: email.accountId,
+			userId: email.userId
+		}).from(email)
 			.where(and(
 				eq(email.type, emailConst.type.RECEIVE),
 				ne(email.status, emailConst.status.SAVING)
@@ -714,7 +775,7 @@ const emailService = {
 
 		const { emailId } = params;
 
-		let list = await orm(c).select({...email, userEmail: user.email}).from(email)
+		let list = await orm(c).select({...emailBriefColumns, userEmail: user.email}).from(email)
 			.leftJoin(user, eq(email.userId, user.userId))
 			.where(
 				and(
@@ -759,6 +820,64 @@ const emailService = {
 	async completeReceiveAll(c) {
 		await c.env.db.prepare(`UPDATE email as e SET status = ${emailConst.status.RECEIVE} WHERE status = ${emailConst.status.SAVING} AND EXISTS (SELECT 1 FROM account WHERE account_id = e.account_id)`).run();
 		await c.env.db.prepare(`UPDATE email as e SET status = ${emailConst.status.NOONE} WHERE status = ${emailConst.status.SAVING} AND NOT EXISTS (SELECT 1 FROM account WHERE account_id = e.account_id)`).run();
+	},
+
+	// 定时清理超过保留天数的邮件，autoCleanDays 为 0 表示不清理
+	async autoClean(c) {
+		const { autoCleanDays, autoCleanExclude } = await settingService.query(c);
+		const days = Number(autoCleanDays);
+
+		if (!days || days <= 0) {
+			return;
+		}
+
+		const cutoff = dayjs().subtract(days, 'day').format('YYYY-MM-DD HH:mm:ss');
+
+		const excludeEmails = String(autoCleanExclude || '')
+			.split(/[,，\s]+/)
+			.map(item => item.trim().toLowerCase())
+			.filter(Boolean);
+
+		let excludeUserIds = [];
+
+		if (excludeEmails.length) {
+			const rows = await orm(c).select({ userId: user.userId, email: user.email }).from(user).all();
+			excludeUserIds = rows
+				.filter(row => excludeEmails.includes((row.email || '').toLowerCase()))
+				.map(row => row.userId);
+		}
+
+		// D1 单次语句有绑定参数上限，分批删除
+		const batchSize = 90;
+		let cleaned = 0;
+
+		while (true) {
+			const conditions = [lt(email.createTime, cutoff)];
+
+			if (excludeUserIds.length) {
+				conditions.push(notInArray(email.userId, excludeUserIds));
+			}
+
+			const rows = await orm(c).select({ emailId: email.emailId }).from(email)
+				.where(and(...conditions))
+				.limit(batchSize)
+				.all();
+
+			if (!rows.length) {
+				break;
+			}
+
+			await this.physicsDelete(c, { emailIds: rows.map(row => row.emailId).join(',') });
+			cleaned += rows.length;
+
+			if (rows.length < batchSize) {
+				break;
+			}
+		}
+
+		if (cleaned) {
+			console.log(`自动清理邮件完成，共 ${cleaned} 封，保留 ${days} 天`);
+		}
 	},
 
 	async batchDelete(c, params) {

@@ -61,6 +61,12 @@ export const setting = sqliteTable('setting', {
 	managedDomains: text('managed_domains').default('').notNull(),
 	colorTheme: text('color_theme').default('indigo').notNull(),
 	loginTemplate: text('login_template').default('gradient').notNull(),
-	layoutMode: text('layout_mode').default('default').notNull()
+	layoutMode: text('layout_mode').default('default').notNull(),
+	autoCleanDays: integer('auto_clean_days').default(0).notNull(),
+	autoCleanExclude: text('auto_clean_exclude').default('').notNull(),
+	syncDelete: integer('sync_delete').default(1).notNull(),
+	aiCode: integer('ai_code').default(0).notNull(),
+	aiCodeFilter: text('ai_code_filter').default('').notNull(),
+	newEmailNotify: integer('new_email_notify').default(0).notNull()
 });
 export default setting

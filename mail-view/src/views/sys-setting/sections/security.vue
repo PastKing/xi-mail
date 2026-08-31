@@ -60,6 +60,48 @@
       </div>
     </div>
 
+    <!-- Email maintenance -->
+    <div class="settings-card">
+      <div class="card-title">{{ $t('emailMaintenance') }}</div>
+      <div class="card-content">
+        <div class="setting-item">
+          <div>
+            <span>{{ $t('syncDelete') }}</span>
+            <el-tooltip effect="dark" :content="$t('syncDeleteDesc')">
+              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+            </el-tooltip>
+          </div>
+          <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
+                     v-model="setting.syncDelete"/>
+        </div>
+        <div class="setting-item">
+          <div>
+            <span>{{ $t('autoCleanEmail') }}</span>
+            <el-tooltip effect="dark" :content="$t('autoCleanEmailDesc')">
+              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+            </el-tooltip>
+          </div>
+          <div class="auto-ban-right">
+            <el-input-number v-model="setting.autoCleanDays" @change="change" :min="0" :max="3650" :step="1" style="width: 110px;" />
+            <span class="ban-unit">{{ $t('day') }}</span>
+            <el-button class="opt-button" size="small" type="primary" @click="autoCleanExcludeShow = true">
+              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
+            </el-button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <span>{{ $t('newEmailNotify') }}</span>
+            <el-tooltip effect="dark" :content="$t('newEmailNotifyDesc')">
+              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+            </el-tooltip>
+          </div>
+          <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
+                     v-model="setting.newEmailNotify"/>
+        </div>
+      </div>
+    </div>
+
     <!-- Global API Token -->
     <div class="settings-card">
       <div class="card-title">
@@ -147,6 +189,15 @@
         <el-button type="primary" :loading="settingLoading" @click="saveSenderDomainWhitelist">{{ $t('save') }}</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="autoCleanExcludeShow" :title="$t('autoCleanExclude')"
+               @closed="resetAutoCleanExclude">
+      <div class="tag-editor">
+        <div class="tag-editor-hint">{{ $t('autoCleanExcludeHint') }}</div>
+        <el-input-tag v-model="autoCleanExcludeData" :placeholder="$t('autoCleanExcludePlaceholder')" />
+        <el-button type="primary" :loading="settingLoading" @click="saveAutoCleanExclude">{{ $t('save') }}</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -162,7 +213,7 @@ defineOptions({
 })
 
 const {t} = useI18n()
-const {setting, settingLoading, editSetting, change, onSettingsLoaded} = useSysSetting()
+const {setting, settingLoading, editSetting, change, beforeChange, onSettingsLoaded} = useSysSetting()
 
 const keywordBlacklistShow = ref(false)
 const keywordBlacklistData = ref([])
@@ -170,6 +221,8 @@ const senderDomainBlacklistShow = ref(false)
 const senderDomainBlacklistData = ref([])
 const senderDomainWhitelistShow = ref(false)
 const senderDomainWhitelistData = ref([])
+const autoCleanExcludeShow = ref(false)
+const autoCleanExcludeData = ref([])
 
 const globalToken = ref('')
 const globalTokenEnabled = ref(false)
@@ -193,10 +246,15 @@ function resetSenderDomainWhitelist() {
   senderDomainWhitelistData.value = toList(setting.value.senderDomainWhitelist)
 }
 
+function resetAutoCleanExclude() {
+  autoCleanExcludeData.value = toList(setting.value.autoCleanExclude)
+}
+
 onSettingsLoaded(() => {
   resetKeywordBlacklist()
   resetSenderDomainBlacklist()
   resetSenderDomainWhitelist()
+  resetAutoCleanExclude()
 })
 
 function saveKeywordBlacklist() {
@@ -214,6 +272,12 @@ function saveSenderDomainBlacklist() {
 function saveSenderDomainWhitelist() {
   editSetting({senderDomainWhitelist: senderDomainWhitelistData.value}, true).then(ok => {
     if (ok) senderDomainWhitelistShow.value = false
+  })
+}
+
+function saveAutoCleanExclude() {
+  editSetting({autoCleanExclude: autoCleanExcludeData.value.join(',')}, true).then(ok => {
+    if (ok) autoCleanExcludeShow.value = false
   })
 }
 

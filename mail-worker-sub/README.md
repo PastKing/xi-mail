@@ -16,6 +16,7 @@ npx wrangler d1 create xi-mail-sub   # 记录 database_id
 # 配置
 cp wrangler.example.toml wrangler.toml
 # 编辑 wrangler.toml：填入 database_id、api_token（随机 32 位字符串）、domain（JSON 数组）
+# 可选：auto_clean_days 邮件保留天数（0 = 永久保留）
 
 # 部署
 npx wrangler deploy
@@ -40,7 +41,7 @@ curl -H "x-api-token: <your-token>" https://your-sub-worker.workers.dev/init
 | GET | `/api/info` | 返回名称、域名列表、版本号 |
 | GET | `/api/domains` | 域名列表 |
 | GET | `/api/addresses` | 已收到邮件的地址列表（按最新排序，最多 200 条） |
-| GET | `/api/mails?address=xxx&limit=20&offset=0` | 按地址查询邮件列表 |
+| GET | `/api/mails?address=xxx&limit=20&offset=0` | 按地址查询邮件列表（含子地址 `xxx+tag@domain` 的邮件） |
 | GET | `/api/mail/:id` | 单封邮件详情（含 HTML 内容） |
 
 ### 请求示例

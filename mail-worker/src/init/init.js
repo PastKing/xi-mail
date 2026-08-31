@@ -40,6 +40,8 @@ const dbInit = {
 		await this.v3_9DB(c);
 		await this.v4_0DB(c);
 		await this.v4_1DB(c);
+		await this.v4_2DB(c);
+		await this.v4_3DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},
@@ -195,6 +197,54 @@ const dbInit = {
 		} catch (e) {}
 		try {
 			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN sender_domain_whitelist TEXT NOT NULL DEFAULT '';`).run();
+		} catch (e) {}
+	},
+
+	async v4_2DB(c) {
+		const ADD_COLUMN_SQL_LIST = [
+			`ALTER TABLE setting ADD COLUMN auto_clean_days INTEGER NOT NULL DEFAULT 0;`,
+			`ALTER TABLE setting ADD COLUMN auto_clean_exclude TEXT NOT NULL DEFAULT '';`,
+			`ALTER TABLE setting ADD COLUMN sync_delete INTEGER NOT NULL DEFAULT 1;`,
+			`ALTER TABLE setting ADD COLUMN ai_code INTEGER NOT NULL DEFAULT 0;`,
+			`ALTER TABLE setting ADD COLUMN ai_code_filter TEXT NOT NULL DEFAULT '';`,
+			`ALTER TABLE setting ADD COLUMN new_email_notify INTEGER NOT NULL DEFAULT 0;`,
+			`ALTER TABLE email ADD COLUMN code TEXT NOT NULL DEFAULT '';`
+		];
+
+		for (const sql of ADD_COLUMN_SQL_LIST) {
+			try { await c.env.db.prepare(sql).run(); } catch (e) {}
+		}
+
+		// 列表查询、时间清理、搜索与星标关联的索引
+		const CREATE_INDEX_SQL_LIST = [
+			`CREATE INDEX IF NOT EXISTS idx_email_list_user ON email(user_id, type, is_del, email_id);`,
+			`CREATE INDEX IF NOT EXISTS idx_email_list_account ON email(user_id, account_id, type, is_del, email_id);`,
+			`CREATE INDEX IF NOT EXISTS idx_email_create_time ON email(create_time);`,
+			`CREATE INDEX IF NOT EXISTS idx_email_name_nocase ON email(name COLLATE NOCASE);`,
+			`CREATE INDEX IF NOT EXISTS idx_email_subject_nocase ON email(subject COLLATE NOCASE);`,
+			`CREATE INDEX IF NOT EXISTS idx_email_to_email_nocase ON email(to_email COLLATE NOCASE);`,
+			`CREATE INDEX IF NOT EXISTS idx_email_send_email_nocase ON email(send_email COLLATE NOCASE);`,
+			`CREATE INDEX IF NOT EXISTS idx_star_user_email ON star(user_id, email_id);`,
+			`CREATE INDEX IF NOT EXISTS idx_star_email_user ON star(email_id, user_id);`,
+			`CREATE INDEX IF NOT EXISTS idx_att_email_id ON attachments(email_id);`,
+			`CREATE INDEX IF NOT EXISTS idx_att_user_id ON attachments(user_id);`
+		];
+
+		for (const sql of CREATE_INDEX_SQL_LIST) {
+			try { await c.env.db.prepare(sql).run(); } catch (e) {
+				console.warn(`跳过索引：${e.message}`);
+			}
+		}
+	},
+
+	async v4_3DB(c) {
+		// 一次性把 v4.2 的默认关闭改成默认开启，之后用户手动关闭不再被覆盖
+		try {
+			const done = await c.env.kv.get('v4_3_ai_code_default');
+			if (!done) {
+				await c.env.db.prepare(`UPDATE setting SET ai_code = 0 WHERE ai_code = 1`).run();
+				await c.env.kv.put('v4_3_ai_code_default', '1');
+			}
 		} catch (e) {}
 	},
 

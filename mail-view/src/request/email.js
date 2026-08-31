@@ -16,6 +16,22 @@ export function emailRead(emailIds) {
     return http.put('/email/read', {emailIds})
 }
 
+export function emailContent(emailId) {
+    return http.get('/email/content', {params: {emailId}})
+}
+
+// 列表接口只返回摘要，正文在打开时懒加载；取回后原地合并并打标记避免重复请求
+export async function ensureEmailContent(email) {
+    if (!email || email.contentFull || !email.emailId) {
+        return email
+    }
+    const data = await emailContent(email.emailId)
+    email.content = data.content
+    email.text = data.text
+    email.contentFull = true
+    return email
+}
+
 export function emailSend(form,progress) {
     return http.post('/email/send', form,{
         onUploadProgress: (e) => {
