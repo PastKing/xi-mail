@@ -22,6 +22,26 @@ import {oauth} from "../entity/oauth";
 import oauthService from "./oauth-service";
 import accountTransfer from '../entity/account-transfer';
 
+let ensureUserLangColumnPromise;
+
+async function ensureUserLangColumn(c) {
+	if (!ensureUserLangColumnPromise) {
+		ensureUserLangColumnPromise = c.env.db
+			.prepare(`ALTER TABLE user ADD COLUMN lang TEXT NOT NULL DEFAULT '';`)
+			.run()
+			.catch((e) => {
+				const message = String(e?.message || e);
+				if (message.includes('duplicate column name')) {
+					return;
+				}
+				ensureUserLangColumnPromise = undefined;
+				throw e;
+			});
+	}
+
+	await ensureUserLangColumnPromise;
+}
+
 const userService = {
 
 	async loginUserInfo(c, userId) {
@@ -78,10 +98,12 @@ const userService = {
 
 
 	async updateLang(c, userId, lang) {
+		await ensureUserLangColumn(c);
 		await orm(c).update(user).set({ lang }).where(eq(user.userId, userId)).run();
 	},
 
 	async resetPassword(c, params, userId) {
+		await ensureUserLangColumn(c);
 
 		const { password } = params;
 
@@ -92,7 +114,8 @@ const userService = {
 		await orm(c).update(user).set({ password: hash, salt: salt }).where(eq(user.userId, userId)).run();
 	},
 
-	selectByEmail(c, email) {
+	async selectByEmail(c, email) {
+		await ensureUserLangColumn(c);
 		return orm(c).select().from(user).where(
 			and(
 				eq(user.email, email),
@@ -107,6 +130,7 @@ const userService = {
 	},
 
 	async insert(c, params) {
+		await ensureUserLangColumn(c);
 		if (!params.displayId) {
 			params.displayId = this.generateDisplayId();
 		}
@@ -114,15 +138,18 @@ const userService = {
 		return userId;
 	},
 
-	selectByEmailIncludeDel(c, email) {
+	async selectByEmailIncludeDel(c, email) {
+		await ensureUserLangColumn(c);
 		return orm(c).select().from(user).where(sql`${user.email} COLLATE NOCASE = ${email}`).get();
 	},
 
-	selectByIdIncludeDel(c, userId) {
+	async selectByIdIncludeDel(c, userId) {
+		await ensureUserLangColumn(c);
 		return orm(c).select().from(user).where(eq(user.userId, userId)).get();
 	},
 
-	selectById(c, userId) {
+	async selectById(c, userId) {
+		await ensureUserLangColumn(c);
 		return orm(c).select().from(user).where(
 			and(
 				eq(user.userId, userId),
@@ -130,7 +157,8 @@ const userService = {
 			.get();
 	},
 
-	selectByDisplayId(c, displayId) {
+	async selectByDisplayId(c, displayId) {
+		await ensureUserLangColumn(c);
 		return orm(c).select().from(user).where(
 			and(
 				eq(user.displayId, String(displayId)),
@@ -140,11 +168,13 @@ const userService = {
 	},
 
 	async delete(c, userId) {
+		await ensureUserLangColumn(c);
 		await orm(c).update(user).set({ isDel: isDel.DELETE }).where(eq(user.userId, userId)).run();
 		await c.env.kv.delete(kvConst.AUTH_INFO + userId)
 	},
 
 	async physicsDelete(c, params) {
+		await ensureUserLangColumn(c);
 		let { userIds } = params;
 		userIds = userIds.split(',').map(Number);
 		await accountService.physicsDeleteByUserIds(c, userIds);
@@ -153,6 +183,7 @@ const userService = {
 	},
 
 	async list(c, params) {
+		await ensureUserLangColumn(c);
 
 		let { num, size, email, timeSort, loginSort, status } = params;
 
@@ -283,6 +314,7 @@ const userService = {
 	},
 
 	async updateUserInfo(c, userId, recordCreateIp = false) {
+		await ensureUserLangColumn(c);
 
 
 
@@ -317,6 +349,7 @@ const userService = {
 	},
 
 	async setStatus(c, params) {
+		await ensureUserLangColumn(c);
 
 		const { status, userId } = params;
 
@@ -332,6 +365,7 @@ const userService = {
 	},
 
 	async batchSetStatus(c, params) {
+		await ensureUserLangColumn(c);
 		const { userIds, status } = params;
 		const ids = (typeof userIds === 'string' ? userIds.split(',') : userIds).map(Number);
 		await orm(c).update(user).set({ status }).where(inArray(user.userId, ids)).run();
@@ -341,12 +375,14 @@ const userService = {
 	},
 
 	async batchRestore(c, params) {
+		await ensureUserLangColumn(c);
 		const { userIds } = params;
 		const ids = (typeof userIds === 'string' ? userIds.split(',') : userIds).map(Number);
 		await orm(c).update(user).set({ isDel: isDel.NORMAL, status: 0 }).where(inArray(user.userId, ids)).run();
 	},
 
 	async setType(c, params) {
+		await ensureUserLangColumn(c);
 
 		const { type, userId } = params;
 
@@ -365,6 +401,7 @@ const userService = {
 	},
 
 	async incrUserSendCount(c, quantity, userId) {
+		await ensureUserLangColumn(c);
 		await orm(c).update(user).set({
 			sendCount: sql`${user.sendCount}
 	  +
@@ -373,6 +410,7 @@ const userService = {
 	},
 
 	async updateAllUserType(c, type, curType) {
+		await ensureUserLangColumn(c);
 		await orm(c)
 			.update(user)
 			.set({ type })
@@ -419,16 +457,19 @@ const userService = {
 	},
 
 	async resetDaySendCount(c) {
+		await ensureUserLangColumn(c);
 		const roleList = await roleService.selectByIdsAndSendType(c, 'email:send', roleConst.sendType.DAY);
 		const roleIds = roleList.map(action => action.roleId);
 		await orm(c).update(user).set({ sendCount: 0 }).where(inArray(user.type, roleIds)).run();
 	},
 
 	async resetSendCount(c, params) {
+		await ensureUserLangColumn(c);
 		await orm(c).update(user).set({ sendCount: 0 }).where(eq(user.userId, params.userId)).run();
 	},
 
 	async restore(c, params) {
+		await ensureUserLangColumn(c);
 		const { userId, type } = params
 		await orm(c)
 			.update(user)
@@ -445,7 +486,8 @@ const userService = {
 
 	},
 
-	listByRegKeyId(c, regKeyId) {
+	async listByRegKeyId(c, regKeyId) {
+		await ensureUserLangColumn(c);
 		return orm(c)
 			.select({email: user.email,createTime: user.createTime})
 			.from(user)
@@ -455,6 +497,7 @@ const userService = {
 	},
 
 	async autoBanInactiveUsers(c) {
+		await ensureUserLangColumn(c);
 		const settings = await settingService.query(c);
 		if (!settings.autoBanMonths || settings.autoBanMonths <= 0) return;
 
