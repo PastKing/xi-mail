@@ -8,6 +8,8 @@
         class="search-input"
         size="small"
         clearable
+        @input="handleSearchInput"
+        @clear="handleSearchClear"
       >
         <template #prefix>
           <Icon icon="mingcute:search-line" width="14" height="14" />
@@ -20,7 +22,7 @@
       <div v-infinite-scroll="getAccountList" :infinite-scroll-distance="400" :infinite-scroll-immediate="false">
         <!-- Account rows -->
         <div
-          v-for="(item, index) in filteredAccounts"
+          v-for="(item, index) in accounts"
           :key="item.accountId"
           class="account-row"
           :class="{ 'row-active': accountStore.currentAccountId === item.accountId }"
@@ -75,7 +77,7 @@
         </div>
 
         <!-- No search results -->
-        <div v-if="searchKeyword && filteredAccounts.length === 0 && !loading" class="empty-search">
+        <div v-if="searchKeyword.trim() && accounts.length === 0 && !loading" class="empty-search">
           <Icon icon="mingcute:search-line" width="22" height="22" />
           <span>{{ $t('noMessagesFound') }}</span>
         </div>
@@ -95,7 +97,7 @@
         </template>
 
         <!-- Follow Loading Skeleton -->
-        <template v-if="accounts.length > 0 && !noLoading && !searchKeyword">
+        <template v-if="accounts.length > 0 && !noLoading">
           <div class="skeleton-row">
             <el-skeleton animated>
               <template #template>
@@ -108,10 +110,10 @@
           </div>
         </template>
 
-        <div class="foot-tip" v-if="noLoading && accounts.length > 0 && !searchKeyword">
+        <div class="foot-tip" v-if="noLoading && accounts.length > 0">
           {{ accounts.length }} {{ $t('accountTotal') }}
         </div>
-        <div class="empty" v-if="noLoading && accounts.length === 0">
+        <div class="empty" v-if="!searchKeyword.trim() && noLoading && accounts.length === 0">
           <el-empty :image-size="40" :description="$t('noMessagesFound')"/>
         </div>
       </div>
@@ -186,7 +188,7 @@
 
 <script setup>
 import { Icon } from "@iconify/vue";
-import { nextTick, reactive, ref, computed, watch } from "vue";
+import { nextTick, reactive, ref, watch, onUnmounted } from "vue";
 import {
   accountList,
   accountAdd,
@@ -231,7 +233,6 @@ let turnstileId = null;
 const botJsError = ref(false);
 let verifyToken = '';
 let verifyErrorCount = 0;
-let first = true;
 const addForm = reactive({
   email: '',
   suffix: settingStore.domainList[0]
@@ -243,16 +244,8 @@ const transferShow = ref(false);
 const transferLoading = ref(false);
 const transferAccount = ref(null);
 const transferTargetId = ref('');
-
-// Filtered accounts based on search keyword
-const filteredAccounts = computed(() => {
-  if (!searchKeyword.value) return accounts;
-  const kw = searchKeyword.value.toLowerCase();
-  return accounts.filter(a =>
-    a.email.toLowerCase().includes(kw) ||
-    (a.name && a.name.toLowerCase().includes(kw))
-  );
-});
+let accountQuerySeq = 0;
+let accountSearchTimer = null;
 
 if (hasPerm('account:query')) {
   getAccountList();
@@ -260,6 +253,10 @@ if (hasPerm('account:query')) {
 
 watch(() => accountStore.changeUserAccountName, () => {
   if (accounts[0]) accounts[0].name = accountStore.changeUserAccountName;
+});
+
+onUnmounted(() => {
+  if (accountSearchTimer) clearTimeout(accountSearchTimer);
 });
 
 
@@ -341,16 +338,37 @@ function remove(acc) {
 }
 
 function refresh() {
-  if (loading.value) return;
+  accountQuerySeq++;
+  if (accountSearchTimer) {
+    clearTimeout(accountSearchTimer);
+    accountSearchTimer = null;
+  }
   loading.value = false;
   followLoading.value = false;
   noLoading.value = false;
   queryParams.accountId = 0;
   queryParams.lastSort = null;
   getSkeletonRows();
-  scrollbarRef.value.setScrollTop(0);
+  scrollbarRef.value?.setScrollTop?.(0);
   accounts.splice(0, accounts.length);
   getAccountList();
+}
+
+function handleSearchInput() {
+  accountQuerySeq++;
+  loading.value = true;
+  followLoading.value = false;
+  noLoading.value = false;
+  if (accountSearchTimer) clearTimeout(accountSearchTimer);
+  accountSearchTimer = setTimeout(refresh, 300);
+}
+
+function handleSearchClear() {
+  if (accountSearchTimer) {
+    clearTimeout(accountSearchTimer);
+    accountSearchTimer = null;
+  }
+  refresh();
 }
 
 function changeAccount(acc) {
@@ -385,18 +403,21 @@ function getAccountList() {
   if (accounts.length === 0) { loading.value = true; }
   else { followLoading.value = true; }
   let start = Date.now();
+  const seq = accountQuerySeq;
+  const keyword = searchKeyword.value.trim();
   const accountId = accounts.length > 0 ? accounts.at(-1).accountId : 0;
   const lastSort = accounts.length > 0 ? accounts.at(-1).sort : null;
-  accountList(accountId, queryParams.size, lastSort).then(async list => {
+  accountList(accountId, queryParams.size, lastSort, keyword).then(async list => {
     let duration = Date.now() - start;
     if (duration < 200) await sleep(200 - duration);
+    if (seq !== accountQuerySeq) return;
     if (list.length < queryParams.size) noLoading.value = true;
     if (accounts.length === 0 && list[0]) accountStore.currentAccount = list[0];
     accounts.push(...list);
     loading.value = false;
     followLoading.value = false;
-    first = false;
   }).catch(() => {
+    if (seq !== accountQuerySeq) return;
     loading.value = false;
     followLoading.value = false;
   });

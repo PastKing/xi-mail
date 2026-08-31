@@ -130,11 +130,12 @@ const accountService = {
 
 	list(c, params, userId) {
 
-		let { accountId, size, lastSort } = params;
+		let { accountId, size, lastSort, email } = params;
 
 		accountId = Number(accountId);
 		size = Number(size);
 		lastSort = Number(lastSort);
+		email = typeof email === 'string' ? email.trim() : '';
 
 		if (size > 100) {
 			size = 100;
@@ -148,18 +149,27 @@ const accountService = {
 			lastSort = 9999999999;
 		}
 
-		return orm(c).select().from(account).where(
-			and(
-				eq(account.userId, userId),
-				eq(account.isDel, isDel.NORMAL),
-					or(
-						lt(account.sort, lastSort),
-						and(
-							eq(account.sort, lastSort),
-							gt(account.accountId, accountId)
-						)
-					))
+		const conditions = [
+			eq(account.userId, userId),
+			eq(account.isDel, isDel.NORMAL),
+			or(
+				lt(account.sort, lastSort),
+				and(
+					eq(account.sort, lastSort),
+					gt(account.accountId, accountId)
 				)
+			)
+		];
+
+		if (email) {
+			const keyword = '%' + email + '%';
+			conditions.push(or(
+				sql`${account.email} COLLATE NOCASE LIKE ${keyword}`,
+				sql`${account.name} COLLATE NOCASE LIKE ${keyword}`
+			));
+		}
+
+		return orm(c).select().from(account).where(and(...conditions))
 			.orderBy(desc(account.sort), asc(account.accountId))
 			.limit(size)
 			.all();
@@ -284,7 +294,6 @@ const accountService = {
 
 	async setAsTop(c, params, userId) {
 		const { accountId } = params;
-		console.log(accountId);
 		const userRow = await userService.selectById(c, userId);
 		const mainAccountRow = await accountService.selectByEmailIncludeDel(c, userRow.email);
 		let mainSort = mainAccountRow.sort === 0 ? 2 : mainAccountRow.sort + 1;

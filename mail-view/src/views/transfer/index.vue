@@ -20,8 +20,11 @@
               v-model="createForm.accountId"
               :placeholder="$t('selectAccount')"
               filterable
+              remote
               style="width:100%"
               :loading="accountsLoading"
+              :remote-method="searchMyAccounts"
+              @change="handleAccountChange"
             >
               <el-option
                 v-for="acc in myAccounts"
@@ -152,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, defineOptions } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, defineOptions } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -182,20 +185,61 @@ const myAccounts = ref([])
 const accountsLoading = ref(false)
 const createLoading = ref(false)
 const createForm = reactive({ accountId: null, toDisplayId: '' })
+const selectedAccount = ref(null)
+const accountPageSize = 100
+let accountSearchSeq = 0
+let accountSearchTimer = null
 
-async function loadMyAccounts() {
+function isTransferableAccount(account) {
+  const primaryAccountId = userStore.user.account?.accountId
+  const primaryEmail = userStore.user.email?.toLowerCase()
+  return account.accountId !== primaryAccountId && account.email?.toLowerCase() !== primaryEmail
+}
+
+async function loadMyAccounts(keyword = '') {
+  const query = typeof keyword === 'string' ? keyword.trim() : ''
+  const seq = ++accountSearchSeq
   accountsLoading.value = true
   try {
-    const list = await accountList(0, 200, null)
-    const primaryAccountId = userStore.user.account?.accountId
-    const primaryEmail = userStore.user.email?.toLowerCase()
-    myAccounts.value = list.filter(account =>
-      account.accountId !== primaryAccountId && account.email?.toLowerCase() !== primaryEmail
-    )
-    if (!myAccounts.value.some(account => account.accountId === createForm.accountId)) {
-      createForm.accountId = myAccounts.value[0]?.accountId ?? null
+    const list = await accountList(0, accountPageSize, null, query)
+    if (seq !== accountSearchSeq) return
+    const nextAccounts = list.filter(isTransferableAccount)
+    const selectedInResult = createForm.accountId
+      ? nextAccounts.some(account => account.accountId === createForm.accountId)
+      : false
+
+    if (query && createForm.accountId && !selectedInResult) {
+      createForm.accountId = null
+      selectedAccount.value = null
+    } else if (selectedAccount.value && !selectedInResult) {
+      nextAccounts.unshift(selectedAccount.value)
     }
-  } finally { accountsLoading.value = false }
+
+    myAccounts.value = nextAccounts
+
+    if (!query && !createForm.accountId) {
+      createForm.accountId = myAccounts.value[0]?.accountId ?? null
+      selectedAccount.value = myAccounts.value[0] ?? null
+    } else if (createForm.accountId) {
+      selectedAccount.value = myAccounts.value.find(account => account.accountId === createForm.accountId) ?? selectedAccount.value
+    }
+  } finally {
+    if (seq === accountSearchSeq) accountsLoading.value = false
+  }
+}
+
+function searchMyAccounts(keyword) {
+  accountSearchSeq++
+  accountsLoading.value = true
+  if (accountSearchTimer) clearTimeout(accountSearchTimer)
+  accountSearchTimer = setTimeout(() => {
+    accountSearchTimer = null
+    loadMyAccounts(keyword)
+  }, 300)
+}
+
+function handleAccountChange(accountId) {
+  selectedAccount.value = myAccounts.value.find(account => account.accountId === accountId) ?? null
 }
 
 async function doCreate() {
@@ -249,6 +293,9 @@ async function doReject(item) {
 }
 
 onMounted(() => { loadAll(); loadMyAccounts() })
+onUnmounted(() => {
+  if (accountSearchTimer) clearTimeout(accountSearchTimer)
+})
 </script>
 
 <style lang="scss" scoped>
