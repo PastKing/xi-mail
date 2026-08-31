@@ -7,7 +7,7 @@ import {useAccountStore} from "@/store/account.js";
 import {useUserStore} from "@/store/user.js";
 import i18n from "@/i18n/index.js";
 
-export const SYS_SETTING_VERSION = 'v3.5.0'
+export const SYS_SETTING_VERSION = 'v3.5.1'
 
 let context = null
 
@@ -69,7 +69,7 @@ function createContext() {
     delete settingForm.resendTokens
     delete settingForm.hasR2
     delete settingForm.hasAi
-    delete settingForm.aiModel
+    delete settingForm.aiModels
     delete settingForm.domainList
     return editSetting(settingForm, false)
   }

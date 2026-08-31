@@ -42,6 +42,7 @@ const dbInit = {
 		await this.v4_1DB(c);
 		await this.v4_2DB(c);
 		await this.v4_3DB(c);
+		await this.v4_4DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},
@@ -245,6 +246,12 @@ const dbInit = {
 				await c.env.db.prepare(`UPDATE setting SET ai_code = 0 WHERE ai_code = 1`).run();
 				await c.env.kv.put('v4_3_ai_code_default', '1');
 			}
+		} catch (e) {}
+	},
+
+	async v4_4DB(c) {
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN ai_model TEXT NOT NULL DEFAULT '@cf/meta/llama-3.1-8b-instruct-fast';`).run();
 		} catch (e) {}
 	},
 

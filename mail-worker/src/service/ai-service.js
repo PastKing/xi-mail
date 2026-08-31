@@ -1,11 +1,12 @@
 import emailUtils from '../utils/email-utils';
 import { settingConst } from '../const/entity-const';
+import { resolveAiModel } from '../const/ai-models';
 
 const CODE_MAX_LEN = 8;
 
 const aiService = {
 
-	// 从邮件中提取验证码，AI 不可用或未开启时回退正则
+	// 有 Workers AI 时模型优先；调用失败或未绑定时才回退正则
 	async extractCode(c, email, options = {}) {
 		if (!this.shouldExtractCode(options.aiCode, options.aiCodeFilter, email)) {
 			return '';
@@ -20,23 +21,24 @@ const aiService = {
 			return '';
 		}
 
-		// 正则先行：零成本零延迟，覆盖大多数场景
-		const regexCode = this.extractCodeByRegex(subject, body);
-		if (regexCode) {
-			return regexCode;
+		if (c.env.ai) {
+			const aiCode = await this.extractCodeByAi(c, subject, body, options.aiModel);
+			if (aiCode) {
+				return aiCode;
+			}
 		}
 
-		// 正则未命中且有 AI binding 时用模型兜底
-		if (!c.env.ai) {
-			return '';
-		}
+		return this.extractCodeByRegex(subject, body);
+	},
 
+	async extractCodeByAi(c, subject, body, modelId) {
 		try {
-			const result = await c.env.ai.run(c.env.ai_model || '@cf/meta/llama-3.1-8b-instruct-fast', {
+			const model = resolveAiModel(modelId, c.env.ai_model);
+			const result = await c.env.ai.run(model, {
 				messages: [
 					{
 						role: 'system',
-						content: 'You extract verification codes from emails. Return only JSON like {"code":"12345678"} or {"code":""}. The code must be 8 characters or fewer and must not contain spaces. If there is no verification code, return {"code":""}. Do not explain.'
+						content: 'You extract the login/verification code from an email. Return only JSON like {"code":"123456"} or {"code":""}. The code must be 4 to 8 characters, contain at least one digit, and must not contain spaces. Prefer the code next to 验证码 / verification code / OTP. Ignore order numbers, tracking numbers and dates. If there is no verification code, return {"code":""}. Do not explain.'
 					},
 					{
 						role: 'user',
@@ -44,25 +46,50 @@ const aiService = {
 					}
 				],
 				temperature: 0,
-				max_tokens: 32
+				max_tokens: 48
 			});
 
-			const content = typeof result === 'string' ? result : result?.response || '';
-			const json = typeof content === 'string' ? JSON.parse(content) : content;
-
-			if (typeof json.code !== 'string') {
-				return '';
-			}
-
-			if (!json.code || json.code.length > CODE_MAX_LEN || /\s/.test(json.code)) {
-				return '';
-			}
-
-			return json.code;
+			return this.parseAiCode(result);
 		} catch (e) {
 			console.error('AI 验证码提取失败: ', e);
 			return '';
 		}
+	},
+
+	parseAiCode(result) {
+		const raw = typeof result === 'string'
+			? result
+			: result?.response || result?.result || '';
+
+		let parsed = raw;
+		if (typeof parsed === 'string') {
+			const jsonMatch = parsed.match(/\{[\s\S]*\}/);
+			if (!jsonMatch) {
+				return '';
+			}
+			try {
+				parsed = JSON.parse(jsonMatch[0]);
+			} catch (e) {
+				return '';
+			}
+		}
+
+		if (!parsed || typeof parsed.code !== 'string') {
+			return '';
+		}
+
+		return this.normalizeCode(parsed.code);
+	},
+
+	normalizeCode(code) {
+		const value = String(code || '').trim();
+		if (!value || value.length < 4 || value.length > CODE_MAX_LEN) {
+			return '';
+		}
+		if (/\s/.test(value) || !/^[A-Za-z0-9]+$/.test(value) || !/\d/.test(value)) {
+			return '';
+		}
+		return value;
 	},
 
 	// 常见验证码格式：4-8 位数字，或紧跟关键词的 4-8 位字母数字

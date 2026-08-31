@@ -43,7 +43,8 @@ export async function email(message, env, ctx) {
 			senderFilterMode,
 			senderDomainWhitelist,
 			aiCode,
-			aiCodeFilter
+			aiCodeFilter,
+			aiModel
 		} = await settingService.query({ env });
 
 		if (receive === settingConst.receive.CLOSE) {
@@ -162,7 +163,7 @@ export async function email(message, env, ctx) {
 			|| email.to.find(item => item.address === message.to)?.name
 			|| '';
 
-		const code = await aiService.extractCode({ env }, email, { aiCode, aiCodeFilter });
+		const code = await aiService.extractCode({ env }, email, { aiCode, aiCodeFilter, aiModel });
 
 		const params = {
 			toEmail: recipientTo,

@@ -67,6 +67,7 @@ export const setting = sqliteTable('setting', {
 	syncDelete: integer('sync_delete').default(1).notNull(),
 	aiCode: integer('ai_code').default(0).notNull(),
 	aiCodeFilter: text('ai_code_filter').default('').notNull(),
+	aiModel: text('ai_model').default('@cf/meta/llama-3.1-8b-instruct-fast').notNull(),
 	newEmailNotify: integer('new_email_notify').default(0).notNull()
 });
 export default setting

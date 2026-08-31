@@ -18,9 +18,27 @@
           </div>
         </div>
         <div class="setting-item">
-          <div><span>{{ $t('aiModel') }}</span></div>
+          <div>
+            <span>{{ $t('aiModel') }}</span>
+            <el-tooltip effect="dark" :content="$t('aiModelDesc')">
+              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+            </el-tooltip>
+          </div>
           <div class="forward">
-            <span class="ai-model-name">{{ setting.aiModel || '@cf/meta/llama-3.1-8b-instruct-fast' }}</span>
+            <el-select
+                v-model="setting.aiModel"
+                @change="change"
+                :disabled="!setting.hasAi"
+                :placeholder="$t('aiModel')"
+                style="width: 280px"
+            >
+              <el-option
+                  v-for="m in (setting.aiModels || [])"
+                  :key="m.id"
+                  :label="aiModelLabel(m)"
+                  :value="m.id"
+              />
+            </el-select>
           </div>
         </div>
         <div class="setting-item">
@@ -500,6 +518,16 @@ function saveAiCodeFilter() {
   editSetting({aiCodeFilter: aiCodeFilterData.value.join(',')}, true).then(ok => {
     if (ok) aiCodeFilterShow.value = false
   })
+}
+
+function aiModelLabel(m) {
+  const tagKey = {
+    recommend: 'aiModelTagRecommend',
+    lowCost: 'aiModelTagLowCost',
+    zh: 'aiModelTagZh',
+    strong: 'aiModelTagStrong'
+  }[m.tag]
+  return tagKey ? `${m.name}（${t(tagKey)}）` : m.name
 }
 
 function openTgSetting() {
