@@ -6,7 +6,7 @@
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.4.3-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.4.4-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,6 +112,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
+| **v3.4.4** | 正文插图改为一步直接插入并支持多选与自动压缩；修复附件路由固定读 KV 导致的 0 字节图片，以及回复转发时站内图片丢失 |
 | **v3.4.3** | 浮岛导航改为更克制的窄工具栏与标准移动底栏；更多导航改为单列菜单；前后端禁止主账号邮箱转移 |
 | **v3.4.2** | 优化移动端浮岛 Dock、导航高亮与更多面板；修复主题色预览及 Indigo 配色；更新存在安全风险的 XML 解析依赖 |
 | **v3.4.1** | 登录模板扩展至 9 套，新增拆信、邮件终端和邮政护照；新增桌面悬浮轨道、移动底部 Dock 的浮岛导航，并优化注册页高度与后缀选择样式 |

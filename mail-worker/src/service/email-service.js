@@ -17,7 +17,6 @@ import starService from './star-service';
 import dayjs from 'dayjs';
 import kvConst from '../const/kv-const';
 import { t } from '../i18n/i18n'
-import domainUtils from '../utils/domain-uitls';
 import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
@@ -170,6 +169,15 @@ const emailService = {
 		//判断是否关闭发件功能
 		if (send === settingConst.send.CLOSE) {
 			throw new BizError(t('disabledSend'), 403);
+		}
+
+		//数量校验必须在发件之前，否则邮件已经发出去了才报错
+		if (imageDataList.length > 10) {
+			throw new BizError(t('imageAttLimit'));
+		}
+
+		if (attachments?.length > 10) {
+			throw new BizError(t('attLimit'));
 		}
 
 		const userRow = await userService.selectById(c, userId);
@@ -331,17 +339,11 @@ const emailService = {
 
 		//保存内嵌附件
 		if (imageDataList.length > 0) {
-			if (imageDataList.length > 10) {
-				throw new BizError(t('imageAttLimit'));
-			}
 			await attService.saveArticleAtt(c, imageDataList, userId, accountId, emailResult.emailId);
 		}
 
 		//保存普通附件
 		if (attachments?.length > 0) {
-			if (attachments.length > 10) {
-				throw new BizError(t('attLimit'));
-			}
 			await attService.saveSendAtt(c, attachments, userId, accountId, emailResult.emailId);
 		}
 
@@ -505,10 +507,10 @@ const emailService = {
 
 			}
 
-			r2domain = domainUtils.toOssDomain(r2domain)
+			const attKey = attService.toAttKey(src, r2domain);
 
-			if (src && src.startsWith(r2domain + '/')) {
-				img.setAttribute('src', src.replace(r2domain + '/', '{{domain}}'));
+			if (attKey) {
+				img.setAttribute('src', '{{domain}}' + attKey);
 			}
 
 		}

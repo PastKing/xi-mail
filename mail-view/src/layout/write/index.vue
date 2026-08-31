@@ -362,9 +362,7 @@ async function sendEmail() {
     return
   }
 
-  if (!form.content) {
-    form.content = editor.value.getContent();
-  }
+  form.content = editor.value.getContent();
 
   if (!form.content) {
     ElMessage({
@@ -602,9 +600,7 @@ function close() {
 
   if (selectStatus) openSelect();
 
-  if (!form.content) {
-    form.content = editor.value.getContent();
-  }
+  form.content = editor.value.getContent();
 
   if (form.draftId) {
     draftStore.setDraft = {...toRaw(form)}
