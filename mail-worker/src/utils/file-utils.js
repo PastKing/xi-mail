@@ -18,6 +18,16 @@ const fileUtils = {
 		return base64.split(',')[1] || base64;
 	},
 
+	arrayBufferToBase64(buff) {
+		const bytes = buff instanceof Uint8Array ? buff : new Uint8Array(buff);
+		const chunkSize = 0x8000;
+		let binary = '';
+		for (let i = 0; i < bytes.length; i += chunkSize) {
+			binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+		}
+		return btoa(binary);
+	},
+
 	base64ToUint8Array(base64) {
 		const binaryStr = atob(base64);
 		const len = binaryStr.length;

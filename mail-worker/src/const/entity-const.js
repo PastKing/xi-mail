@@ -131,6 +131,18 @@ export const settingConst = {
 	authRefresh: {
 		OPEN: 1,
 		CLOSE: 0
+	},
+	syncDelete: {
+		OPEN: 0,
+		CLOSE: 1
+	},
+	aiCode: {
+		OPEN: 0,
+		CLOSE: 1
+	},
+	newEmailNotify: {
+		OPEN: 0,
+		CLOSE: 1
 	}
 }
 

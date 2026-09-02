@@ -3,23 +3,23 @@
     <div class="container">
       <div class="title">{{$t('profile')}}</div>
       <div class="item">
-        <div>{{$t('emailAccount')}}</div>
-        <div>
-          <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
-            <span class="copyable" @click="copyText(userStore.user.email)">
-              {{ userStore.user.email }}
-              <Icon icon="mingcute:copy-2-line" width="13" height="13" class="copy-icon" />
-            </span>
-          </el-tooltip>
-        </div>
-      </div>
-      <div class="item">
         <div>{{$t('displayId')}}</div>
         <div>
           <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
             <span class="display-id-value copyable" @click="copyText(userStore.user.displayId)">
               {{ userStore.user.displayId || '-' }}
               <Icon v-if="userStore.user.displayId" icon="mingcute:copy-2-line" width="13" height="13" class="copy-icon" />
+            </span>
+          </el-tooltip>
+        </div>
+      </div>
+      <div class="item">
+        <div>{{$t('emailAccount')}}</div>
+        <div>
+          <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
+            <span class="copyable" @click="copyText(userStore.user.email)">
+              {{ userStore.user.email }}
+              <Icon icon="mingcute:copy-2-line" width="13" height="13" class="copy-icon" />
             </span>
           </el-tooltip>
         </div>

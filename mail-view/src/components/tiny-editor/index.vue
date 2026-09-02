@@ -9,8 +9,13 @@
 import {ref, onMounted, onBeforeUnmount, watch, nextTick, shallowRef, defineEmits, computed} from 'vue';
 import loading from "@/components/loading/index.vue";
 import {useI18n} from 'vue-i18n'
+import {ElMessage} from 'element-plus'
 import {useUiStore} from '@/store/ui.js'
 import {useSettingStore} from '@/store/setting.js'
+import {compressImage, fileToBase64} from '@/utils/file-utils.js'
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024
+const COMPRESS_THRESHOLD = 1024 * 1024
 
 defineExpose({
   clearEditor,
@@ -30,7 +35,7 @@ const props = defineProps({
 });
 
 
-const {locale} = useI18n()
+const {locale, t} = useI18n()
 const emit = defineEmits(['change','focus']);
 const editor = shallowRef(null);
 const isInitialized = ref(false);
@@ -38,6 +43,7 @@ const editorRef = ref(null);
 const showLoading = ref(false);
 const uiStore = useUiStore();
 const settingStore = useSettingStore();
+let keepContent = null;
 
 onMounted(() => {
   initTinyMCE();
@@ -54,6 +60,8 @@ watch(() => props.defValue, (newValue) => {
 });
 
 watch(() => [uiStore.dark, settingStore.lang], () => {
+  // 重建编辑器会丢掉正文和 blob 图片缓存，先把当前内容取出来带过去
+  keepContent = editor.value ? editor.value.getContent() : null;
   destroyEditor();
   initEditor();
 });
@@ -101,7 +109,7 @@ function initEditor() {
          --scrollbar-thumb-color: ${uiStore.dark ? '#8D9095' : '#A8ABB2'};
     }`,
     plugins: 'link image advlist lists  emoticons fullscreen  table preview code',
-    toolbar: 'bold emoticons forecolor backcolor italic fontsize | alignleft aligncenter alignright alignjustify | outdent indent |  bullist numlist | link image  | table code preview fullscreen',
+    toolbar: 'bold emoticons forecolor backcolor italic fontsize | alignleft aligncenter alignright alignjustify | outdent indent |  bullist numlist | link uploadimage  | table code preview fullscreen',
     toolbar_mode: 'scrolling',
     font_size_formats: '8px 10px 12px 14px 16px 18px 24px 36px',
     emoticons_search: false,
@@ -112,8 +120,16 @@ function initEditor() {
     noneditable_class: 'mceNonEditable',
     setup: (ed) => {
       editor.value = ed;
+
+      ed.ui.registry.addButton('uploadimage', {
+        icon: 'image',
+        tooltip: t('insertImage'),
+        onAction: () => pickImages(ed)
+      });
+
       ed.on('init', () => {
-        ed.setContent(props.defValue);
+        ed.setContent(keepContent ?? props.defValue);
+        keepContent = null;
         isInitialized.value = true;
       });
       ed.on('input change', () => {
@@ -132,29 +148,92 @@ function initEditor() {
     image_description: false,
     link_title: false,
     dialog_type: 'none',
-    file_picker_callback: (callback, value, meta) => {
-      const input = document.createElement('input');
-      input.setAttribute('type', 'file');
-      input.setAttribute('accept', 'image/*');
-
-      input.addEventListener('change', async (e) => {
-        let file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = () => {
-          const id = 'blobid' + (new Date()).getTime();
-          const blobCache = tinymce.activeEditor.editorUpload.blobCache;
-          const base64 = reader.result.split(',')[1];
-          const blobInfo = blobCache.create(id, file, base64);
-          blobCache.add(blobInfo);
-
-          callback(blobInfo.blobUri(), {title: file.name});
+    file_picker_callback: (callback) => {
+      chooseImageFiles(false).then(async (files) => {
+        const dataUrl = await toImageDataUrl(files[0]);
+        if (dataUrl) {
+          callback(dataUrl, {title: files[0].name});
         }
-        reader.readAsDataURL(file);
       });
-
-      input.click();
     }
   });
+}
+
+// input 必须挂到文档上，否则 iOS Safari 和部分安卓 WebView 不会触发 change
+function chooseImageFiles(multiple) {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = multiple;
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+
+    const cleanup = () => input.remove();
+
+    input.addEventListener('change', () => {
+      const files = Array.from(input.files || []);
+      cleanup();
+      resolve(files);
+    });
+
+    input.addEventListener('cancel', () => {
+      cleanup();
+      resolve([]);
+    });
+
+    input.click();
+  });
+}
+
+async function toImageDataUrl(file) {
+  if (!file) {
+    return null;
+  }
+
+  if (!file.type.startsWith('image/')) {
+    ElMessage({message: t('onlyImageMsg'), type: 'error', plain: true});
+    return null;
+  }
+
+  let target = file;
+
+  if (file.size > COMPRESS_THRESHOLD) {
+    try {
+      target = await compressImage(file, {quality: 0.8, convertSize: COMPRESS_THRESHOLD});
+    } catch (e) {
+      target = file;
+    }
+  }
+
+  if (target.size > MAX_IMAGE_SIZE) {
+    ElMessage({message: t('imageTooLargeMsg'), type: 'error', plain: true});
+    return null;
+  }
+
+  const base64 = await fileToBase64(target);
+  return `data:${target.type || file.type};base64,${base64}`;
+}
+
+// 直接插入正文，不再让用户在对话框里多点一次保存
+async function pickImages(ed) {
+  const files = await chooseImageFiles(true);
+
+  if (files.length === 0) {
+    return;
+  }
+
+  for (const file of files) {
+    const dataUrl = await toImageDataUrl(file);
+    if (dataUrl) {
+      ed.insertContent(`<img src="${dataUrl}" style="max-width: 100%;">`);
+    }
+  }
+
+  ed.focus();
+  emit('change', ed.getContent(), ed.getContent({format: 'text'}));
 }
 
 function focus() {

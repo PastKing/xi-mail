@@ -28,7 +28,7 @@ app.get('/api/info', (c) => {
 	const domains = (() => {
 		try { return JSON.parse(c.env.domain); } catch { return []; }
 	})();
-	return c.json({ code: 200, data: { name: c.env.name || 'Xi-Mail Sub', domains, version: '1.0.0' } });
+	return c.json({ code: 200, data: { name: c.env.name || 'Xi-Mail Sub', domains, version: '1.1.0' } });
 });
 
 app.get('/api/mails', async (c) => {
@@ -40,15 +40,22 @@ app.get('/api/mails', async (c) => {
 		return c.json({ code: 400, message: 'address is required' }, 400);
 	}
 
+	// 子地址机制：查询 user@domain 时同时返回 user+tag@domain 的邮件
+	const where = `(to_email = ?1 COLLATE NOCASE OR to_email LIKE ?2 COLLATE NOCASE) AND is_del = 0`;
+	const atIdx = address.indexOf('@');
+	const subPattern = atIdx > 0
+		? address.slice(0, atIdx) + '+%' + address.slice(atIdx)
+		: address;
+
 	const countResult = await c.env.db.prepare(
-		`SELECT COUNT(*) as total FROM email WHERE to_email = ? COLLATE NOCASE AND is_del = 0`
-	).bind(address).first();
+		`SELECT COUNT(*) as total FROM email WHERE ${where}`
+	).bind(address, subPattern).first();
 
 	const { results } = await c.env.db.prepare(
 		`SELECT email_id, send_email, name, subject, text, to_email, to_name, create_time, is_del
-		 FROM email WHERE to_email = ? COLLATE NOCASE AND is_del = 0
-		 ORDER BY email_id DESC LIMIT ? OFFSET ?`
-	).bind(address, limit, offset).all();
+		 FROM email WHERE ${where}
+		 ORDER BY email_id DESC LIMIT ?3 OFFSET ?4`
+	).bind(address, subPattern, limit, offset).all();
 
 	return c.json({ code: 200, data: { results, count: countResult?.total || 0 } });
 });
@@ -147,6 +154,14 @@ export default {
 	async scheduled(c, env, ctx) {
 		try {
 			await env.db.prepare(`DELETE FROM email WHERE is_del = 1`).run();
+
+			// 自动清理：删除超过保留天数的邮件，auto_clean_days 未配置或为 0 时不清理
+			const days = Number(env.auto_clean_days || 0);
+			if (days > 0) {
+				await env.db.prepare(
+					`DELETE FROM email WHERE create_time < datetime('now', ?)`
+				).bind(`-${days} days`).run();
+			}
 		} catch (e) {
 			console.error('Cleanup error:', e);
 		}

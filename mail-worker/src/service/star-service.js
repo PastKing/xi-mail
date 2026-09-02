@@ -4,6 +4,7 @@ import emailService from './email-service';
 import BizError from '../error/biz-error';
 import { and, desc, eq, lt, sql, inArray } from 'drizzle-orm';
 import email from '../entity/email';
+import { emailBriefColumns } from '../lib/email-list-columns';
 import { isDel } from '../const/entity-const';
 import attService from "./att-service";
 import { t } from '../i18n/i18n'
@@ -51,10 +52,10 @@ const starService = {
 
 		const list = await orm(c).select({
 			isStar: sql`1`.as('isStar'),
-			starId: star.starId
-			, ...email
+			starId: star.starId,
+			...emailBriefColumns
 		}).from(star)
-			.leftJoin(email, eq(email.emailId, star.emailId))
+			.innerJoin(email, eq(email.emailId, star.emailId))
 			.where(
 				and(
 					eq(star.userId, userId),

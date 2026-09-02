@@ -17,17 +17,20 @@ const kvObjService = {
 		await Promise.all(keys.map( key => c.env.kv.delete(key)));
 	},
 
-	async toObjResp(c, key) {
+	async getObj(c, key) {
 
-		const obj = await c.env.kv.getWithMetadata(key, { type: "arrayBuffer"});
+		const obj = await c.env.kv.getWithMetadata(key, { type: 'arrayBuffer' });
 
-		return new Response(obj.value, {
-			headers: {
-				'Content-Type': obj.metadata?.contentType || 'application/octet-stream',
-				'Content-Disposition': obj.metadata?.contentDisposition || null,
-				'Cache-Control': obj.metadata?.cacheControl || null
-			}
-		});
+		if (!obj || obj.value === null) {
+			return null;
+		}
+
+		return {
+			buff: obj.value,
+			contentType: obj.metadata?.contentType,
+			contentDisposition: obj.metadata?.contentDisposition,
+			cacheControl: obj.metadata?.cacheControl
+		};
 
 	}
 

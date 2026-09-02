@@ -42,11 +42,13 @@ export function compressImage(file, config = {}) {
 
         if (file.size < (config.convertSize || 1024 * 1024)) {
             resolve(file)
+            return
         }
 
         new Compressor(file, {
             quality: config.quality || 0.8,
-            mimeType: 'image/jpeg',
+            // png 转 jpeg 会丢透明通道，只有本来就是 jpeg 才转
+            mimeType: config.mimeType || (file.type === 'image/png' ? 'image/png' : 'image/jpeg'),
             success(result) {
                 resolve(result);
             },

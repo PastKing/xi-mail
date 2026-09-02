@@ -82,26 +82,20 @@ const attService = {
 			}
 
 			//邮件正文站内图片转cid附件
-			if (src && (src.startsWith(domainUtils.toOssDomain(r2Domain)) || src.startsWith('attachments/'))) {
+			const attKey = this.toAttKey(src, r2Domain);
+
+			if (attKey) {
 
 				const cid = uuidv4().replace(/-/g, '')
 				img.setAttribute('src', 'cid:' + cid);
 
 				const attData = {};
-
-				if (src.startsWith(domainUtils.toOssDomain(r2Domain))) {
-					attData.key = src.replace(domainUtils.toOssDomain(r2Domain) + '/','');
-					attData.path = src;
-				}
-
-				if (src.startsWith('attachments/')) {
-					const origin = new URL(c.req.url).origin;
-					attData.key = src;
-					attData.path = origin + '/' + src;
-				}
-
+				attData.key = attKey;
 				attData.contentId = cid;
 				attData.type = attConst.type.EMBED;
+				attData.inSite = true;
+				attData.img = img;
+				attData.srcBackup = src;
 				imageDataList.push(attData);
 
 			}
@@ -117,14 +111,13 @@ const attService = {
 		}
 
 		//查询已有内嵌url图片信息
-		const keys = [...new Set(imageDataList.filter(item => item.path).map(item => item.key))];
+		const keys = [...new Set(imageDataList.filter(item => item.inSite).map(item => item.key))];
 		const dbImageList  = await this.selectOneByKeys(c, keys);
 
 		//设置给当前附件
 		imageDataList.forEach(image => {
 			dbImageList.forEach(dbImage => {
-				if (image.path && (image.key === dbImage.key)) {
-					image.size = dbImage.size;
+				if (image.inSite && (image.key === dbImage.key)) {
 					image.filename = dbImage.filename;
 					image.mimeType = dbImage.mimeType;
 					image.contentType = dbImage.mimeType;
@@ -132,9 +125,65 @@ const attService = {
 			})
 		})
 
-		imageDataList = imageDataList.filter(image => !image.path || image.size);
+		//站内图片直接从存储里取出真实字节当附件内容，不再让 resend 去远程拉取
+		for (const image of imageDataList) {
+
+			if (!image.inSite) {
+				continue;
+			}
+
+			const obj = await r2Service.getObj(c, image.key);
+
+			if (!obj) {
+				continue;
+			}
+
+			image.content = fileUtils.arrayBufferToBase64(obj.buff);
+			image.size = obj.buff.byteLength ?? obj.buff.length;
+			image.mimeType = image.mimeType || obj.contentType;
+			image.contentType = image.contentType || obj.contentType;
+			image.filename = image.filename || image.key.split('/').pop();
+		}
+
+		//取不到内容的站内图片还原成原来的地址，避免正文留下无附件可用的 cid
+		imageDataList.forEach(image => {
+			if (image.inSite && !image.content) {
+				image.img.setAttribute('src', image.srcBackup);
+			}
+		});
+
+		imageDataList = imageDataList.filter(image => !image.inSite || image.content);
+
+		imageDataList.forEach(image => {
+			delete image.inSite;
+			delete image.img;
+			delete image.srcBackup;
+		});
 
 		return { imageDataList, html: document.toString() };
+	},
+
+	/**
+	 * 站内图片地址转存储 key，非站内地址返回 null
+	 * 同时兼容 https://域名/attachments/xxx、/attachments/xxx 和 attachments/xxx 三种写法
+	 */
+	toAttKey(src, r2Domain) {
+
+		if (!src) {
+			return null;
+		}
+
+		const ossDomain = domainUtils.toOssDomain(r2Domain);
+
+		if (ossDomain && src.startsWith(ossDomain + '/')) {
+			src = src.replace(ossDomain + '/', '');
+		}
+
+		if (src.startsWith('/')) {
+			src = src.substring(1);
+		}
+
+		return src.startsWith(constant.ATTACHMENT_PREFIX) ? src : null;
 	},
 
 	async saveSendAtt(c, attList, userId, accountId, emailId) {
@@ -171,6 +220,8 @@ const attService = {
 			attData.emailId = emailId;
 			attData.accountId = accountId;
 			attData.type = attConst.type.EMBED;
+			delete attData.content;
+
 			if (!attData.buff) {
 				continue;
 			}

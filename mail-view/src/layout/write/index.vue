@@ -116,7 +116,7 @@ import tinyEditor from '@/components/tiny-editor/index.vue'
 import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed} from "vue";
 import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
-import {emailSend} from "@/request/email.js";
+import {emailSend, ensureEmailContent} from "@/request/email.js";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
@@ -362,9 +362,7 @@ async function sendEmail() {
     return
   }
 
-  if (!form.content) {
-    form.content = editor.value.getContent();
-  }
+  form.content = editor.value.getContent();
 
   if (!form.content) {
     ElMessage({
@@ -488,7 +486,7 @@ function focusChange() {
   if (selectStatus) openSelect()
 }
 
-function openForward(email) {
+async function openForward(email) {
   resetForm();
 
   email.subject = email.subject || ''
@@ -497,6 +495,9 @@ function openForward(email) {
   form.sendType = 'forward'
 
   defValue.value = ''
+
+  // 列表只带摘要，引用原文前先取完整正文
+  try { await ensureEmailContent(email) } catch (e) { console.error(e) }
 
   setTimeout(() => {
     defValue.value = `
@@ -514,7 +515,7 @@ function openForward(email) {
   });
 }
 
-function openReply(email) {
+async function openReply(email) {
 
   resetForm();
 
@@ -530,6 +531,9 @@ function openReply(email) {
   form.emailId = email.emailId
 
   defValue.value = ''
+
+  // 列表只带摘要，引用原文前先取完整正文
+  try { await ensureEmailContent(email) } catch (e) { console.error(e) }
 
   setTimeout(() => {
     defValue.value = `
@@ -602,9 +606,7 @@ function close() {
 
   if (selectStatus) openSelect();
 
-  if (!form.content) {
-    form.content = editor.value.getContent();
-  }
+  form.content = editor.value.getContent();
 
   if (form.draftId) {
     draftStore.setDraft = {...toRaw(form)}

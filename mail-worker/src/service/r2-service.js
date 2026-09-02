@@ -40,8 +40,57 @@ const r2Service = {
 
 	},
 
+	/**
+	 * 按当前实际存储类型读取对象，读不到返回 null
+	 * 之前这里固定读 KV，R2/S3 存储下会返回空内容，导致图片和附件变成 0 字节
+	 */
 	async getObj(c, key) {
-		return await c.env.r2.get(key);
+
+		const storageType = await this.storageType(c);
+
+		if (storageType === 'KV') {
+			return await kvObjService.getObj(c, key);
+		}
+
+		if (storageType === 'R2') {
+
+			const obj = await c.env.r2.get(key);
+
+			if (!obj) {
+				return null;
+			}
+
+			return {
+				buff: await obj.arrayBuffer(),
+				contentType: obj.httpMetadata?.contentType,
+				contentDisposition: obj.httpMetadata?.contentDisposition,
+				cacheControl: obj.httpMetadata?.cacheControl
+			};
+
+		}
+
+		return await s3Service.getObj(c, key);
+	},
+
+	async toObjResp(c, key) {
+
+		const obj = await this.getObj(c, key);
+
+		if (!obj) {
+			return new Response('Not Found', { status: 404 });
+		}
+
+		const headers = { 'Content-Type': obj.contentType || 'application/octet-stream' };
+
+		if (obj.contentDisposition) {
+			headers['Content-Disposition'] = obj.contentDisposition;
+		}
+
+		if (obj.cacheControl) {
+			headers['Cache-Control'] = obj.cacheControl;
+		}
+
+		return new Response(obj.buff, { headers });
 	},
 
 	async delete(c, key) {

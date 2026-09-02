@@ -14,6 +14,16 @@ const emailUtils = {
 		return parts.length === 2 ? parts[0] : '';
 	},
 
+	// 子地址归一化：user+tag@domain -> user@domain
+	getBaseEmail(email) {
+		if (typeof email !== 'string') return '';
+		const parts = email.split('@');
+		if (parts.length !== 2) return '';
+		const localPart = parts[0].split('+')[0];
+		if (!localPart) return '';
+		return localPart + '@' + parts[1];
+	},
+
 	formatText(text) {
 		if (!text) return ''
 		return text

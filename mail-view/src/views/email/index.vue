@@ -33,6 +33,7 @@ import {emailList, emailDelete, emailLatest, emailRead} from "@/request/email.js
 import {starAdd, starCancel} from "@/request/star.js";
 import {defineOptions, h, onMounted, reactive, ref, watch} from "vue";
 import {sleep} from "@/utils/time-utils.js";
+import {notifyNewEmail, requestNotifyPermission} from "@/utils/email-notify.js";
 import router from "@/router/index.js";
 import {Icon} from "@iconify/vue";
 import { useRoute } from 'vue-router'
@@ -52,6 +53,9 @@ const params = reactive({
 
 onMounted(() => {
   emailStore.emailScroll = scroll;
+  if (notifyOpen()) {
+    requestNotifyPermission()
+  }
   latest()
 })
 
@@ -76,6 +80,10 @@ function jumpContent(email) {
 
 const existIds = new Set();
 
+function notifyOpen() {
+  return settingStore.settings.newEmailNotify === 0
+}
+
 async function latest() {
   while (true) {
 
@@ -84,6 +92,18 @@ async function latest() {
 
     if (route.name !== 'email') {
       continue;
+    }
+
+    // 页面不可见时降频：开启新邮件通知则最长 60 秒轮询一次，否则暂停请求
+    if (document.hidden) {
+      let waited = 0;
+      while (document.hidden && waited < 60000) {
+        await sleep(1000);
+        waited += 1000;
+      }
+      if (document.hidden && !notifyOpen()) {
+        continue;
+      }
     }
 
     const latestId = scroll.value.latestEmail?.emailId
@@ -113,6 +133,10 @@ async function latest() {
 
                 existIds.add(email.emailId)
                 scroll.value.addItem(email)
+
+                if (notifyOpen()) {
+                  notifyNewEmail(email, { onClick: () => jumpContent(email) })
+                }
 
                 await sleep(50)
               }

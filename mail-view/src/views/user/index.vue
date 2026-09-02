@@ -330,7 +330,7 @@
           <el-dropdown-item @click="openSetPwd(rightClickUser)">
             <template #default>
               <div class="right-dropdown-item">
-                <icon icon="mingcute:fingerprint-line" width="19" height="19" />
+                <icon icon="mingcute:fingerprint-line" width="18" height="18" />
                 <span>{{t('changePassword')}}</span>
               </div>
             </template>
@@ -338,7 +338,7 @@
           <el-dropdown-item @click="openSetType(rightClickUser)">
             <template #default>
               <div class="right-dropdown-item">
-                <icon icon="mingcute:lock-line" width="19" height="19" />
+                <icon icon="mingcute:lock-line" width="18" height="18" />
                 <span>{{ t('setRole') }}</span>
               </div>
             </template>
@@ -346,12 +346,12 @@
           <el-dropdown-item v-if="rightClickUser.type !== 0">
             <template #default>
               <div class="right-dropdown-item" v-if="rightClickUser.isDel !== 1" @click="setStatus(rightClickUser)" >
-                <Icon icon="mingcute:refresh-2-line" v-if="rightClickUser.status" style="margin-left: 1px;margin-right: 1px" width="19" height="19" />
-                <Icon icon="mingcute:forbid-circle-line" v-else style="margin-left: 1px;margin-right: 1px" width="19" height="19" />
+                <Icon icon="mingcute:refresh-2-line" v-if="rightClickUser.status" width="18" height="18" />
+                <Icon icon="mingcute:forbid-circle-line" v-else width="18" height="18" />
                 <span>{{ setRightStatusName(rightClickUser) }}</span>
               </div>
               <div class="right-dropdown-item" v-else @click="restore(rightClickUser)">
-                <Icon icon="mingcute:refresh-2-line" style="margin-left: 1px;margin-right: 1px" width="19" height="19" />
+                <Icon icon="mingcute:refresh-2-line" width="18" height="18" />
                 <span>{{ t('restoreUser') }}</span>
               </div>
             </template>
@@ -359,7 +359,7 @@
           <el-dropdown-item @click="openAccountList(rightClickUser.userId)" >
             <template #default>
               <div class="right-dropdown-item" >
-                <Icon icon="mingcute:mailbox-line" width="19" height="19" />
+                <Icon icon="mingcute:mailbox-line" width="18" height="18" />
                 <span>{{ t('userEmail') }}</span>
               </div>
             </template>
@@ -367,7 +367,7 @@
           <el-dropdown-item @click="openDetails(rightClickUser)" >
             <template #default>
               <div class="right-dropdown-item" >
-                <Icon icon="mingcute:user-3-line" width="19" height="19" />
+                <Icon icon="mingcute:user-3-line" width="18" height="18" />
                 <span>{{ t('userDetails') }}</span>
               </div>
             </template>
@@ -375,7 +375,7 @@
           <el-dropdown-item v-if="rightClickUser.type !== 0" @click="delOneUser(rightClickUser)" >
             <template #default>
               <div class="right-dropdown-item" >
-                <Icon icon="mingcute:delete-2-line" width="18" height="18" style="margin-left: 1px;margin-right: 1px" />
+                <Icon icon="mingcute:delete-2-line" width="18" height="18" />
                 <span>{{ t('adminDeleteUser') }}</span>
               </div>
             </template>
@@ -1379,7 +1379,15 @@ function adjustWidth() {
 
 .right-dropdown-item {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+
+  svg {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .btn {

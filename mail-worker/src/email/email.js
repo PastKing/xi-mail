@@ -10,6 +10,7 @@ import emailUtils from '../utils/email-utils';
 import roleService from '../service/role-service';
 import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
+import aiService from '../service/ai-service';
 
 function matchDomainList(list, address) {
 	if (!address) return false;
@@ -40,7 +41,10 @@ export async function email(message, env, ctx) {
 			domainMapping,
 			senderDomainBlacklist,
 			senderFilterMode,
-			senderDomainWhitelist
+			senderDomainWhitelist,
+			aiCode,
+			aiCodeFilter,
+			aiModel
 		} = await settingService.query({ env });
 
 		if (receive === settingConst.receive.CLOSE) {
@@ -113,7 +117,15 @@ export async function email(message, env, ctx) {
 			);
 		}
 
-		const account = await accountService.selectByEmailIncludeDel({ env: env }, recipientTo);
+		let account = await accountService.selectByEmailIncludeDel({ env: env }, recipientTo);
+
+		// 子地址机制：user+tag@domain 找不到账号时投递到 user@domain
+		if (!account) {
+			const baseEmail = emailUtils.getBaseEmail(recipientTo);
+			if (baseEmail && baseEmail !== recipientTo) {
+				account = await accountService.selectByEmailIncludeDel({ env: env }, baseEmail);
+			}
+		}
 
 		if (!account && noRecipient === settingConst.noRecipient.CLOSE) {
 			message.setReject('Recipient not found');
@@ -151,6 +163,8 @@ export async function email(message, env, ctx) {
 			|| email.to.find(item => item.address === message.to)?.name
 			|| '';
 
+		const code = await aiService.extractCode({ env }, email, { aiCode, aiCodeFilter, aiModel });
+
 		const params = {
 			toEmail: recipientTo,
 			toName: toName,
@@ -167,6 +181,7 @@ export async function email(message, env, ctx) {
 			messageId: email.messageId,
 			userId: account ? account.userId : 0,
 			accountId: account ? account.accountId : 0,
+			code: code || '',
 			isDel: isDel.DELETE,
 			status: emailConst.status.SAVING
 		};

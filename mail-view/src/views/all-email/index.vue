@@ -320,6 +320,10 @@ async function latest() {
       continue
     }
 
+    // 页面不可见时暂停请求，恢复可见后继续
+    if (document.hidden) {
+      continue
+    }
 
     if (params.type !== 'receive') {
       continue
