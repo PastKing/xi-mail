@@ -6,7 +6,7 @@
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.5.2-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.3-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,6 +112,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
+| **v3.5.3** | 验证码识别更准：不再误抓链接参数，也不会把验证码截成半截 |
 | **v3.5.2** | 浮岛导航常驻邮箱转移，个人设置排在其下；用户 ID 提到邮箱上方；3.4.x 版本记录合并 |
 | **v3.5.1** | 验证码识别默认开启，入口移到服务集成；支持选择 Workers AI 模型，改为模型优先、失败才回退正则；子 Worker 支持子地址查询与按天数自动清理 |
 | **v3.5.0** | 邮件列表只查摘要字段并懒加载正文，补齐数据库索引；新增自动清理邮件、同步删除开关、验证码识别一键复制、子地址投递与新邮件通知 |
