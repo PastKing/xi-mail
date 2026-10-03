@@ -1,9 +1,7 @@
 import KvConst from '../const/kv-const';
 import setting from '../entity/setting';
-import subWorker from '../entity/sub-worker';
 import orm from '../entity/orm';
 import {verifyRecordType} from '../const/entity-const';
-import { eq } from 'drizzle-orm';
 import fileUtils from '../utils/file-utils';
 import r2Service from './r2-service';
 import constant from '../const/constant';
@@ -261,6 +259,7 @@ const settingService = {
 		return token;
 	},
 
+	// 未登录可访问，只放登录/注册页和普通用户界面必需的字段；后台配置走 /setting/query
 	async websiteConfig(c) {
 
 		const settingRow = await this.get(c, true);
@@ -294,17 +293,13 @@ const settingService = {
 			linuxdoSwitch: settingRow.linuxdoSwitch,
 			minEmailPrefix: settingRow.minEmailPrefix,
 			randomPrefixLength: settingRow.randomPrefixLength,
-		emailKeywordBlacklist: settingRow.emailKeywordBlacklist || [],
-		domainMapping: settingRow.domainMapping || {},
-		regKeyHint: settingRow.regKeyHint || '',
-		regKeyHintEn: settingRow.regKeyHintEn || '',
-		regKeyLink: settingRow.regKeyLink || '',
-		managedDomains: settingRow.managedDomains || [],
-		colorTheme: settingRow.colorTheme || 'indigo',
-		loginTemplate: settingRow.loginTemplate || 'gradient',
-		layoutMode: settingRow.layoutMode || 'default',
-		newEmailNotify: settingRow.newEmailNotify ?? 0,
-		subWorkers: await this.getSubWorkersSafe(c),
+			regKeyHint: settingRow.regKeyHint || '',
+			regKeyHintEn: settingRow.regKeyHintEn || '',
+			regKeyLink: settingRow.regKeyLink || '',
+			colorTheme: settingRow.colorTheme || 'indigo',
+			loginTemplate: settingRow.loginTemplate || 'gradient',
+			layoutMode: settingRow.layoutMode || 'default',
+			newEmailNotify: settingRow.newEmailNotify ?? 0,
 		};
 	},
 
@@ -316,23 +311,6 @@ const settingService = {
 		const validDomains = this.getValidDomains(setting);
 		if (validDomains.length === 0) return true;
 		return validDomains.includes(domain);
-	},
-
-	async getSubWorkersSafe(c) {
-		try {
-			const rows = await orm(c).select({
-				id: subWorker.id,
-				name: subWorker.name,
-				domains: subWorker.domains,
-				status: subWorker.status,
-			}).from(subWorker).where(eq(subWorker.status, 1)).all();
-			return rows.map(r => ({
-				...r,
-				domains: (() => { try { return JSON.parse(r.domains); } catch { return []; } })(),
-			}));
-		} catch {
-			return [];
-		}
 	}
 };
 

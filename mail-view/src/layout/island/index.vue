@@ -28,6 +28,7 @@
       </div>
 
       <button
+        v-if="hasLauncherItems"
         class="island-item island-more"
         :class="{ active: launcherOpen || launcherHasActiveRoute }"
         :aria-label="$t('moreNavigation')"
@@ -111,6 +112,8 @@ const launcherNames = computed(() => [
   ...visibleMainNav.value.filter(item => !primaryNav.value.some(primary => primary.name === item.name)),
   ...visibleAdminNav.value,
 ].map(item => item.name))
+// 侧栏之外没有可用入口时，「更多」只会展开一份重复的导航
+const hasLauncherItems = computed(() => launcherNames.value.length > 0)
 const launcherHasActiveRoute = computed(() => launcherNames.value.includes(route.meta.name))
 const moreHasTransferBadge = computed(() => launcherNames.value.includes('transfer') && transferStore.pendingCount > 0)
 
@@ -138,6 +141,10 @@ function syncMobileState(event) {
 
 watch(() => route.fullPath, () => {
   launcherOpen.value = false
+})
+
+watch(hasLauncherItems, value => {
+  if (!value) launcherOpen.value = false
 })
 
 onMounted(() => {
