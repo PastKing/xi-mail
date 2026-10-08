@@ -298,6 +298,10 @@
   }
 }
 
+.notice-popup.el-dialog {
+  width: min(1080px, calc(100% - 40px)) !important;
+}
+
 /* Default dialog width; wider dialogs opt out by omitting this class. */
 .ss-dialog-sm.el-dialog {
   width: 400px !important;

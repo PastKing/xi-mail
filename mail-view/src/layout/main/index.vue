@@ -20,19 +20,16 @@
   >
     <template #header>
       <div class="notice-header">
-        <div class="notice-header-icon">
-          <Icon icon="mingcute:announcement-line" width="22" height="22" />
-        </div>
-        <div class="notice-header-text">
-          <span class="notice-title">{{ noticeData.title || $t('announcement') }}</span>
-        </div>
-        <Icon class="notice-close" icon="mingcute:close-line" width="18" height="18" @click="noticeVisible = false" />
+        <div class="notice-title">{{ noticeData.title || $t('announcement') }}</div>
+        <button type="button" class="notice-close" :aria-label="$t('close')" @click="noticeVisible = false">
+          <Icon icon="mingcute:close-line" width="18" height="18" />
+        </button>
       </div>
     </template>
-    <div class="notice-body" v-html="noticeData.content"></div>
+    <div v-if="noticeData.content" class="notice-body" v-html="noticeData.content"></div>
     <template #footer>
-      <el-button type="primary" class="notice-confirm-btn" @click="noticeVisible = false">
-        {{ $t('confirm') }}
+      <el-button type="primary" @click="noticeVisible = false">
+        {{ $t('noticeGotIt') }}
       </el-button>
     </template>
   </el-dialog>
@@ -46,6 +43,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from 'vue-router'
 import { hasPerm } from "@/perm/perm.js"
 import { Icon } from '@iconify/vue'
+import { renderNotice } from '@/utils/notice.js'
 
 const settingStore = useSettingStore()
 const uiStore = useUiStore();
@@ -84,7 +82,7 @@ function showNotice(data) {
   if (data.notice === 1) return;
   const w = Number(data.noticeWidth) || 520;
   noticeDialogWidth.value = `min(${w}px, calc(100vw - 40px))`;
-  noticeData.value = { title: data.noticeTitle || '', content: data.noticeContent || '' };
+  noticeData.value = { title: data.noticeTitle || '', content: renderNotice(data.noticeContent) };
   noticeVisible.value = true;
 }
 
@@ -174,8 +172,7 @@ const handleResize = () => {
 
 <style>
 .notice-dialog.el-dialog {
-  border-radius: 16px !important;
-  overflow: hidden;
+  border-radius: 12px !important;
   padding: 0 !important;
 }
 
@@ -185,72 +182,86 @@ const handleResize = () => {
 }
 
 .notice-dialog .el-dialog__body {
-  padding: 20px 24px 8px !important;
+  padding: 16px 20px !important;
 }
 
 .notice-dialog .el-dialog__footer {
-  padding: 12px 24px 20px !important;
-  text-align: center;
+  padding: 0 20px 16px !important;
 }
 
 .notice-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 18px 20px 16px;
-  background: linear-gradient(135deg, var(--el-color-primary-light-7) 0%, var(--el-color-primary-light-9) 100%);
+  padding: 14px 12px 14px 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.notice-header-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--el-color-primary);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.notice-header-text {
+.notice-title {
   flex: 1;
   min-width: 0;
-}
-
-.notice-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-  line-height: 1.4;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 .notice-close {
-  cursor: pointer;
-  color: var(--el-text-color-secondary);
-  font-size: 16px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
-  padding: 4px;
+  border: 0;
   border-radius: 6px;
-  transition: all 0.15s;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 .notice-close:hover {
-  background: var(--el-fill-color);
+  background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
 }
 
 .notice-dialog .notice-body {
-  max-height: 55vh;
+  max-height: 60vh;
   overflow-y: auto;
-  line-height: 1.8;
+  line-height: 1.75;
   font-size: 14px;
   word-break: break-word;
   color: var(--el-text-color-regular);
 }
 
-.notice-confirm-btn {
-  min-width: 100px;
-  border-radius: 8px !important;
+.notice-body > :first-child { margin-top: 0; }
+.notice-body > :last-child { margin-bottom: 0; }
+.notice-body p { margin: 0 0 0.6em; }
+.notice-body h1,
+.notice-body h2,
+.notice-body h3,
+.notice-body h4 {
+  margin: 1em 0 0.4em;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.notice-body a { color: var(--el-color-primary); }
+.notice-body ul,
+.notice-body ol { margin: 0 0 0.6em; padding-left: 1.4em; }
+.notice-body img {
+  max-width: 100%;
+  height: auto;
+}
+.notice-body blockquote {
+  margin: 0 0 0.6em;
+  padding-left: 12px;
+  border-left: 3px solid var(--el-border-color);
+  color: var(--el-text-color-secondary);
+}
+.notice-body hr {
+  border: 0;
+  border-top: 1px solid var(--el-border-color-lighter);
+  margin: 1em 0;
 }
 </style>

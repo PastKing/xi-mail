@@ -21,6 +21,8 @@ import reqUtils from '../utils/req-utils';
 import {oauth} from "../entity/oauth";
 import oauthService from "./oauth-service";
 import accountTransfer from '../entity/account-transfer';
+import userContext from '../security/user-context';
+import sessionService from './session-service';
 
 const userService = {
 
@@ -85,11 +87,17 @@ const userService = {
 
 		const { password } = params;
 
-		if (password < 6) {
+		if (typeof password !== 'string' || password.length < 6) {
 			throw new BizError(t('pwdMinLength'));
 		}
 		const { salt, hash } = await cryptoUtils.hashPassword(password);
 		await orm(c).update(user).set({ password: hash, salt: salt }).where(eq(user.userId, userId)).run();
+	},
+
+	// 改密码后只保留当前会话，其他设备上的旧凭证全部失效
+	async changeOwnPassword(c, params, userId) {
+		await this.resetPassword(c, params, userId);
+		await sessionService.revokeOthers(c, userId, userContext.getToken(c));
 	},
 
 	selectByEmail(c, email) {

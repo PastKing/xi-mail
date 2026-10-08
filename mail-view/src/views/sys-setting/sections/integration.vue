@@ -361,25 +361,20 @@
 
     <el-dialog top="5vh" v-model="noticePopupShow" :title="$t('noticePopup')" class="sys-setting-dialog notice-popup"
                @closed="resetNoticeForm">
-      <form>
-        <div class="notice-form-row">
-          <span class="notice-form-label">{{ $t('titleDesc') }}</span>
-          <el-input v-model="noticeForm.noticeTitle" :placeholder="$t('titleDesc')"/>
+      <form @submit.prevent>
+        <div class="notice-form-grid">
+          <div class="notice-form-row">
+            <span class="notice-form-label">{{ $t('titleDesc') }}</span>
+            <el-input v-model="noticeForm.noticeTitle" :placeholder="$t('titleDesc')"/>
+          </div>
+          <div class="notice-form-row">
+            <span class="notice-form-label">{{ $t('width') }}</span>
+            <el-input-number v-model="noticeForm.noticeWidth" :min="300" :max="1200" :step="20" style="width:100%">
+              <template #suffix>px</template>
+            </el-input-number>
+          </div>
         </div>
-        <div class="notice-form-row">
-          <span class="notice-form-label">{{ $t('width') }}</span>
-          <el-input-number v-model="noticeForm.noticeWidth" :min="300" :max="1200" style="width:100%">
-            <template #suffix>px</template>
-          </el-input-number>
-        </div>
-        <div class="notice-popup-item">
-          <el-input
-              v-model="noticeForm.noticeContent"
-              :autosize="{ minRows: 15, maxRows: 25 }"
-              type="textarea"
-              :placeholder="$t('noticeContentDesc')"
-          />
-        </div>
+        <notice-editor v-model="noticeForm.noticeContent" />
       </form>
       <template #footer>
         <div class="dialog-footer">
@@ -411,6 +406,7 @@ import {useI18n} from "vue-i18n";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSysSetting} from "../use-sys-setting.js";
+import NoticeEditor from "../components/notice-editor.vue";
 
 defineOptions({
   name: 'sys-setting-integration'
@@ -801,8 +797,14 @@ function saveNoticePopup() {
   }
 }
 
-.notice-popup-item {
-  margin-top: 8px;
+.notice-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 0 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .forward-set-body {

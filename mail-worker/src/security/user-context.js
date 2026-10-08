@@ -1,6 +1,3 @@
-import JwtUtils from '../utils/jwt-utils';
-import constant from '../const/constant';
-
 const userContext = {
 	getUserId(c) {
 		return c.get('user').userId;
@@ -10,10 +7,8 @@ const userContext = {
 		return c.get('user');
 	},
 
-	async getToken(c) {
-		const jwt = c.req.header(constant.TOKEN_HEADER);
-		const { token } = JwtUtils.verifyToken(c,jwt);
-		return token;
+	getToken(c) {
+		return c.get('token');
 	},
 };
 export default userContext;
