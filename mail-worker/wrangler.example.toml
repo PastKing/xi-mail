@@ -3,6 +3,11 @@ main = "src/index.js"
 compatibility_date = "2025-06-04"
 keep_vars = true
 
+# Native Cloudflare Email Sending (no API token required).
+# Onboard sender domains in Cloudflare Email Service before sending to arbitrary recipients.
+[[send_email]]
+name = "EMAIL"
+
 [observability]
 enabled = true
 

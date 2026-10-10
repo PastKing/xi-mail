@@ -1,4 +1,10 @@
 const en = {
+	sendChannels: "Sending channels",
+	sendChannel: "Channel",
+	sendChannelsDesc: "Choose a channel for each sender domain. Users' emails use it automatically. Existing domains default to Resend.",
+	cloudflareEmailBound: "Cloudflare email binding configured",
+	cloudflareEmailNotBound: "Cloudflare email binding not configured",
+	cloudflareSendingDesc: "No Token is needed for the Cloudflare channel. Sending to arbitrary recipients requires Workers Paid and an onboarded sender domain; otherwise only verified destinations are allowed. Up to 50 recipients and normally 5 MiB per message including attachments. Successful submission means accepted; check Cloudflare email logs for final delivery.",
     inbox: 'Inbox',
     drafts: 'Drafts',
     sent: 'Sent',

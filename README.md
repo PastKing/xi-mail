@@ -85,6 +85,8 @@ cd ../mail-worker && npx wrangler deploy
 
 部署完成后访问 `https://your-worker.workers.dev/api/init/<JWT_SECRET>` 初始化 / 迁移数据库表结构。
 
+Cloudflare 原生发信渠道可在后台按域名选择；使用前请完成 [Cloudflare 发信配置](doc/CLOUDFLARE-SENDING.md)。
+
 `wrangler.toml` 关键字段：
 
 ```toml

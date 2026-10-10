@@ -93,6 +93,31 @@
       </div>
     </div>
 
+    <div class="settings-card">
+      <div class="card-title">{{ $t('sendChannels') }}</div>
+      <div class="card-content">
+        <p class="send-channel-help">{{ $t('sendChannelsDesc') }}</p>
+        <el-tag :type="setting.hasCloudflareEmail ? 'success' : 'warning'">
+          {{ $t(setting.hasCloudflareEmail ? 'cloudflareEmailBound' : 'cloudflareEmailNotBound') }}
+        </el-tag>
+        <p class="send-channel-help">{{ $t('cloudflareSendingDesc') }}</p>
+        <el-table :data="sendChannelRows" class="send-channel-table">
+          <el-table-column prop="domain" :label="$t('domain')" min-width="120" show-overflow-tooltip />
+          <el-table-column :label="$t('sendChannel')" min-width="180">
+            <template #default="{row}">
+              <el-select v-model="sendChannels[row.domain]" :disabled="settingLoading"
+                         :aria-label="`${$t('sendChannel')} ${row.domain}`" style="width: 100%">
+                <el-option label="Resend" value="resend" />
+                <el-option label="Cloudflare Email Sending" value="cloudflare" :disabled="!setting.hasCloudflareEmail" />
+              </el-select>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-button type="primary" :loading="settingLoading" :disabled="!sendChannelRows.length"
+                   @click="saveSendChannels">{{ $t('save') }}</el-button>
+      </div>
+    </div>
+
     <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="emailPrefixShow" :title="$t('emailPrefix')" @closed="resetEmailPrefix">
       <div class="email-prefix">
         <div>{{ $t('atLeast') }}</div>
@@ -174,6 +199,16 @@ const showResendList = ref(false)
 const resendTokenForm = reactive({domain: '', token: ''})
 const emailColumnWidth = ref(0)
 const tokenColumnWidth = ref(0)
+const sendChannels = ref({})
+const sendChannelRows = computed(() => (settingStore.domainList || []).map(domain => ({domain: domain.replace(/^@/, '')})))
+
+function resetSendChannels() {
+  sendChannels.value = Object.fromEntries(sendChannelRows.value.map(({domain}) => [domain, setting.value.sendChannels?.[domain] || 'resend']))
+}
+
+function saveSendChannels() {
+  return editSetting({sendChannels: {...sendChannels.value}})
+}
 
 const authRefreshOptions = computed(() => [
   {label: t('disable'), value: 0},
@@ -216,6 +251,7 @@ function resetEmailPrefix() {
 
 onSettingsLoaded(() => {
   resetEmailPrefix()
+  resetSendChannels()
 })
 
 function saveEmailPrefix() {
@@ -265,6 +301,16 @@ function saveResendToken() {
 </script>
 
 <style scoped lang="scss">
+.send-channel-help {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.send-channel-table {
+  margin-bottom: 16px;
+}
+
 .email-prefix {
   display: flex;
   justify-content: space-between;

@@ -9,6 +9,7 @@ import BizError from '../error/biz-error';
 import {t} from '../i18n/i18n'
 import verifyRecordService from './verify-record-service';
 import { AI_CODE_MODELS, resolveAiModel } from '../const/ai-models';
+import sendChannelService from './send-channel-service';
 
 function generateToken(len = 32) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -124,6 +125,8 @@ const settingService = {
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
 		settingRow.hasR2 = !!c.env.r2
 		settingRow.hasAi = !!c.env.ai
+		settingRow.hasCloudflareEmail = typeof c.env.EMAIL?.send === 'function';
+		settingRow.sendChannels = await sendChannelService.query(c);
 		settingRow.aiModel = resolveAiModel(settingRow.aiModel, c.env.ai_model)
 		settingRow.aiModels = AI_CODE_MODELS
 
@@ -149,6 +152,7 @@ const settingService = {
 
 	async set(c, params) {
 		delete params.hasAi
+		delete params.hasCloudflareEmail
 		delete params.hasR2
 		delete params.aiModels
 		delete params.domainList
@@ -164,6 +168,10 @@ const settingService = {
 		}
 
 		const settingData = await this.query(c);
+		const sendChannels = params.sendChannels === undefined ? undefined : sendChannelService.validate(
+			params.sendChannels, settingData.domainList, typeof c.env.EMAIL?.send === 'function'
+		);
+		delete params.sendChannels;
 		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
 		Object.keys(resendTokens).forEach(domain => {
 			if (!resendTokens[domain]) delete resendTokens[domain];
@@ -195,6 +203,9 @@ const settingService = {
 
 		params.resendTokens = JSON.stringify(resendTokens);
 		await orm(c).update(setting).set({ ...params }).returning().get();
+		if (sendChannels !== undefined) {
+			await c.env.kv.put(KvConst.SEND_CHANNELS, JSON.stringify(sendChannels));
+		}
 		await this.refresh(c);
 	},
 

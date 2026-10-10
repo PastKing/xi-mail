@@ -8,7 +8,7 @@ import settingService from './setting-service';
 import accountService from './account-service';
 import BizError from '../error/biz-error';
 import emailUtils from '../utils/email-utils';
-import { Resend } from 'resend';
+import sendChannelService from './send-channel-service';
 import attService from './att-service';
 import { parseHTML } from 'linkedom';
 import userService from './user-service';
@@ -258,11 +258,6 @@ const emailService = {
 		const domain = emailUtils.getDomain(accountRow.email);
 		const resendToken = resendTokens[domain];
 
-		//如果接收方存在站外邮箱，又没有resend token
-		if (!resendToken && !allInternal) {
-			throw new BizError(t('noResendToken'));
-		}
-
 		//没有发件人名字自动截取
 		if (!name) {
 			name = emailUtils.getName(accountRow.email);
@@ -283,12 +278,10 @@ const emailService = {
 
 		}
 
-		let resendResult = {};
+		let outboundId;
 
-		//存在站外时邮箱全部由resend发送
+		//存在站外邮箱时，全部收件人由发件域名配置的渠道发送
 		if (!allInternal) {
-
-			const resend = new Resend(resendToken);
 
 			const sendForm = {
 				from: `${name} <${accountRow.email}>`,
@@ -296,25 +289,20 @@ const emailService = {
 				subject: subject,
 				text: text,
 				html: html,
-				attachments: [...imageDataList, ...attachments]
+				attachments: [...imageDataList, ...(attachments || [])]
 			};
 
-			if (sendType === 'reply') {
+			if (sendType === 'reply' && emailRow.messageId) {
 				sendForm.headers = {
 					'in-reply-to': emailRow.messageId,
 					'references': emailRow.messageId
 				};
 			}
 
-			resendResult = await resend.emails.send(sendForm);
+			outboundId = await sendChannelService.send(c, domain, resendToken, sendForm, {
+				email: accountRow.email, name
+			});
 
-		}
-
-		const { data, error } = resendResult;
-
-
-		if (error) {
-			throw new BizError(error.message);
 		}
 
 		imageDataList = imageDataList.map(item => ({...item, contentId: `<${item.contentId}>`}))
@@ -333,7 +321,7 @@ const emailService = {
 		emailData.status = emailConst.status.SENT;
 		emailData.type = emailConst.type.SEND;
 		emailData.userId = userId;
-		emailData.resendEmailId = data?.id;
+		emailData.resendEmailId = outboundId;
 
 		const recipient = [];
 

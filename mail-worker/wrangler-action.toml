@@ -2,6 +2,9 @@ name = "${NAME}"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
 
+[[send_email]]
+name = "EMAIL"
+
 [observability]
 enabled = true
 

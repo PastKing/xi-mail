@@ -70,6 +70,8 @@ function createContext() {
     delete settingForm.hasR2
     delete settingForm.hasAi
     delete settingForm.aiModels
+    delete settingForm.hasCloudflareEmail
+    delete settingForm.sendChannels
     delete settingForm.domainList
     return editSetting(settingForm, false)
   }

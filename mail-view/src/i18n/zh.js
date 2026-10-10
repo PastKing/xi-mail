@@ -1,4 +1,10 @@
 const zh = {
+	sendChannels: "发信渠道",
+	sendChannel: "使用渠道",
+	sendChannelsDesc: "按发件域名选择渠道，普通用户发信时自动使用。原有域名默认使用 Resend。",
+	cloudflareEmailBound: "Cloudflare 发信绑定已配置",
+	cloudflareEmailNotBound: "Cloudflare 发信绑定未配置",
+	cloudflareSendingDesc: "Cloudflare 渠道无需填写 Token。向任意外部邮箱发信需要 Workers Paid 套餐，并开通发件域名；否则只能发给已验证的目标地址。每封最多 50 个收件人，通常含附件不超过 5 MiB。提交成功表示渠道已接受，最终投递请查看 Cloudflare 发信日志。",
     inbox: '收件箱',
     drafts: '草稿箱',
     sent: '已发送',
