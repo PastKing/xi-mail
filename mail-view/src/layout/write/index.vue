@@ -34,7 +34,7 @@
         </div>
       </div>
       <div class="container">
-        <el-input-tag  @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
+        <el-input-tag class="recipient-input" @paste="pasteRecipients" :placeholder="t('recipientPastePlaceholder')" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
           <template #prefix>
             <div class="item-title" >{{ $t('recipient') }}</div>
             <el-select
@@ -117,7 +117,7 @@ import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed} fro
 import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
 import {emailSend, ensureEmailContent} from "@/request/email.js";
-import {isEmail} from "@/utils/verify-utils.js";
+import {parseRecipientText} from "@/utils/recipient-utils.js";
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import {fileToBase64, formatBytes} from "@/utils/file-utils.js";
@@ -286,22 +286,31 @@ function inputChange(value) {
 
 }
 
+function addRecipients(value) {
+  const {emails, invalid} = parseRecipientText(value, form.receiveEmail)
+  form.receiveEmail.push(...emails)
+  if (selectStatus) openSelect()
+  if (invalid.length) {
+    ElMessage({message: t('recipientInvalidMsg'), type: 'warning', plain: true})
+  }
+  return invalid
+}
+
+function pasteRecipients(event) {
+  const text = event.clipboardData?.getData('text/plain')
+  if (!text) return
+  const input = event.target
+  const value = input.value.slice(0, input.selectionStart) + text + input.value.slice(input.selectionEnd)
+  event.preventDefault()
+  const invalid = addRecipients(value)
+  // Keep invalid entries editable and synchronise InputTag's pending input.
+  input.value = invalid.join(', ')
+  input.dispatchEvent(new Event('input', {bubbles: true}))
+}
+
 function addTagChange(val) {
-
-  const emails = Array.from(new Set(
-      val.split(/[,，]/).map(item => item.trim()).filter(item => item)
-  ));
-
-  form.receiveEmail.splice(form.receiveEmail.length - 1, 1)
-
-  let has = false
-  emails.forEach(email => {
-    if (isEmail(email) && !form.receiveEmail.includes(email)) {
-      form.receiveEmail.push(email)
-      has = true
-    }
-  })
-  if (selectStatus && has) openSelect()
+  form.receiveEmail.pop()
+  addRecipients(val)
 }
 
 function clearContent() {
@@ -824,6 +833,10 @@ function close() {
       grid-template-rows: auto auto 1fr auto;
       gap: 15px;
 
+      .recipient-input {
+        max-height: min(180px, 25vh);
+        overflow-y: auto;
+      }
 
       .button-item {
         display: grid;

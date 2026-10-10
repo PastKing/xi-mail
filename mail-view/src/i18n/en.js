@@ -117,6 +117,8 @@ const en = {
     roleDesc: 'Role',
     noSubject: 'No subject',
     recipient: 'To',
+    recipientPastePlaceholder: 'Paste emails separated by commas, semicolons, spaces or new lines',
+    recipientInvalidMsg: 'Some recipients are invalid. Please check their email addresses',
     delivered: 'Delivered',
     complained: 'Complained',
     delayed: 'Delayed',

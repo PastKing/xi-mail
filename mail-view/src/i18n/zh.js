@@ -117,6 +117,8 @@ const zh = {
     roleDesc: '权限身份',
     noSubject: '无主题',
     recipient: '收件人',
+    recipientPastePlaceholder: '可粘贴多个邮箱，用逗号、分号、空格或换行分隔',
+    recipientInvalidMsg: '部分收件人格式不正确，请检查邮箱地址',
     delivered: '发送成功',
     complained: '被标记为垃圾',
     delayed: '发送被延迟',
