@@ -1,7 +1,7 @@
 <template>
   <div class="sys-setting-section">
     <div class="settings-card">
-      <div class="card-title">{{ $t('aiCode') }}</div>
+      <div class="card-title"><Icon icon="mingcute:scan-line" width="15" height="15"/>{{ $t('aiCode') }}</div>
       <div class="card-content">
         <p class="ai-code-desc">{{ $t('aiCodeDesc') }}</p>
         <div class="setting-item">
@@ -60,7 +60,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('oss') }}</div>
+      <div class="card-title"><Icon icon="mingcute:folder-2-line" width="15" height="15"/>{{ $t('oss') }}</div>
       <div class="card-content">
         <div class="r2domain-item">
           <div>
@@ -96,7 +96,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('emailPush') }}</div>
+      <div class="card-title"><Icon icon="mingcute:notification-line" width="15" height="15"/>{{ $t('emailPush') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('tgBot') }}</span></div>
@@ -129,7 +129,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('turnstileSetting') }}</div>
+      <div class="card-title"><Icon icon="mingcute:shield-shape-line" width="15" height="15"/>{{ $t('turnstileSetting') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('signUpVerification') }}</span></div>
@@ -191,7 +191,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('noticeTitle') }}</div>
+      <div class="card-title"><Icon icon="mingcute:announcement-line" width="15" height="15"/>{{ $t('noticeTitle') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('noticePopup') }}</span></div>
@@ -361,25 +361,20 @@
 
     <el-dialog top="5vh" v-model="noticePopupShow" :title="$t('noticePopup')" class="sys-setting-dialog notice-popup"
                @closed="resetNoticeForm">
-      <form>
-        <div class="notice-form-row">
-          <span class="notice-form-label">{{ $t('titleDesc') }}</span>
-          <el-input v-model="noticeForm.noticeTitle" :placeholder="$t('titleDesc')"/>
+      <form @submit.prevent>
+        <div class="notice-form-grid">
+          <div class="notice-form-row">
+            <span class="notice-form-label">{{ $t('titleDesc') }}</span>
+            <el-input v-model="noticeForm.noticeTitle" :placeholder="$t('titleDesc')"/>
+          </div>
+          <div class="notice-form-row">
+            <span class="notice-form-label">{{ $t('width') }}</span>
+            <el-input-number v-model="noticeForm.noticeWidth" :min="300" :max="1200" :step="20" style="width:100%">
+              <template #suffix>px</template>
+            </el-input-number>
+          </div>
         </div>
-        <div class="notice-form-row">
-          <span class="notice-form-label">{{ $t('width') }}</span>
-          <el-input-number v-model="noticeForm.noticeWidth" :min="300" :max="1200" style="width:100%">
-            <template #suffix>px</template>
-          </el-input-number>
-        </div>
-        <div class="notice-popup-item">
-          <el-input
-              v-model="noticeForm.noticeContent"
-              :autosize="{ minRows: 15, maxRows: 25 }"
-              type="textarea"
-              :placeholder="$t('noticeContentDesc')"
-          />
-        </div>
+        <notice-editor v-model="noticeForm.noticeContent" />
       </form>
       <template #footer>
         <div class="dialog-footer">
@@ -411,6 +406,7 @@ import {useI18n} from "vue-i18n";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSysSetting} from "../use-sys-setting.js";
+import NoticeEditor from "../components/notice-editor.vue";
 
 defineOptions({
   name: 'sys-setting-integration'
@@ -801,8 +797,14 @@ function saveNoticePopup() {
   }
 }
 
-.notice-popup-item {
-  margin-top: 8px;
+.notice-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 0 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .forward-set-body {

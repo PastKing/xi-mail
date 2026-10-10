@@ -19,6 +19,7 @@ import dayjs from 'dayjs';
 import { toUtc } from '../utils/date-uitil';
 import { t } from '../i18n/i18n.js';
 import verifyRecordService from './verify-record-service';
+import sessionService from './session-service';
 
 const loginService = {
 
@@ -238,40 +239,27 @@ const loginService = {
 		const uuid = uuidv4();
 		const jwt = await JwtUtils.generateToken(c,{ userId: userRow.userId, token: uuid });
 
-		let authInfo = await c.env.kv.get(KvConst.AUTH_INFO + userRow.userId, { type: 'json' });
+		let authInfo = await sessionService.get(c, userRow.userId);
 
-		if (authInfo && (authInfo.user.email === userRow.email)) {
-
-			if (authInfo.tokens.length > 10) {
-				authInfo.tokens.shift();
-			}
-
-			authInfo.tokens.push(uuid);
-
-		} else {
-
+		if (!authInfo || authInfo.user.email !== userRow.email) {
 			authInfo = {
 				tokens: [],
+				sessions: {},
 				user: userRow,
 				refreshTime: dayjs().toISOString()
 			};
-
-			authInfo.tokens.push(uuid);
-
 		}
+
+		sessionService.add(c, authInfo, uuid, noVerifyPwd ? 'oauth' : 'password');
 
 		await userService.updateUserInfo(c, userRow.userId);
 
-		await c.env.kv.put(KvConst.AUTH_INFO + userRow.userId, JSON.stringify(authInfo), { expirationTtl: constant.TOKEN_EXPIRE });
+		await sessionService.save(c, userRow.userId, authInfo);
 		return jwt;
 	},
 
 	async logout(c, userId) {
-		const token =userContext.getToken(c);
-		const authInfo = await c.env.kv.get(KvConst.AUTH_INFO + userId, { type: 'json' });
-		const index = authInfo.tokens.findIndex(item => item === token);
-		authInfo.tokens.splice(index, 1);
-		await c.env.kv.put(KvConst.AUTH_INFO + userId, JSON.stringify(authInfo));
+		await sessionService.revokeToken(c, userId, userContext.getToken(c));
 	}
 
 };

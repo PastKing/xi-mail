@@ -62,6 +62,16 @@ const routes = [
                     menu: true
                 }
             },
+            {
+                path: '/sessions',
+                name: 'session',
+                component: () => import('@/views/session/index.vue'),
+                meta: {
+                    title: 'loginSessions',
+                    name: 'session',
+                    menu: true
+                }
+            },
         ]
 
     },

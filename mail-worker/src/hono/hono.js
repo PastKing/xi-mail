@@ -31,7 +31,12 @@ app.onError((err, c) => {
 		return c.json(result.fail('D1数据库未绑定 D1 database not bound',502));
 	}
 
-	return c.json(result.fail(err.message, err.code));
+	// 只回显业务异常文案，其余（D1/运行时错误等）统一兜底，避免泄露后端细节
+	if (err.name === 'BizError') {
+		return c.json(result.fail(err.message, err.code));
+	}
+
+	return c.json(result.fail('服务异常，请稍后重试 Service error, please try again later', 500));
 });
 
 export default app;
