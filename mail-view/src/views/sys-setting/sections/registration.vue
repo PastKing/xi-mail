@@ -84,7 +84,7 @@
                        type="primary">
               <Icon icon="mingcute:list-check-line" width="18" height="18"/>
             </el-button>
-            <el-button class="opt-button" style="margin-top: 0" @click="resendTokenFormShow = true" size="small"
+            <el-button class="opt-button" style="margin-top: 0" @click="openResendTokenForm()" size="small"
                        type="primary">
               <Icon icon="mingcute:add-line" width="16" height="16"/>
             </el-button>
@@ -109,10 +109,11 @@
       <el-button type="primary" style="width: 100%;" :loading="settingLoading" @click="saveEmailPrefix">{{ $t('save') }}</el-button>
     </el-dialog>
 
-    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="resendTokenFormShow" :title="$t('resendToken')"
-               @closed="resendTokenForm.token = ''">
-      <form>
-        <el-select style="margin-bottom: 15px" v-model="resendTokenForm.domain" placeholder="Select">
+    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="resendTokenFormShow"
+               :title="editingResendToken ? $t('editResendTokenTitle') : $t('resendToken')"
+               @closed="resetResendTokenForm">
+      <form @submit.prevent="saveResendToken">
+        <el-select style="margin-bottom: 15px" v-model="resendTokenForm.domain" :disabled="editingResendToken" placeholder="Select">
           <el-option
               v-for="item in settingStore.domainList"
               :key="item"
@@ -120,8 +121,9 @@
               :value="item"
           />
         </el-select>
-        <el-input type="text" :placeholder="$t('addResendTokenDesc')" v-model="resendTokenForm.token"/>
-        <el-button type="primary" :loading="settingLoading" @click="saveResendToken">{{ $t('save') }}</el-button>
+        <el-input type="password" show-password autocomplete="off" :placeholder="editingResendToken ? $t('replaceResendTokenDesc') : $t('addResendTokenDesc')" v-model="resendTokenForm.token"/>
+        <el-button type="primary" native-type="submit" :loading="settingLoading"
+                   :disabled="!resendTokenForm.domain || (editingResendToken && !resendTokenForm.token.trim())">{{ $t('save') }}</el-button>
       </form>
     </el-dialog>
 
@@ -129,8 +131,15 @@
       <el-table :data="resendList">
         <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
                          :show-overflow-tooltip="true"/>
-        <el-table-column :width="tokenColumnWidth" property="value" label="Token" fixed="right"
+        <el-table-column :width="tokenColumnWidth" property="value" label="Token"
                          :show-overflow-tooltip="true"/>
+        <el-table-column :width="90" :label="$t('action')" fixed="right">
+          <template #default="{row}">
+            <el-button type="primary" link size="small" :disabled="settingLoading" @click="openResendTokenForm(row)">
+              {{ $t('change') }}
+            </el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </el-dialog>
   </div>
@@ -155,6 +164,7 @@ const minEmailPrefix = ref(0)
 const emailPrefixFilter = ref([])
 
 const resendTokenFormShow = ref(false)
+const editingResendToken = ref(false)
 const showResendList = ref(false)
 const resendTokenForm = reactive({domain: '', token: ''})
 const emailColumnWidth = ref(0)
@@ -201,7 +211,6 @@ function resetEmailPrefix() {
 
 onSettingsLoaded(() => {
   resetEmailPrefix()
-  resendTokenForm.domain = (setting.value.domainList || [])[0] || ''
 })
 
 function saveEmailPrefix() {
@@ -213,9 +222,25 @@ function saveEmailPrefix() {
   })
 }
 
+function openResendTokenForm(row) {
+  editingResendToken.value = !!row
+  resendTokenForm.domain = row ? `@${row.key}` : (settingStore.domainList || [])[0] || ''
+  // The server returns a masked token. Always ask for a new value when editing.
+  resendTokenForm.token = ''
+  resendTokenFormShow.value = true
+}
+
+function resetResendTokenForm() {
+  resendTokenForm.token = ''
+  resendTokenForm.domain = ''
+  editingResendToken.value = false
+}
+
 function saveResendToken() {
-  const domain = resendTokenForm.domain.slice(1)
-  editSetting({resendTokens: {[domain]: resendTokenForm.token}}).then(ok => {
+  const token = resendTokenForm.token.trim()
+  if (!resendTokenForm.domain || (editingResendToken.value && !token)) return
+  const domain = resendTokenForm.domain.replace(/^@/, '')
+  return editSetting({resendTokens: {[domain]: token}}).then(ok => {
     if (ok) resendTokenFormShow.value = false
   })
 }
@@ -234,9 +259,9 @@ function saveResendToken() {
 
 :deep(.resend-table.el-dialog) {
   min-height: 300px;
-  width: 500px !important;
+  width: 620px !important;
 
-  @media (max-width: 540px) {
+  @media (max-width: 660px) {
     width: calc(100% - 40px) !important;
     margin-right: 20px !important;
     margin-left: 20px !important;
