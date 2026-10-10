@@ -27,6 +27,10 @@
               </div>
               <div class="receive"><span class="source">{{$t('recipient')}}</span><span class="receive-email">{{  formateReceive(email.recipient) }}</span></div>
               <div class="receive" v-if="formateReceive(email.cc)"><span class="source">{{$t('cc')}}</span><span class="receive-email">{{ formateReceive(email.cc) }}</span></div>
+              <div class="status-row">
+                <span class="source">{{$t('tabStatus')}}</span>
+                <el-tag :type="statusMeta(email.status).type" size="small">{{ statusMeta(email.status).label }}</el-tag>
+              </div>
               <div class="date">
                 <div>{{ formatDetailDate(email.createTime) }}</div>
               </div>
@@ -35,9 +39,7 @@
                 <span>{{ email.code }}</span>
               </div>
             </div>
-            <el-alert v-if="email.status === 3" :closable="false" :title="toMessage(email.message)" class="email-msg" type="error" show-icon />
-            <el-alert v-if="email.status === 4" :closable="false" :title="$t('complained')" class="email-msg" type="warning" show-icon />
-            <el-alert v-if="email.status === 5" :closable="false" :title="$t('delayed')" class="email-msg" type="warning" show-icon />
+            <el-alert v-if="statusMessage(email.message)" :closable="false" :title="statusMessage(email.message)" class="email-msg" :type="statusMeta(email.status).type" show-icon />
           </div>
           <el-scrollbar class="htm-scrollbar" :class="email.attList.length === 0 ? 'bottom-distance' : ''">
             <el-skeleton v-if="contentLoading" class="content-skeleton" :rows="6" animated />
@@ -141,8 +143,31 @@ function openForward() {
   uiStore.writerRef.openForward(email)
 }
 
-function toMessage(message) {
-  return  message ? JSON.parse(message).message : '';
+function statusMeta(status) {
+  const labels = {
+    0: {label: t('received'), type: 'success'},
+    1: {label: t('sent'), type: 'primary'},
+    2: {label: t('delivered'), type: 'success'},
+    3: {label: t('bounced'), type: 'danger'},
+    4: {label: t('complained'), type: 'warning'},
+    5: {label: t('delayed'), type: 'warning'},
+    6: {label: t('emailProcessing'), type: 'info'},
+    7: {label: t('noRecipient'), type: 'info'},
+    8: {label: t('failed'), type: 'danger'},
+  }
+  return labels[Number(status)] || {label: t('unknown'), type: 'info'}
+}
+
+function statusMessage(message) {
+  if (!message) return ''
+  try {
+    const parsed = JSON.parse(message)
+    if (typeof parsed === 'string') return parsed
+    const detail = parsed.message || parsed.reason || parsed.detail || ''
+    return typeof detail === 'string' ? detail : JSON.stringify(detail)
+  } catch {
+    return String(message)
+  }
 }
 
 async function copyEmailCode(code) {
@@ -413,6 +438,12 @@ const handleDelete = () => {
         span:nth-child(2) {
           color: var(--regular-text-color);
         }
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 6px;
       }
 
       .send-source {
