@@ -72,6 +72,7 @@ const zh = {
     loginSystem: '登录系统',
     browserLogin: '登录浏览器',
     unauthorized: '无权限',
+    noAvailableDomains: '暂无可用域名，请联系管理员开通权限',
     unlimited: '无限制',
     sendCount: '邮件发送 :',
     accountCount: '邮箱添加 :',

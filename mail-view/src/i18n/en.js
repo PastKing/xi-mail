@@ -72,6 +72,7 @@ const en = {
     loginSystem: 'Login System',
     browserLogin: 'Browser Login',
     unauthorized: 'Unauthorized',
+    noAvailableDomains: 'No domains available. Contact an administrator for access.',
     unlimited: 'Unlimited',
     sendCount: 'Send email : ',
     accountCount: 'Add address : ',

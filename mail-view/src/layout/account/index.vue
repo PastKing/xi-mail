@@ -172,11 +172,12 @@
         </div>
         <div class="add-field">
           <label class="field-label">{{ $t('select') }}</label>
-          <el-select v-model="addForm.suffix" style="width: 100%">
+          <el-select v-model="addForm.suffix" style="width: 100%" :disabled="domainList.length === 0">
             <el-option v-for="item in domainList" :key="item" :label="item" :value="item"/>
           </el-select>
         </div>
-        <div class="email-preview" v-if="addForm.email">
+        <div v-if="domainList.length === 0" role="status">{{ $t('noAvailableDomains') }}</div>
+        <div class="email-preview" v-if="addForm.email && addForm.suffix">
           <Icon icon="mingcute:mail-line" width="13" height="13" />
           <span class="email-preview-text">{{ addForm.email }}{{ addForm.suffix }}</span>
           <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
@@ -188,7 +189,7 @@
             />
           </el-tooltip>
         </div>
-        <el-button class="btn" type="primary" @click="submit" :loading="addLoading">{{ $t('add') }}</el-button>
+        <el-button class="btn" type="primary" @click="submit" :loading="addLoading" :disabled="domainList.length === 0">{{ $t('add') }}</el-button>
       </div>
       <div
         class="add-email-turnstile"
@@ -243,6 +244,7 @@ import { hasPerm } from "@/perm/perm.js";
 import { useI18n } from "vue-i18n";
 import { AccountAllReceiveEnum } from "@/enums/account-enum.js";
 import { transferCreate } from '@/request/account-transfer.js';
+import { availableAccountDomains } from '@/utils/domain-utils.js';
 
 const { t } = useI18n();
 const userStore = useUserStore();
@@ -252,7 +254,7 @@ const emailStore = useEmailStore();
 
 const showAdd = ref(false);
 const addLoading = ref(false);
-const domainList = settingStore.domainList;
+const domainList = computed(() => availableAccountDomains(settingStore.domainList, userStore.user));
 const accounts = reactive([]);
 const noLoading = ref(false);
 const loading = ref(false);
@@ -272,8 +274,13 @@ let verifyErrorCount = 0;
 let first = true;
 const addForm = reactive({
   email: '',
-  suffix: settingStore.domainList[0]
+  suffix: ''
 });
+watch(domainList, domains => {
+  if (!domains.includes(addForm.suffix)) {
+    addForm.suffix = domains[0] || '';
+  }
+}, { immediate: true });
 let skeletonRows = 8;
 const queryParams = { size: 100 };
 
@@ -477,6 +484,10 @@ async function doTransfer() {
 }
 
 function submit() {
+  if (!domainList.value.includes(addForm.suffix)) {
+    ElMessage({ message: t('noAvailableDomains'), type: 'error', plain: true });
+    return;
+  }
   if (!addForm.email) {
     ElMessage({ message: t('emptyEmailMsg'), type: 'error', plain: true });
     return;
