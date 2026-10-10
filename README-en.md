@@ -6,7 +6,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.5.6-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.7-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,7 +112,8 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
-| **v3.5.6** | New Sessions page to review and sign out other devices; changing your password signs out other devices; refreshed announcement popup with a toolbar, templates and live preview for editing |
+| **v3.5.7** | One-click copy when adding a mailbox; fixed potential security risks |
+| **v3.5.6** | Login sessions management; announcement popup improvements |
 | **v3.5.5** | Fixed potential security risks |
 | **v3.5.4** | The mobile dock hides the "More" button when there is nowhere else to go |
 | **v3.5.3** | More accurate verification codes: no more truncated codes or URL tokens mistaken as OTPs |

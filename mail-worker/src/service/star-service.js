@@ -11,12 +11,12 @@ import { t } from '../i18n/i18n'
 const starService = {
 
 	async add(c, params, userId) {
-		const { emailId } = params;
-		const email = await emailService.selectById(c, emailId);
-		if (!email) {
+		const emailId = Number(params.emailId);
+		if (!emailId) {
 			throw new BizError(t('starNotExistEmail'));
 		}
-		if (!email.userId === userId) {
+		const email = await emailService.selectById(c, emailId);
+		if (!email || email.userId !== userId) {
 			throw new BizError(t('starNotExistEmail'));
 		}
 		const exist = await orm(c).select().from(star).where(
@@ -59,6 +59,7 @@ const starService = {
 			.where(
 				and(
 					eq(star.userId, userId),
+					eq(email.userId, userId),
 					eq(email.isDel, isDel.NORMAL),
 					lt(star.emailId, emailId)))
 			.orderBy(desc(star.emailId))

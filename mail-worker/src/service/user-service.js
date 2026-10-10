@@ -96,6 +96,13 @@ const userService = {
 
 	// 改密码后只保留当前会话，其他设备上的旧凭证全部失效
 	async changeOwnPassword(c, params, userId) {
+		const userRow = await this.selectById(c, userId);
+		if (!userRow) {
+			throw new BizError(t('authExpired'), 401);
+		}
+		if (!await cryptoUtils.verifyPassword(params.oldPassword, userRow.salt, userRow.password)) {
+			throw new BizError(t('IncorrectPwd'));
+		}
 		await this.resetPassword(c, params, userId);
 		await sessionService.revokeOthers(c, userId, userContext.getToken(c));
 	},

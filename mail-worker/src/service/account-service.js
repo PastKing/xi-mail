@@ -235,7 +235,12 @@ const accountService = {
 	},
 
 	async setName(c, params, userId) {
-		const { name, accountId } = params
+		const { accountId } = params
+		if (typeof params.name !== 'string') {
+			throw new BizError(t('usernameLengthLimit'));
+		}
+		// 去掉尖括号，避免显示名被当作 HTML 注入到回信模板 / 正文渲染
+		const name = params.name.replace(/[<>]/g, '').trim();
 		if (name.length > 30) {
 			throw new BizError(t('usernameLengthLimit'));
 		}

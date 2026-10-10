@@ -6,7 +6,7 @@
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.5.6-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.7-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,7 +112,8 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
-| **v3.5.6** | 新增登录会话管理，可查看并退出其他设备；改密后其他设备自动退出；公告弹窗换新样式，编辑支持工具栏、模板和实时预览 |
+| **v3.5.7** | 新建邮箱一键复制；修复潜在的安全风险 |
+| **v3.5.6** | 新增登录会话管理；公告弹窗优化 |
 | **v3.5.5** | 修复潜在的安全风险 |
 | **v3.5.4** | 手机底栏没有其他可去页面时，不再显示「更多」按钮 |
 | **v3.5.3** | 验证码识别更准：不再误抓链接参数，也不会把验证码截成半截 |

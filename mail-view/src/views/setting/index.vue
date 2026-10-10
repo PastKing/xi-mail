@@ -59,6 +59,7 @@
     </div>
     <el-dialog v-model="pwdShow" :title="$t('changePassword')" width="340">
       <div class="update-pwd">
+        <el-input type="password" :placeholder="$t('oldPassword')" v-model="form.oldPwd" autocomplete="off"/>
         <el-input type="password" :placeholder="$t('newPassword')" v-model="form.password" autocomplete="off"/>
         <el-input type="password" :placeholder="$t('confirmPassword')" v-model="form.newPwd" autocomplete="off"/>
         <el-button type="primary" :loading="setPwdLoading" @click="submitPwd">{{$t('save')}}</el-button>
@@ -139,6 +140,7 @@ function setName() {
 
 const pwdShow = ref(false)
 const form = reactive({
+  oldPwd: '',
   password: '',
   newPwd: '',
 })
@@ -164,6 +166,15 @@ const deleteConfirm = () => {
 
 
 function submitPwd() {
+
+  if (!form.oldPwd) {
+    ElMessage({
+      message: t('emptyOldPwdMsg'),
+      type: 'error',
+      plain: true,
+    })
+    return
+  }
 
   if (!form.password) {
     ElMessage({
@@ -193,7 +204,7 @@ function submitPwd() {
   }
 
   setPwdLoading.value = true
-  resetPassword(form.password).then(() => {
+  resetPassword(form.password, form.oldPwd).then(() => {
     ElMessage({
       message: t('saveSuccessMsg'),
       type: 'success',
@@ -201,6 +212,7 @@ function submitPwd() {
     })
     pwdShow.value = false
     setPwdLoading.value = false
+    form.oldPwd = ''
     form.password = ''
     form.newPwd = ''
   }).catch(() => {

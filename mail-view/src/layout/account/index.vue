@@ -178,7 +178,15 @@
         </div>
         <div class="email-preview" v-if="addForm.email">
           <Icon icon="mingcute:mail-line" width="13" height="13" />
-          <span>{{ addForm.email }}{{ addForm.suffix }}</span>
+          <span class="email-preview-text">{{ addForm.email }}{{ addForm.suffix }}</span>
+          <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
+            <Icon
+              icon="mingcute:copy-2-line"
+              width="14" height="14"
+              class="email-preview-copy"
+              @click="copyAccount(addForm.email + addForm.suffix)"
+            />
+          </el-tooltip>
         </div>
         <el-button class="btn" type="primary" @click="submit" :loading="addLoading">{{ $t('add') }}</el-button>
       </div>
@@ -746,6 +754,21 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
   color: var(--el-color-primary);
   font-family: monospace;
   border: 1px solid var(--el-border-color-lighter);
+
+  .email-preview-text {
+    flex: 1;
+    min-width: 0;
+    word-break: break-all;
+  }
+
+  .email-preview-copy {
+    flex-shrink: 0;
+    cursor: pointer;
+    color: var(--el-text-color-secondary);
+    transition: color 0.15s;
+
+    &:hover { color: var(--el-color-primary); }
+  }
 }
 
 :deep(.el-dialog) {

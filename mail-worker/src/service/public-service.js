@@ -179,15 +179,10 @@ const publicService = {
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
-		if (email !== c.env.admin) {
-			throw new BizError(t('notAdmin'));
-		}
-
-		if (!userRow || userRow.isDel === isDel.DELETE) {
-			throw new BizError(t('notExistUser'));
-		}
-
-		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {
+		// 三种失败统一文案，避免用于枚举管理员邮箱
+		if (email !== c.env.admin
+			|| !userRow || userRow.isDel === isDel.DELETE
+			|| !await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {
 			throw new BizError(t('IncorrectPwd'));
 		}
 	}

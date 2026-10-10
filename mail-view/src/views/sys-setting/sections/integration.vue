@@ -1,7 +1,7 @@
 <template>
   <div class="sys-setting-section">
     <div class="settings-card">
-      <div class="card-title">{{ $t('aiCode') }}</div>
+      <div class="card-title"><Icon icon="mingcute:scan-line" width="15" height="15"/>{{ $t('aiCode') }}</div>
       <div class="card-content">
         <p class="ai-code-desc">{{ $t('aiCodeDesc') }}</p>
         <div class="setting-item">
@@ -60,7 +60,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('oss') }}</div>
+      <div class="card-title"><Icon icon="mingcute:folder-2-line" width="15" height="15"/>{{ $t('oss') }}</div>
       <div class="card-content">
         <div class="r2domain-item">
           <div>
@@ -96,7 +96,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('emailPush') }}</div>
+      <div class="card-title"><Icon icon="mingcute:notification-line" width="15" height="15"/>{{ $t('emailPush') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('tgBot') }}</span></div>
@@ -129,7 +129,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('turnstileSetting') }}</div>
+      <div class="card-title"><Icon icon="mingcute:shield-shape-line" width="15" height="15"/>{{ $t('turnstileSetting') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('signUpVerification') }}</span></div>
@@ -191,7 +191,7 @@
     </div>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('noticeTitle') }}</div>
+      <div class="card-title"><Icon icon="mingcute:announcement-line" width="15" height="15"/>{{ $t('noticeTitle') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('noticePopup') }}</span></div>
