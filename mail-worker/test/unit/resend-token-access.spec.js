@@ -23,7 +23,7 @@ beforeEach(() => {
   state.getToken.mockReset().mockResolvedValue({token: 'fake-test-original-token'});
 });
 
-it('only setting editors or the configured administrator can read a token, with no caching', async () => {
+it('only the configured administrator can read a token, with no caching', async () => {
   const request = () => app.request('/setting/resendToken?domain=second.example', {}, {admin: 'owner@example.com'});
   expect((await (await request()).json()).code).toBe(401);
   state.authenticated = true;
@@ -31,13 +31,14 @@ it('only setting editors or the configured administrator can read a token, with 
   expect((await (await request()).json()).code).toBe(403);
   expect(state.getToken).not.toHaveBeenCalled();
   state.permissions = ['setting:set'];
+  expect((await (await request()).json()).code).toBe(403);
+  expect(state.getToken).not.toHaveBeenCalled();
+  state.permissions = [];
+  state.email = 'owner@example.com';
   const response = await request();
   expect(response.headers.get('cache-control')).toBe('no-store');
   expect((await response.json()).data).toEqual({token: 'fake-test-original-token'});
   expect(state.getToken.mock.calls[0][1]).toBe('second.example');
-  state.permissions = [];
-  state.email = 'owner@example.com';
-  expect((await (await request()).json()).code).toBe(200);
 });
 
 it('the actual service method returns only the selected token and excludes inherited properties', async () => {

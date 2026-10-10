@@ -11,11 +11,13 @@ test('Resend edit loads the original token and submits only the selected domain'
   const visible = ref(false);
   const listVisible = ref(true);
   const loading = ref('');
+  const userStore = {user: {type: 0}};
   const updates = [];
   let succeeds = true;
   const {openResendTokenForm, resetResendTokenForm, saveResendToken} = new Function(
     'resendTokenForm', 'editingResendToken', 'resendTokenFormShow', 'settingStore', 'editSetting',
     'settingLoading', 'resendTokenLoading', 'showResendList', 'getResendToken',
+    'userStore',
     `${handlers}; return {openResendTokenForm, resetResendTokenForm, saveResendToken};`
   )(form, editing, visible, { domainList: ['@first.example'] }, async data => {
     updates.push(data);
@@ -23,7 +25,7 @@ test('Resend edit loads the original token and submits only the selected domain'
   }, ref(false), loading, listVisible, async domain => {
     assert.equal(domain, 'second.example');
     return {token: 'fake-test-original-token'};
-  });
+  }, userStore);
 
   await openResendTokenForm({key: 'second.example', value: 'masked******'});
   assert.equal(form.domain, '@second.example');
@@ -56,4 +58,9 @@ test('Resend edit loads the original token and submits only the selected domain'
   assert.equal(visible.value, false, 'closed list must not open an edit dialog after the fetch');
   assert.equal(form.token, '', 'closed list must not retain the fetched token');
   assert.equal(loading.value, '');
+  userStore.user.type = 2;
+  listVisible.value = true;
+  await openResendTokenForm({key: 'second.example', value: 'masked******'});
+  assert.equal(form.token, '', 'non-admin editors must not fetch or receive the saved token');
+  assert.equal(visible.value, true);
 });

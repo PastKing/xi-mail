@@ -1,6 +1,8 @@
 import app from '../hono/hono';
 import result from '../model/result';
 import settingService from '../service/setting-service';
+import BizError from '../error/biz-error';
+import { t } from '../i18n/i18n';
 
 app.put('/setting/set', async (c) => {
 	await settingService.set(c, await c.req.json());
@@ -14,6 +16,9 @@ app.get('/setting/query', async (c) => {
 
 app.get('/setting/resendToken', async (c) => {
 	c.header('Cache-Control', 'no-store');
+	if (c.get('user')?.email !== c.env.admin) {
+		throw new BizError(t('unauthorized'), 403);
+	}
 	const data = await settingService.getResendToken(c, c.req.query('domain'));
 	return c.json(result.ok(data));
 });

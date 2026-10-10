@@ -153,12 +153,14 @@ import {useI18n} from "vue-i18n";
 import {getTextWidth} from "@/utils/text.js";
 import {useSysSetting} from "../use-sys-setting.js";
 import {getResendToken} from "@/request/setting.js";
+import {useUserStore} from "@/store/user.js";
 
 defineOptions({
   name: 'sys-setting-registration'
 })
 
 const {t, locale} = useI18n()
+const userStore = useUserStore()
 const {setting, settingStore, settingLoading, editSetting, change, beforeChange, onSettingsLoaded} = useSysSetting()
 
 const emailPrefixShow = ref(false)
@@ -228,7 +230,7 @@ function saveEmailPrefix() {
 async function openResendTokenForm(row) {
   if (settingLoading.value || resendTokenLoading.value) return
   let token = ''
-  if (row) {
+  if (row && userStore.user.type === 0) {
     resendTokenLoading.value = row.key
     try {
       token = (await getResendToken(row.key)).token
