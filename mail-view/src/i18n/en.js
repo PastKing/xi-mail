@@ -154,7 +154,7 @@ const en = {
     sendEmail: 'Send Email',
     resendToken: 'Resend Token',
     editResendTokenTitle: 'Edit Resend Token',
-    replaceResendTokenDesc: 'Enter a new token to replace the existing one; leave blank to keep it',
+    replaceResendTokenDesc: 'View or edit the saved token; leave blank to keep it',
     oss: 'Object Storage',
     osDomain: 'Domain',
     ossDomainDesc: 'Leave empty if using KV storage.',

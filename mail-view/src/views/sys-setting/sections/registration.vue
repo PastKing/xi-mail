@@ -135,7 +135,8 @@
                          :show-overflow-tooltip="true"/>
         <el-table-column :width="90" :label="$t('action')" fixed="right">
           <template #default="{row}">
-            <el-button type="primary" link size="small" :disabled="settingLoading" @click="openResendTokenForm(row)">
+            <el-button type="primary" link size="small" :loading="resendTokenLoading === row.key"
+                       :disabled="settingLoading || !!resendTokenLoading" @click="openResendTokenForm(row)">
               {{ $t('change') }}
             </el-button>
           </template>
@@ -151,6 +152,7 @@ import {Icon} from "@iconify/vue";
 import {useI18n} from "vue-i18n";
 import {getTextWidth} from "@/utils/text.js";
 import {useSysSetting} from "../use-sys-setting.js";
+import {getResendToken} from "@/request/setting.js";
 
 defineOptions({
   name: 'sys-setting-registration'
@@ -165,6 +167,7 @@ const emailPrefixFilter = ref([])
 
 const resendTokenFormShow = ref(false)
 const editingResendToken = ref(false)
+const resendTokenLoading = ref('')
 const showResendList = ref(false)
 const resendTokenForm = reactive({domain: '', token: ''})
 const emailColumnWidth = ref(0)
@@ -222,11 +225,24 @@ function saveEmailPrefix() {
   })
 }
 
-function openResendTokenForm(row) {
+async function openResendTokenForm(row) {
+  if (settingLoading.value || resendTokenLoading.value) return
+  let token = ''
+  if (row) {
+    resendTokenLoading.value = row.key
+    try {
+      token = (await getResendToken(row.key)).token
+    } catch {
+      return
+    } finally {
+      resendTokenLoading.value = ''
+    }
+    // Discard the response if the user closed the list while it was loading.
+    if (!showResendList.value) return
+  }
   editingResendToken.value = !!row
   resendTokenForm.domain = row ? `@${row.key}` : (settingStore.domainList || [])[0] || ''
-  // The server returns a masked token. Always ask for a new value when editing.
-  resendTokenForm.token = ''
+  resendTokenForm.token = token
   resendTokenFormShow.value = true
 }
 

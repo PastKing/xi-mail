@@ -243,6 +243,11 @@ const settingService = {
 		return background;
 	},
 
+	async getResendToken(c, domain) {
+		const { resendTokens } = await this.query(c);
+		return { token: Object.hasOwn(resendTokens, domain) ? resendTokens[domain] : '' };
+	},
+
 	async getGlobalToken(c) {
 		const token   = await c.env.kv.get(KvConst.GLOBAL_TOKEN) || '';
 		const enabled = (await c.env.kv.get(KvConst.GLOBAL_TOKEN_ENABLED)) === '1';

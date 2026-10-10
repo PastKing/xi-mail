@@ -12,6 +12,12 @@ app.get('/setting/query', async (c) => {
 	return c.json(result.ok(setting));
 });
 
+app.get('/setting/resendToken', async (c) => {
+	c.header('Cache-Control', 'no-store');
+	const data = await settingService.getResendToken(c, c.req.query('domain'));
+	return c.json(result.ok(data));
+});
+
 app.get('/setting/websiteConfig', async (c) => {
 	const setting = await settingService.websiteConfig(c);
 	return c.json(result.ok(setting));

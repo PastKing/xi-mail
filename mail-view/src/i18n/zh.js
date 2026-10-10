@@ -154,7 +154,7 @@ const zh = {
     sendEmail: '邮件发送',
     resendToken: 'Resend Token',
     editResendTokenTitle: '修改 Resend Token',
-    replaceResendTokenDesc: '输入新 Token 替换原配置，留空则保持原值',
+    replaceResendTokenDesc: '可查看或修改已保存的 Token，留空则保持原值',
     oss: '对象存储',
     osDomain: '访问域名',
     ossDomainDesc: '如果是KV存储不要填',
