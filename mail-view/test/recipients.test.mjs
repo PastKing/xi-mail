@@ -40,3 +40,22 @@ test('actual paste handler adds recipients, preserves invalid input and honours 
   assert.deepEqual(form.receiveEmail, ['existing@example.com', 'new@example.com', 'part@example.com']);
   assert.equal(input.value, '');
 });
+
+test('actual CC paste and tag handlers separate lists and deduplicate across To and CC', () => {
+  const source = readFileSync(new URL('../src/layout/write/index.vue', import.meta.url), 'utf8');
+  const handlers = source.slice(source.indexOf('function addRecipients('), source.indexOf('function clearContent('));
+  const form = {receiveEmail: ['to@example.com'], cc: []};
+  const {paste, addTag, add} = new Function('parseRecipientText', 'form', 'ElMessage', 't', 'selectStatus', 'openSelect',
+    `${handlers}; return {paste:pasteRecipients, addTag:addTagChange, add:addRecipients};`)(
+      parseRecipientText, form, () => {}, key => key, false, () => {});
+  const input = {value: '', selectionStart: 0, selectionEnd: 0, dispatchEvent() {}};
+  paste({target:input, clipboardData:{getData:()=>'TO@example.com; Copy <copy@example.com>\nsecond@example.com; COPY@example.com'}, preventDefault(){}}, 'cc');
+  assert.deepEqual(form.receiveEmail, ['to@example.com']);
+  assert.deepEqual(form.cc, ['copy@example.com', 'second@example.com']);
+  form.cc.push('third@example.com;fourth@example.com');
+  addTag('third@example.com;fourth@example.com', 'cc');
+  assert.deepEqual(form.cc, ['copy@example.com', 'second@example.com', 'third@example.com', 'fourth@example.com']);
+  add('COPY@example.com');
+  assert.deepEqual(form.receiveEmail, ['to@example.com', 'COPY@example.com']);
+  assert.deepEqual(form.cc, ['second@example.com', 'third@example.com', 'fourth@example.com']);
+});

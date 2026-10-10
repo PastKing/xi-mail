@@ -50,10 +50,11 @@ const sendChannelService = {
 		}
 		if (channel !== 'cloudflare') throw new BizError(t('invalidSendChannel'));
 		if (!c.env.EMAIL?.send) throw new BizError(t('cloudflareEmailNotBound'));
-		if (form.to.length > 50) throw new BizError(t('cloudflareRecipientLimit'));
+		if (form.to.length + (form.cc?.length || 0) > 50) throw new BizError(t('cloudflareRecipientLimit'));
 		const message = {
 			from: sender,
 			to: form.to,
+			...(form.cc?.length ? { cc: form.cc } : {}),
 			subject: form.subject,
 			text: form.text,
 			html: form.html,

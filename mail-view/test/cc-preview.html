@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>抄送本地验证</title><div id="app"></div>
+<script type="module">
+import {createApp,h,ref,onMounted} from 'vue';
+import {createI18n} from 'vue-i18n';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import dayjs from 'dayjs';import utc from 'dayjs/plugin/utc';dayjs.extend(utc);
+import Writer from '../src/layout/write/index.vue';
+import zh from '../src/i18n/zh.js';
+window.ccFixture={drafts:{refreshList:0},sent:null,savedDraft:null};
+createApp({setup(){const writer=ref();onMounted(()=>{window.ccFixture.writer=writer.value;writer.value.open()});return()=>h('main',{},[
+h('p','本地模拟验证：假邮箱，不发送真实邮件。'),
+h('button',{onClick:()=>writer.value.open()},'新建写信'),
+h('button',{onClick:()=>writer.value.openDraft({receiveEmail:['draft-to@example.com'],cc:['draft-cc@example.com'],subject:'含抄送草稿',content:'草稿内容',draftId:1,attachments:[]})},'含抄送草稿'),
+h('button',{onClick:()=>writer.value.openDraft({receiveEmail:['old-to@example.com'],subject:'旧草稿',content:'旧草稿内容',draftId:2,attachments:[]})},'旧草稿'),
+h(Writer,{ref:writer})]);}}).use(ElementPlus).use(createI18n({legacy:false,locale:'zh',messages:{zh}})).mount('#app');
+</script><style>body{font-family:system-ui;background:#f5f7fa;color:#303133;margin:0}main{padding:10px}.item-title{white-space:nowrap;color:#606266}.send{background:#f5f7fa}textarea{font:14px system-ui;border:1px solid #dcdfe6;border-radius:4px;padding:12px}</style></html>

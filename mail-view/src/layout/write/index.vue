@@ -62,6 +62,11 @@
             </div>
           </template>
         </el-input-tag>
+        <el-input-tag class="recipient-input" v-model="form.cc" tag-type="primary"
+          :placeholder="t('ccPastePlaceholder')" :aria-label="t('cc')"
+          @paste="pasteRecipients($event, 'cc')" @add-tag="addTagChange($event, 'cc')">
+          <template #prefix><div class="item-title">{{ $t('cc') }}</div></template>
+        </el-input-tag>
         <el-input v-model="form.subject" :placeholder="t('subject')" />
         <tinyEditor :def-value="defValue" ref="editor" @change="change" @focus="focusChange" />
         <div class="button-item">
@@ -169,6 +174,7 @@ const backReply = reactive({
 const form = reactive({
   sendEmail: '',
   receiveEmail: [],
+  cc: [],
   accountId: -1,
   name: '',
   subject: '',
@@ -211,11 +217,7 @@ function deleteContact() {
 function chooseContact() {
 
   const contactList = contactsTabRef.value.getSelectionRows().map(item => item.email);
-  contactList.forEach(item => {
-    if (!form.receiveEmail.includes(item)) {
-      form.receiveEmail.push(item);
-    }
-  })
+  addRecipients(contactList.join(', '))
 
   form.receiveEmail = form.receiveEmail.filter(item => {
     return contactList.includes(item) || !writerStore.sendRecipientRecord.includes(item);
@@ -229,7 +231,7 @@ function clearSelectContact() {
 }
 
 function selectChange(value) {
-  form.receiveEmail.push(value)
+  addRecipients(value)
 }
 
 function selectStatusChange(status) {
@@ -286,31 +288,37 @@ function inputChange(value) {
 
 }
 
-function addRecipients(value) {
-  const {emails, invalid} = parseRecipientText(value, form.receiveEmail)
-  form.receiveEmail.push(...emails)
-  if (selectStatus) openSelect()
+function addRecipients(value, field = 'receiveEmail') {
+  const existing = field === 'cc' ? [...form.receiveEmail, ...form.cc] : form.receiveEmail
+  const {emails, invalid} = parseRecipientText(value, existing)
+  form[field].push(...emails)
+  // To takes precedence when the same address is also in CC.
+  if (field === 'receiveEmail' && form.cc) {
+    const to = new Set(form.receiveEmail.map(email => email.toLowerCase()))
+    form.cc = form.cc.filter(email => !to.has(email.toLowerCase()))
+  }
+  if (field === 'receiveEmail' && selectStatus) openSelect()
   if (invalid.length) {
     ElMessage({message: t('recipientInvalidMsg'), type: 'warning', plain: true})
   }
   return invalid
 }
 
-function pasteRecipients(event) {
+function pasteRecipients(event, field = 'receiveEmail') {
   const text = event.clipboardData?.getData('text/plain')
   if (!text) return
   const input = event.target
   const value = input.value.slice(0, input.selectionStart) + text + input.value.slice(input.selectionEnd)
   event.preventDefault()
-  const invalid = addRecipients(value)
+  const invalid = addRecipients(value, field)
   // Keep invalid entries editable and synchronise InputTag's pending input.
   input.value = invalid.join(', ')
   input.dispatchEvent(new Event('input', {bubbles: true}))
 }
 
-function addTagChange(val) {
-  form.receiveEmail.pop()
-  addRecipients(val)
+function addTagChange(val, field = 'receiveEmail') {
+  form[field].pop()
+  addRecipients(val, field)
 }
 
 function clearContent() {
@@ -435,6 +443,7 @@ async function sendEmail() {
       form.subject = ''
       form.content = ''
       form.receiveEmail = []
+      form.cc = []
       draftStore.setDraft = {...toRaw(form)}
     }
 
@@ -462,16 +471,18 @@ async function sendEmail() {
 }
 
 function addRecipientRecord() {
+  const recipients = [...form.receiveEmail, ...form.cc]
   writerStore.sendRecipientRecord = writerStore.sendRecipientRecord.filter(
-      email => !form.receiveEmail.includes(email)
+      email => !recipients.includes(email)
   );
 
-  writerStore.sendRecipientRecord.unshift(...form.receiveEmail);
+  writerStore.sendRecipientRecord.unshift(...recipients);
   writerStore.sendRecipientRecord = writerStore.sendRecipientRecord.slice(0, 500);
 }
 
 function resetForm() {
   form.receiveEmail = []
+  form.cc = []
   form.subject = ''
   form.content = ''
   form.manyType = null
@@ -590,7 +601,8 @@ function open() {
 }
 
 function openDraft(draft) {
-  Object.assign(form, {...draft})
+  resetForm()
+  Object.assign(form, {...draft, receiveEmail: [...draft.receiveEmail], cc: [...(draft.cc || [])]})
   defValue.value = ''
   setTimeout(() => defValue.value = form.content)
   show.value = true;
@@ -624,7 +636,7 @@ function close() {
     return;
   }
 
-  if (!(form.content || form.subject || form.receiveEmail.length > 0)) {
+  if (!(form.content || form.subject || form.receiveEmail.length > 0 || form.cc.length > 0)) {
     show.value = false
     resetForm()
     return;
@@ -637,7 +649,7 @@ function close() {
     if (backReply.sendType === 'forward' && form.receiveEmail.length === 0) {
       receiveFlag = true;
     }
-    if (subjectFlag && contentFlag && receiveFlag) {
+    if (subjectFlag && contentFlag && receiveFlag && form.cc.length === 0) {
       resetForm();
       close()
       return;
@@ -830,7 +842,7 @@ function close() {
     .container {
       height: 100%;
       display: grid;
-      grid-template-rows: auto auto 1fr auto;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
       gap: 15px;
 
       .recipient-input {

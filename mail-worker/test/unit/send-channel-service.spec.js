@@ -119,9 +119,10 @@ it('reports provider errors without fallback, recording success, or consuming qu
   state.channels = {'first.example': 'cloudflare'};
   const c = context(); delete c.env.EMAIL;
   await expect(emailService.send(c, params(), 1)).rejects.toThrow('cloudflareEmailNotBound');
-  await expect(emailService.send(context(), {...params(), receiveEmail: Array(51).fill('outside@example.net')}, 1)).rejects.toThrow('daySendLack');
+  const recipients = Array.from({length: 51}, (_, index) => `outside${index}@example.net`);
+  await expect(emailService.send(context(), {...params(), receiveEmail: recipients}, 1)).rejects.toThrow('daySendLack');
   state.role.sendCount = 100;
-  await expect(emailService.send(context(), {...params(), receiveEmail: Array(51).fill('outside@example.net')}, 1)).rejects.toThrow('cloudflareRecipientLimit');
+  await expect(emailService.send(context(), {...params(), receiveEmail: recipients}, 1)).rejects.toThrow('cloudflareRecipientLimit');
   state.role.sendCount = 10;
   state.cf.mockRejectedValueOnce(Object.assign(new Error('sender'), {code: 'E_SENDER_NOT_VERIFIED'}));
   await expect(emailService.send(context(), params(), 1)).rejects.toThrow('cloudflareDomainNotReady');
@@ -131,4 +132,53 @@ it('reports provider errors without fallback, recording success, or consuming qu
   await expect(emailService.send(context(), params(), 1)).rejects.toThrow('cloudflareSendFailed');
   expect(state.resend).not.toHaveBeenCalled(); expect(state.insert).not.toHaveBeenCalled(); expect(state.count).not.toHaveBeenCalled();
   await expect(resendService.webhooks({}, {data: {email_id: 'cloudflare:cf-test-id'}, type: 'email.delivered'})).rejects.toThrow('Invalid Resend email ID');
+});
+
+it.each(['resend', 'cloudflare'])('sends CC through %s, deduplicates To/CC and stores both headers', async channel => {
+  state.channels = {'first.example': channel};
+  const c = context();
+  const result = await emailService.send(c, {...params(),
+    receiveEmail: [' outside@example.net ', 'OUTSIDE@example.net'],
+    cc: ['OUTSIDE@example.net', 'copy@example.net', 'COPY@example.net']}, 1);
+  const provider = channel === 'resend' ? state.resend : state.cf;
+  expect(provider.mock.calls[0][0]).toMatchObject({to: ['outside@example.net'], cc: ['copy@example.net']});
+  expect(JSON.parse(result[0].recipient)).toEqual([{address: 'outside@example.net', name: ''}]);
+  expect(JSON.parse(result[0].cc)).toEqual([{address: 'copy@example.net', name: ''}]);
+  expect(state.count).toHaveBeenCalledWith(c, 2, 1);
+  expect(c.env.kv.put).toHaveBeenCalledWith(expect.stringContaining(KvConst.SEND_DAY_COUNT), '2', expect.anything());
+});
+
+it('applies internal-only permissions and quota to CC before delivery', async () => {
+  const request = {...params(), receiveEmail: ['friend@first.example'], cc: ['copy@example.net']};
+  state.role.sendType = 'internal';
+  await expect(emailService.send(context(), request, 1)).rejects.toThrow('onlyInternalSend');
+  state.role.sendType = 'day'; state.role.sendCount = 1;
+  await expect(emailService.send(context(), request, 1)).rejects.toThrow('daySendLack');
+  expect(state.cf).not.toHaveBeenCalled(); expect(state.resend).not.toHaveBeenCalled();
+  expect(state.insert).not.toHaveBeenCalled(); expect(state.count).not.toHaveBeenCalled();
+});
+
+it('delivers internal CC locally and preserves separate To and CC headers', async () => {
+  const local = vi.spyOn(emailService, 'HandleOnSiteEmail').mockResolvedValue();
+  const c = context();
+  await emailService.send(c, {...params(), receiveEmail: ['friend@first.example'], cc: ['copy@first.example']}, 1);
+  expect(local).toHaveBeenCalledWith(c, ['friend@first.example', 'copy@first.example'],
+    expect.objectContaining({recipient: JSON.stringify([{address: 'friend@first.example', name: ''}]),
+      cc: JSON.stringify([{address: 'copy@first.example', name: ''}])}), []);
+  expect(state.cf).not.toHaveBeenCalled(); expect(state.resend).not.toHaveBeenCalled();
+});
+
+it('rejects invalid recipient arrays and counts CC toward the Cloudflare limit', async () => {
+  for (const cc of ['copy@example.net', null, ['bad@@example.net'], [42], ['copy@example.net\r\nBcc: hidden@example.net']]) {
+    await expect(emailService.send(context(), {...params(), cc}, 1)).rejects.toThrow('notEmail');
+  }
+  await expect(emailService.send(context(), {...params(), receiveEmail: []}, 1)).rejects.toThrow('emptyEmail');
+  await expect(emailService.send(context(), {...params(), receiveEmail: 'outside@example.net'}, 1)).rejects.toThrow('notEmail');
+  state.channels = {'first.example': 'cloudflare'}; state.role.sendCount = 100;
+  const cc = Array.from({length: 50}, (_, index) => `copy${index}@example.net`);
+  await expect(emailService.send(context(), {...params(), cc}, 1)).rejects.toThrow('cloudflareRecipientLimit');
+  expect(state.cf).not.toHaveBeenCalled(); expect(state.resend).not.toHaveBeenCalled();
+  expect(state.insert).not.toHaveBeenCalled(); expect(state.count).not.toHaveBeenCalled();
+  await emailService.send(context(), {...params(), cc: cc.slice(0, 49)}, 1);
+  expect(state.cf.mock.calls[0][0].cc).toHaveLength(49);
 });
