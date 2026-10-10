@@ -34,7 +34,7 @@
         </div>
       </div>
       <div class="container">
-        <el-input-tag class="recipient-input" @paste="pasteRecipients" :placeholder="t('recipientPastePlaceholder')" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
+        <el-input-tag class="recipient-input" @paste="pasteRecipients" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
           <template #prefix>
             <div class="item-title" >{{ $t('recipient') }}</div>
             <el-select
@@ -63,7 +63,7 @@
           </template>
         </el-input-tag>
         <el-input-tag class="recipient-input" v-model="form.cc" tag-type="primary"
-          :placeholder="t('ccPastePlaceholder')" :aria-label="t('cc')"
+          :aria-label="t('cc')"
           @paste="pasteRecipients($event, 'cc')" @add-tag="addTagChange($event, 'cc')">
           <template #prefix><div class="item-title">{{ $t('cc') }}</div></template>
         </el-input-tag>

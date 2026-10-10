@@ -124,8 +124,6 @@ const zh = {
     noSubject: '无主题',
     recipient: '收件人',
     cc: '抄送',
-    ccPastePlaceholder: '选填，可粘贴多个抄送邮箱',
-    recipientPastePlaceholder: '可粘贴多个邮箱，用逗号、分号、空格或换行分隔',
     recipientInvalidMsg: '部分收件人格式不正确，请检查邮箱地址',
     delivered: '发送成功',
     complained: '被标记为垃圾',

@@ -124,8 +124,6 @@ const en = {
     noSubject: 'No subject',
     recipient: 'To',
     cc: 'Cc',
-    ccPastePlaceholder: 'Optional: paste multiple CC addresses',
-    recipientPastePlaceholder: 'Paste emails separated by commas, semicolons, spaces or new lines',
     recipientInvalidMsg: 'Some recipients are invalid. Please check their email addresses',
     delivered: 'Delivered',
     complained: 'Complained',
