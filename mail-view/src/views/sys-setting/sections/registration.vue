@@ -78,43 +78,14 @@
           </div>
         </div>
         <div class="setting-item">
-          <div><span>{{ $t('resendToken') }}</span></div>
+          <div><span>{{ $t('sendConfigManagement') }}</span></div>
           <div>
             <el-button class="opt-button" style="margin-top: 0" @click="showResendList = true" size="small"
                        type="primary">
-              <Icon icon="mingcute:list-check-line" width="18" height="18"/>
-            </el-button>
-            <el-button class="opt-button" style="margin-top: 0" @click="openResendTokenForm()" size="small"
-                       type="primary">
-              <Icon icon="mingcute:add-line" width="16" height="16"/>
+              {{ $t('manage') }}
             </el-button>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="settings-card">
-      <div class="card-title">{{ $t('sendChannels') }}</div>
-      <div class="card-content">
-        <p class="send-channel-help">{{ $t('sendChannelsDesc') }}</p>
-        <el-tag :type="setting.hasCloudflareEmail ? 'success' : 'warning'">
-          {{ $t(setting.hasCloudflareEmail ? 'cloudflareEmailBound' : 'cloudflareEmailNotBound') }}
-        </el-tag>
-        <p class="send-channel-help">{{ $t('cloudflareSendingDesc') }}</p>
-        <el-table :data="sendChannelRows" class="send-channel-table">
-          <el-table-column prop="domain" :label="$t('domain')" min-width="120" show-overflow-tooltip />
-          <el-table-column :label="$t('sendChannel')" min-width="180">
-            <template #default="{row}">
-              <el-select v-model="sendChannels[row.domain]" :disabled="settingLoading"
-                         :aria-label="`${$t('sendChannel')} ${row.domain}`" style="width: 100%">
-                <el-option label="Resend" value="resend" />
-                <el-option label="Cloudflare Email Sending" value="cloudflare" :disabled="!setting.hasCloudflareEmail" />
-              </el-select>
-            </template>
-          </el-table-column>
-        </el-table>
-        <el-button type="primary" :loading="settingLoading" :disabled="!sendChannelRows.length"
-                   @click="saveSendChannels">{{ $t('save') }}</el-button>
       </div>
     </div>
 
@@ -152,30 +123,52 @@
       </form>
     </el-dialog>
 
-    <el-dialog class="sys-setting-dialog resend-table" v-model="showResendList" :title="$t('resendTokenList')">
-      <el-table :data="resendList">
-        <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
+    <el-dialog class="sys-setting-dialog send-config-dialog" v-model="showResendList" :title="$t('sendConfigManagement')">
+      <el-input v-model="domainSearch" clearable :placeholder="$t('searchSendingDomain')"
+                :aria-label="$t('searchSendingDomain')" @input="domainPage = 1" />
+      <p class="send-channel-help">{{ $t('sendConfigDesc') }}</p>
+      <el-table :data="pagedDomains" max-height="430" row-key="key" class="send-channel-table">
+        <el-table-column min-width="170" property="key" :label="$t('domain')"
                          :show-overflow-tooltip="true"/>
-        <el-table-column :width="tokenColumnWidth" property="value" label="Token"
-                         :show-overflow-tooltip="true"/>
-        <el-table-column :width="90" :label="$t('action')" fixed="right">
+        <el-table-column :label="$t('sendChannel')" width="150">
+          <template #default="{row}">
+            <el-select :key="`${row.key}-${channelVersion}`" :model-value="row.channel" :disabled="settingLoading || !!resendTokenLoading"
+                       :aria-label="`${$t('sendChannel')} ${row.key}`" @change="saveSendChannel(row.key, $event)">
+              <el-option label="Resend" value="resend" />
+              <el-option label="Cloudflare" value="cloudflare" :disabled="!setting.hasCloudflareEmail" />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('resendToken')" min-width="180" show-overflow-tooltip>
+          <template #default="{row}">
+            <span v-if="row.value">{{ row.value }}</span>
+            <span v-else class="send-channel-help">{{ $t(row.channel === 'cloudflare' ? 'sendTokenNotRequired' : 'sendTokenMissing') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :width="100" :label="$t('action')" fixed="right">
           <template #default="{row}">
             <el-button type="primary" link size="small" :loading="resendTokenLoading === row.key"
+                       v-if="row.channel === 'resend' || row.value"
                        :disabled="settingLoading || !!resendTokenLoading" @click="openResendTokenForm(row)">
-              {{ $t('change') }}
+              {{ $t(row.value ? 'change' : 'add') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination v-model:current-page="domainPage" :page-size="10" :total="filteredDomains.length"
+                     layout="prev, pager, next" class="send-config-pagination" />
+      <el-tag :type="setting.hasCloudflareEmail ? 'success' : 'warning'">
+        {{ $t(setting.hasCloudflareEmail ? 'cloudflareEmailBound' : 'cloudflareEmailNotBound') }}
+      </el-tag>
+      <p class="send-channel-help">{{ $t('cloudflareSendingDesc') }}</p>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import {computed, defineOptions, reactive, ref} from "vue";
+import {computed, defineOptions, reactive, ref, watch} from "vue";
 import {Icon} from "@iconify/vue";
 import {useI18n} from "vue-i18n";
-import {getTextWidth} from "@/utils/text.js";
 import {useSysSetting} from "../use-sys-setting.js";
 import {getResendToken} from "@/request/setting.js";
 import {useUserStore} from "@/store/user.js";
@@ -197,17 +190,21 @@ const editingResendToken = ref(false)
 const resendTokenLoading = ref('')
 const showResendList = ref(false)
 const resendTokenForm = reactive({domain: '', token: ''})
-const emailColumnWidth = ref(0)
-const tokenColumnWidth = ref(0)
-const sendChannels = ref({})
-const sendChannelRows = computed(() => (settingStore.domainList || []).map(domain => ({domain: domain.replace(/^@/, '')})))
+const domainSearch = ref('')
+const domainPage = ref(1)
+const channelVersion = ref(0)
+const filteredDomains = computed(() => (settingStore.domainList || [])
+  .map(domain => domain.replace(/^@/, ''))
+  .filter(domain => domain.toLowerCase().includes(domainSearch.value.trim().toLowerCase()))
+  .map(key => ({key, channel: setting.value.sendChannels?.[key] || 'resend', value: setting.value.resendTokens?.[key] || ''})))
+const pagedDomains = computed(() => filteredDomains.value.slice((domainPage.value - 1) * 10, domainPage.value * 10))
+watch(() => filteredDomains.value.length, count => {
+  domainPage.value = Math.min(domainPage.value, Math.max(1, Math.ceil(count / 10)))
+})
 
-function resetSendChannels() {
-  sendChannels.value = Object.fromEntries(sendChannelRows.value.map(({domain}) => [domain, setting.value.sendChannels?.[domain] || 'resend']))
-}
-
-function saveSendChannels() {
-  return editSetting({sendChannels: {...sendChannels.value}})
+function saveSendChannel(domain, channel) {
+  return editSetting({sendChannels: {...setting.value.sendChannels, [domain]: channel}})
+    .finally(() => channelVersion.value++)
 }
 
 const authRefreshOptions = computed(() => [
@@ -219,31 +216,6 @@ const authRefreshOptions = computed(() => [
   {label: '20s', value: 20},
 ])
 
-const resendList = computed(() => {
-  const list = Object.keys(setting.value.resendTokens || {}).map(key => ({
-    key,
-    value: setting.value.resendTokens[key]
-  }))
-
-  if (list.length > 0) {
-    const key = list.reduce((a, b) => longerLabel(a, b, 'key')).key
-    emailColumnWidth.value = getTextWidth(key) + 30
-
-    const value = list.reduce((a, b) => longerLabel(a, b, 'value')).value
-    tokenColumnWidth.value = getTextWidth(value) + 30
-  }
-
-  return list
-})
-
-function longerLabel(a, b, key) {
-  const upperCaseCount = (str) => (str.match(/[A-Z]/g) || []).length
-  if (a[key].length === b[key].length) {
-    return upperCaseCount(a[key]) > upperCaseCount(b[key]) ? a : b
-  }
-  return a[key].length > b[key].length ? a : b
-}
-
 function resetEmailPrefix() {
   minEmailPrefix.value = setting.value.minEmailPrefix
   emailPrefixFilter.value = setting.value.emailPrefixFilter
@@ -251,7 +223,6 @@ function resetEmailPrefix() {
 
 onSettingsLoaded(() => {
   resetEmailPrefix()
-  resetSendChannels()
 })
 
 function saveEmailPrefix() {
@@ -266,7 +237,7 @@ function saveEmailPrefix() {
 async function openResendTokenForm(row) {
   if (settingLoading.value || resendTokenLoading.value) return
   let token = ''
-  if (row && userStore.user.type === 0) {
+  if (row?.value && userStore.user.type === 0) {
     resendTokenLoading.value = row.key
     try {
       token = (await getResendToken(row.key)).token
@@ -278,7 +249,7 @@ async function openResendTokenForm(row) {
     // Discard the response if the user closed the list while it was loading.
     if (!showResendList.value) return
   }
-  editingResendToken.value = !!row
+  editingResendToken.value = !!row?.value
   resendTokenForm.domain = row ? `@${row.key}` : (settingStore.domainList || [])[0] || ''
   resendTokenForm.token = token
   resendTokenFormShow.value = true
@@ -309,6 +280,47 @@ function saveResendToken() {
 
 .send-channel-table {
   margin-bottom: 16px;
+
+  @media (max-width: 660px) {
+    :deep(.el-table__header-wrapper), :deep(colgroup) {
+      display: none;
+    }
+    :deep(.el-table__body) {
+      width: 100% !important;
+    }
+    :deep(.el-table__row) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 70px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      padding: 8px 0;
+    }
+    :deep(.el-table__cell) {
+      display: block;
+      position: static !important;
+      width: auto !important;
+      border-bottom: 0;
+    }
+    :deep(.el-table__cell:nth-child(-n+2)) {
+      grid-column: 1 / -1;
+    }
+    :deep(.el-table__cell:first-child) {
+      font-weight: 600;
+    }
+    :deep(.el-table__cell .cell) {
+      padding: 0 4px;
+    }
+    :deep(.el-table-fixed-column--right .cell) {
+      text-align: right;
+    }
+    :deep(.el-table__cell::before) {
+      display: none;
+    }
+  }
+}
+
+.send-config-pagination {
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
 .email-prefix {
@@ -321,9 +333,9 @@ function saveResendToken() {
   flex-direction: column;
 }
 
-:deep(.resend-table.el-dialog) {
+:deep(.send-config-dialog.el-dialog) {
   min-height: 300px;
-  width: 620px !important;
+  width: min(850px, calc(100% - 40px)) !important;
 
   @media (max-width: 660px) {
     width: calc(100% - 40px) !important;

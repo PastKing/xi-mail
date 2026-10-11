@@ -1,5 +1,10 @@
 const zh = {
 	sendChannels: "发信渠道",
+    sendConfigManagement: '发信配置管理',
+    searchSendingDomain: '搜索域名',
+    sendConfigDesc: '按域名管理发信渠道和 Resend Token。切换渠道后自动保存，已有 Token 会保留。',
+    sendTokenNotRequired: '无需 Token',
+    sendTokenMissing: '未配置 Token',
 	sendChannel: "使用渠道",
 	sendChannelsDesc: "按发件域名选择渠道，普通用户发信时自动使用。原有域名默认使用 Resend。",
 	cloudflareEmailBound: "Cloudflare 发信绑定已配置",

@@ -1,5 +1,10 @@
 const en = {
 	sendChannels: "Sending channels",
+    sendConfigManagement: 'Sending configuration',
+    searchSendingDomain: 'Search domains',
+    sendConfigDesc: 'Manage channels and Resend tokens per domain. Channel changes save automatically; existing tokens are retained.',
+    sendTokenNotRequired: 'No token required',
+    sendTokenMissing: 'Token not configured',
 	sendChannel: "Channel",
 	sendChannelsDesc: "Choose a channel for each sender domain. Users' emails use it automatically. Existing domains default to Resend.",
 	cloudflareEmailBound: "Cloudflare email binding configured",
