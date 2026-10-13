@@ -6,15 +6,15 @@
 
 1. 确认账户可使用 Email Sending。向任意外部邮箱发送需要 Workers Paid 套餐；仅向账户内已验证的目标地址发送可使用免费套餐。具体计费以 [官方定价](https://developers.cloudflare.com/email-service/platform/pricing/) 为准。
 2. 在 Cloudflare → Compute → Email Service → Email Sending 中开通相应发件域名，并按控制台指引完成 DNS 和域名验证。现有收件 Email Routing 无须在本项目中改写。
-3. 在实际生产使用的 Wrangler 配置的顶层添加绑定（放在 `[vars]` 等表之前）：
+3. 生产部署使用项目内的 `mail-worker/wrangler.production.toml`，其中已经固定包含以下绑定（放在 `[vars]` 等表之前）：
 
    ```toml
    [[send_email]]
    name = "EMAIL"
    ```
 
-   `wrangler.example.toml` 和 `wrangler-action.toml` 已包含绑定。若生产使用另外生成的配置文件，也必须加入同名绑定。此绑定直接使用 Worker 所属账户的服务，后台不用保存 Cloudflare API Token。配置未限定收件人；使用受到 Cloudflare 账户、域名及套餐的限制。
-4. 部署带绑定的 Worker 后，在后台选择相应域名的 Cloudflare 渠道并保存。界面的“绑定已配置”仅说明 Worker 有 EMAIL 绑定，不代表域名已通过验证或套餐已开通。
+   `wrangler.example.toml` 和 `wrangler-action.toml` 也保留了该声明。直接执行 `npm run deploy` 会自动带上 `EMAIL`，不需要再到 Cloudflare 面板添加变量或绑定。此绑定直接使用 Worker 所属账户的服务，后台不用保存 Cloudflare API Token。配置未限定收件人；使用受到 Cloudflare 账户、域名及套餐的限制。
+4. 部署完成后，在后台选择相应域名的 Cloudflare 渠道并保存。界面的“绑定已配置”仅说明 Worker 有 EMAIL 绑定，不代表域名已通过验证或套餐已开通。
 5. 使用本人指定的测试收件地址进行真实发信验收，检查正文、多收件人、附件及回复；最终结果在 Cloudflare 发信日志中确认。
 
 ## 行为与限制
