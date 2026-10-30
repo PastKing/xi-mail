@@ -17,6 +17,26 @@
 4. 部署完成后，在后台选择相应域名的 Cloudflare 渠道并保存。界面的“绑定已配置”仅说明 Worker 有 EMAIL 绑定，不代表域名已通过验证或套餐已开通。
 5. 使用本人指定的测试收件地址进行真实发信验收，检查正文、多收件人、附件及回复；最终结果在 Cloudflare 发信日志中确认。
 
+## GitHub 自动部署配置
+
+Cloudflare Workers Builds 的生产分支使用 `main`，根目录使用 `/`。构建命令：
+
+```sh
+npx --yes pnpm@10 --dir mail-view install --frozen-lockfile && npx --yes pnpm@10 --dir mail-view run build && npm --prefix mail-worker ci
+```
+
+部署命令：
+
+```sh
+cd mail-worker && npm run deploy
+```
+
+`npm run deploy` 明确使用仓库内的 `wrangler.production.toml`，其中包含 `EMAIL` 发信绑定及 `keep_vars = true`。构建阶段不再从 `WRANGLER_CONFIG_B64` 生成另一份 `wrangler.toml`；历史构建变量不参与当前部署。
+
+2026-10-30 排查发现，旧自动构建从上述变量生成缺少 `EMAIL` 的配置，再执行不带 `--config` 的 `npx wrangler deploy`，导致部署后发信绑定丢失，即使后台域名仍选择 Cloudflare，也会提示“Cloudflare 发信绑定未配置”。仅在面板补充绑定不能防止下一次使用旧配置的部署覆盖。
+
+部署后检查 Worker 绑定列表包含电子邮件服务 `EMAIL`，并在邮箱后台“系统设置 → 邮箱地址 → 发信配置管理”确认显示“Cloudflare 发信绑定已配置”。该检查确认绑定恢复，真实邮件是否送达仍需使用指定收件地址验收。
+
 ## 行为与限制
 
 - 普通用户无需选择渠道；原有邮箱归属、角色域名权限、发信开关和次数限制继续生效。
