@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 vi.mock('../../src/i18n/i18n', () => ({ t: key => key }));
 import wecomService, { buildMessages } from '../../src/service/wecom-service';
 
-const url = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=fake-test-key';
+const url = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=fake-test-key-1234567890';
 const mail = { name: '测试发件人', sendEmail: 'sender@example.net', toEmail: 'inbox@example.net',
 	subject: '测试主题', createTime: '2026-10-30 08:00:00', text: '你好，世界！📬' };
 let c, saved, fetchMock;
@@ -18,11 +18,11 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 it('defaults off, hides the secret, preserves it when toggling, and requires a URL to enable', async () => {
-	expect(await wecomService.get(c)).toEqual({ enabled: false, hasWebhook: false });
+	expect(await wecomService.get(c)).toEqual({ enabled: false, hasWebhook: false, webhookUrl: '' });
 	await expect(wecomService.set(c, { enabled: true })).rejects.toThrow('wecomWebhookRequired');
 	expect(c.env.kv.put).not.toHaveBeenCalled();
 	await wecomService.set(c, { enabled: true, webhookUrl: ` ${url} ` });
-	expect(await wecomService.get(c)).toEqual({ enabled: true, hasWebhook: true });
+	expect(await wecomService.get(c)).toEqual({ enabled: true, hasWebhook: true, webhookUrl: url });
 	await wecomService.set(c, { enabled: false, webhookUrl: '' });
 	expect(saved).toEqual({ enabled: false, webhookUrl: url });
 	await wecomService.sendEmail(c, mail);
@@ -32,6 +32,7 @@ it('defaults off, hides the secret, preserves it when toggling, and requires a U
 it('rejects untrusted URLs and malformed values before writing or fetching', async () => {
 	for (const webhookUrl of [
 		'http://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc',
+		'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=f784e9',
 		'https://evil.example/cgi-bin/webhook/send?key=abc',
 		'https://qyapi.weixin.qq.com.evil.example/cgi-bin/webhook/send?key=abc',
 		'https://user:pass@qyapi.weixin.qq.com/cgi-bin/webhook/send?key=abc',
@@ -90,17 +91,19 @@ it('tests draft or saved URLs without saving or enabling, and sends mail segment
 
 it('fails on HTTP errors, API errors, invalid responses and network failures without exposing secrets', async () => {
 	const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-	for (const response of [
+	for (const [index, response] of [
 		() => new Response('{}', { status: 429 }),
 		() => Response.json({ errcode: 93000, errmsg: url }),
 		() => Response.json({}),
 		() => new Response('not json'),
 		() => { throw new Error(url); },
-	]) {
+	].entries()) {
 		fetchMock.mockImplementation(response);
-		await expect(wecomService.test(c, { webhookUrl: url })).rejects.toThrow('wecomSendFailed');
+		const error = await wecomService.test(c, { webhookUrl: url }).catch(error => error);
+		expect(error.message).toContain(index === 4 ? 'wecomSendFailed' : 'wecomSendFailedDetails');
+		expect(error.message).not.toContain('fake-test-key-1234567890');
 		saved = { enabled: true, webhookUrl: url };
 		await expect(wecomService.sendEmail(c, mail)).resolves.toBeUndefined();
 	}
-	expect(JSON.stringify(log.mock.calls)).not.toContain('fake-test-key');
+	expect(JSON.stringify(log.mock.calls)).not.toContain('fake-test-key-1234567890');
 });

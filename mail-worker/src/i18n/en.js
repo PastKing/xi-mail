@@ -1,7 +1,8 @@
 const en = {
-	wecomInvalidWebhook: 'Enter a valid WeCom bot URL: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=BOT_KEY',
+	wecomInvalidWebhook: 'The WeCom bot URL is invalid. Paste the complete webhook URL; the bot key must not be truncated.',
 	wecomWebhookRequired: 'Enter a WeCom bot webhook URL first.',
 	wecomSendFailed: 'WeCom notification failed. Check the bot URL, bot status and sending rate before retrying.',
+	wecomSendFailedDetails: 'WeCom notification failed (code {{code}}): {{reason}}',
 	invalidSendChannel: "Invalid sending channel or domain",
 	cloudflareEmailNotBound: "Cloudflare email binding is missing. Bind EMAIL first.",
 	cloudflareDomainNotReady: "The sender domain is not onboarded or verified for Cloudflare Email Sending.",

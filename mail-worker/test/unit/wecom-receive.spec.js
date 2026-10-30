@@ -23,7 +23,7 @@ beforeEach(() => {
 	state.saved = false; state.row = null;
 	state.settings = { receive: 0, ruleType: 0, forwardStatus: 0, forwardEmail: 'archive@example.net' };
 	env = { admin: 'owner@example.net', kv: { get: async () => ({ enabled: true,
-		webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=fake-key' }) } };
+		webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=fake-key-1234567890' }) } };
 });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 

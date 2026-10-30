@@ -4,7 +4,7 @@ const zh = {
     wecomWebhook: '机器人 Webhook 地址',
     wecomWebhookPlaceholder: '粘贴企业微信群机器人的 Webhook 地址',
     wecomKeepWebhook: '已配置，留空保留原地址',
-    wecomConfigured: 'Webhook 已保存，完整地址不回显。填写新地址并保存可更换机器人。',
+    wecomConfigured: 'Webhook 已保存，后台会明文显示完整地址。填写新地址并保存可更换机器人。',
     wecomSetupHint: '在企业微信群中添加自定义机器人，复制 Webhook 地址并粘贴到此处。',
     wecomTestHint: '测试仅发送示例通知，不包含真实邮件，不保存配置。地址留空时使用已保存的机器人。',
     wecomTest: '发送测试',

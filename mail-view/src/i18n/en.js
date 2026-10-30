@@ -4,7 +4,7 @@ const en = {
     wecomWebhook: 'Bot webhook URL',
     wecomWebhookPlaceholder: 'Paste your WeCom group bot webhook URL',
     wecomKeepWebhook: 'Configured; leave blank to keep the saved URL',
-    wecomConfigured: 'The webhook is saved and its full URL is never returned. Enter and save a new URL to replace the bot.',
+    wecomConfigured: 'The saved webhook is shown in plain text in the admin settings. Enter and save a new URL to replace the bot.',
     wecomSetupHint: 'Add a custom bot to your WeCom group, copy its webhook URL and paste it here.',
     wecomTestHint: 'Tests send a sample notification without real mail and do not save settings. Leave the URL blank to test the saved bot.',
     wecomTest: 'Send test',

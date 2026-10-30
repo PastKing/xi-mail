@@ -9,12 +9,13 @@ onSettingsLoaded:fn=>fn(),change:()=>{},beforeChange:()=>true,editSetting:async(
 `;
 const requests = `
 import {ElMessage} from 'element-plus';
-const fixture = window.wecomFixture = {config:{enabled:false,hasWebhook:false},saved:[],tests:[],fail:false,delay:0};
+const fixture = window.wecomFixture = {config:{enabled:false,hasWebhook:false,webhookUrl:''},saved:[],tests:[],fail:false,delay:0};
 export async function wecomQuery(){return {...fixture.config};}
 export async function wecomSet(data){
 fixture.saved.push({...data});if(fixture.delay)await new Promise(resolve=>setTimeout(resolve,fixture.delay));
 if(fixture.fail){ElMessage.error('模拟保存失败');throw new Error('mock failure');}
-fixture.config={enabled:data.enabled,hasWebhook:fixture.config.hasWebhook||!!data.webhookUrl};
+fixture.config={enabled:data.enabled,hasWebhook:fixture.config.hasWebhook||!!data.webhookUrl,
+webhookUrl:data.webhookUrl||fixture.config.webhookUrl};
 }
 export async function wecomTest(data){
 fixture.tests.push({...data});if(fixture.delay)await new Promise(resolve=>setTimeout(resolve,fixture.delay));

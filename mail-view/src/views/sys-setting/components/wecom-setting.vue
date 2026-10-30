@@ -16,9 +16,9 @@
     <form class="wecom-form" @submit.prevent="save">
       <p>{{ $t('wecomDesc') }}</p>
       <label for="wecom-webhook">{{ $t('wecomWebhook') }}</label>
-      <el-input id="wecom-webhook" v-model="webhookUrl" type="password" show-password
-                autocomplete="new-password" :disabled="busy" :maxlength="500"
-                :placeholder="$t(config.hasWebhook ? 'wecomKeepWebhook' : 'wecomWebhookPlaceholder')"/>
+      <el-input id="wecom-webhook" v-model="webhookUrl" type="text"
+                autocomplete="off" :disabled="busy" :maxlength="500"
+                :placeholder="$t('wecomWebhookPlaceholder')"/>
       <p class="wecom-hint">{{ $t(config.hasWebhook ? 'wecomConfigured' : 'wecomSetupHint') }}</p>
       <el-switch v-model="enabled" :disabled="busy" :aria-label="$t('wecomBot')"
                  :active-text="$t('enable')" :inactive-text="$t('disable')"/>
@@ -72,7 +72,7 @@ async function open() {
   try {
     await load()
     enabled.value = config.enabled
-    webhookUrl.value = ''
+    webhookUrl.value = config.webhookUrl || ''
     visible.value = true
   } catch {
     // The request client displays API failures.
@@ -91,8 +91,11 @@ async function save() {
   try {
     const url = webhookUrl.value.trim()
     await wecomSet({ enabled: enabled.value, ...(url ? { webhookUrl: url } : {}) })
-    Object.assign(config, { enabled: enabled.value, hasWebhook: config.hasWebhook || !!url })
-    webhookUrl.value = ''
+    Object.assign(config, {
+      enabled: enabled.value,
+      hasWebhook: config.hasWebhook || !!url,
+      webhookUrl: url || config.webhookUrl,
+    })
     visible.value = false
     ElMessage.success(t('saveSuccessMsg'))
   } catch {

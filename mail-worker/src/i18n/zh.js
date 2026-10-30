@@ -1,7 +1,8 @@
 const zh = {
-	wecomInvalidWebhook: '请填写有效的企业微信机器人地址：https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=机器人密钥',
+	wecomInvalidWebhook: '企业微信机器人地址无效，请粘贴完整的 Webhook 地址（机器人密钥不能是截断片段）',
 	wecomWebhookRequired: '请先填写企业微信机器人 Webhook 地址',
 	wecomSendFailed: '企业微信推送失败，请检查机器人地址、机器人状态和发送频率后重试',
+	wecomSendFailedDetails: '企业微信推送失败（错误码 {{code}}）：{{reason}}',
 	invalidSendChannel: "发信渠道或域名配置无效",
 	cloudflareEmailNotBound: "Cloudflare 发信绑定未配置，请先绑定 EMAIL",
 	cloudflareDomainNotReady: "该域名尚未完成 Cloudflare Email Sending 开通或验证",

@@ -37,25 +37,26 @@ it('enforces login, read permission, and separate save/test permissions', async 
 	expect((await (await request('query')).json()).code).toBe(403);
 	state.permissions = ['setting:query'];
 	const read = await request('query');
-	expect((await read.json()).data).toEqual({ enabled: false, hasWebhook: false });
+	expect((await read.json()).data).toEqual({ enabled: false, hasWebhook: false, webhookUrl: '' });
 	expect(read.headers.get('cache-control')).toBe('no-store');
 	for (const [path, method] of [['set', 'PUT'], ['test', 'POST']]) {
 		expect((await (await request(path, method, { enabled: false })).json()).code).toBe(403);
 	}
 	expect(env.kv.put).not.toHaveBeenCalled();
 	state.permissions = ['setting:set'];
-	expect((await (await request('set', 'PUT', { enabled: true, webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=fake-secret' })).json()).code).toBe(200);
+	const savedUrl = 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=fake-secret-1234567890';
+	expect((await (await request('set', 'PUT', { enabled: true, webhookUrl: savedUrl })).json()).code).toBe(200);
 	const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ errcode: 0 }));
 	expect((await (await request('test', 'POST', {})).json()).code).toBe(200);
 	expect(fetchMock).toHaveBeenCalledOnce();
-	fetchMock.mockResolvedValue(Response.json({ errcode: 93000, errmsg: 'fake-secret' }));
+	fetchMock.mockResolvedValue(Response.json({ errcode: 93000, errmsg: 'key=fake-secret-1234567890' }));
 	const failedTest = await (await request('test', 'POST', {})).json();
-	expect(failedTest.message).toBe('wecomSendFailed');
-	expect(JSON.stringify(failedTest)).not.toContain('fake-secret');
+	expect(failedTest.message).toBe('wecomSendFailedDetails');
+	expect(JSON.stringify(failedTest)).not.toContain('fake-secret-1234567890');
 	state.permissions = ['setting:query'];
 	const body = await (await request('query')).json();
-	expect(body.data).toEqual({ enabled: true, hasWebhook: true });
-	expect(JSON.stringify(body)).not.toContain('fake-secret');
+	expect(body.data).toEqual({ enabled: true, hasWebhook: true, webhookUrl: savedUrl });
+	expect(body.data.webhookUrl).toBe(savedUrl);
 });
 
 it('does not include WeCom configuration in public site settings', async () => {

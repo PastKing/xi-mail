@@ -15,7 +15,7 @@ function validateWebhook(value) {
 		if (url.protocol !== 'https:' || url.hostname !== 'qyapi.weixin.qq.com'
 			|| url.port || url.username || url.password || url.hash
 			|| url.pathname !== '/cgi-bin/webhook/send'
-			|| [...url.searchParams.keys()].length !== 1 || !/^[\w-]+$/.test(key || '')) {
+			|| [...url.searchParams.keys()].length !== 1 || !/^[\w-]{16,128}$/.test(key || '')) {
 			throw new Error();
 		}
 		return `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${key}`;
@@ -76,9 +76,10 @@ export function buildMessages(email) {
 }
 
 async function send(webhookUrl, messages) {
+	const webhookKey = new URL(webhookUrl).searchParams.get('key') || '';
 	for (const content of messages) {
 		let response;
-		let result;
+		let body = '';
 		try {
 			response = await fetch(validateWebhook(webhookUrl), {
 				method: 'POST',
@@ -87,13 +88,24 @@ async function send(webhookUrl, messages) {
 				redirect: 'error',
 				signal: AbortSignal.timeout(10000),
 			});
-			result = await response.json();
+			body = await response.text();
 		} catch {
 			// Fetch errors may include the URL; never expose the webhook key in logs or API errors.
 			throw new BizError(t('wecomSendFailed'));
 		}
+		let result = null;
+		try {
+			result = JSON.parse(body);
+		} catch {}
 		if (!response.ok || result?.errcode !== 0) {
-			throw new BizError(t('wecomSendFailed'));
+			const reason = String(result?.errmsg || body || '').replace(
+				/https?:\/\/[^\s"'<>]+|key=[^&\s"'<>]+/gi,
+				'[已隐藏地址]',
+			).replaceAll(webhookKey, '[已隐藏密钥]').slice(0, 120);
+			throw new BizError(t('wecomSendFailedDetails', {
+				code: result?.errcode ?? `HTTP ${response.status}`,
+				reason: reason || '未返回具体原因',
+			}));
 		}
 	}
 }
@@ -105,7 +117,11 @@ const wecomService = {
 
 	async get(c) {
 		const config = await this.query(c);
-		return { enabled: config.enabled === true, hasWebhook: !!config.webhookUrl };
+		return {
+			enabled: config.enabled === true,
+			hasWebhook: !!config.webhookUrl,
+			webhookUrl: config.webhookUrl || '',
+		};
 	},
 
 	async set(c, params) {
