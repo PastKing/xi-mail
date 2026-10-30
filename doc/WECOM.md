@@ -34,3 +34,11 @@
 配置保存于现有 KV 的 `setting:wecom`，默认 `{enabled:false, webhookUrl:''}`。不修改 D1，无数据库迁移、无新增依赖。完整地址仅在已授权的后台设置接口和后台输入框中返回，不放进公开站点配置、邮件内容或日志。KV 中的配置不是应用层加密数据。
 
 本地验证入口：`mail-view/test/wecom-preview.html`，搭配 `test/wecom-preview.config.js`；该预览替换请求为内存模拟，不发送真实通知。
+
+## Workers 运行时回归
+
+2026-10-30 通过 ego 线上实测，后台测试接口返回业务码 501、通用失败提示。同日使用后台配置地址直接发送固定诊断消息，企业微信返回 HTTP 200、`errcode: 0`，证明该次机器人接口请求被接受；这不等于收件后自动转发已经端到端验收。
+
+根因是 Workers 不支持 `redirect: 'error'`，请求构造即抛异常，原 Node fetch 模拟未覆盖。已改为 `redirect: 'manual'` 并继续拒绝非成功响应，不自动跳转或重试。
+
+运行 `node --test test/runtime/wecom-runtime.test.cjs`，使用既有 Miniflare/workerd 加载实际推送服务，验证请求成功及 302 不跟随；该测试修复前失败、修复后通过。没有新增依赖。

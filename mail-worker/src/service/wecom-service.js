@@ -85,7 +85,8 @@ async function send(webhookUrl, messages) {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ msgtype: 'text', text: { content } }),
-				redirect: 'error',
+				// Workers supports manual/follow only. Check 3xx below without following redirects.
+				redirect: 'manual',
 				signal: AbortSignal.timeout(10000),
 			});
 			body = await response.text();

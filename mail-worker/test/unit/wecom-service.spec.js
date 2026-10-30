@@ -79,7 +79,7 @@ it('tests draft or saved URLs without saving or enabling, and sends mail segment
 	expect(fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body).text.content)).toEqual(buildMessages(longMail));
 	for (const [target, options] of fetchMock.mock.calls) {
 		expect(target).toBe(url);
-		expect(options).toMatchObject({ method: 'POST', redirect: 'error' });
+		expect(options).toMatchObject({ method: 'POST', redirect: 'manual' });
 		expect(options.signal).toBeInstanceOf(AbortSignal);
 	}
 	saved.enabled = false;
