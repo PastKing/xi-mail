@@ -25,22 +25,21 @@
         </div>
       </div>
       <div class="item">
-        <div>{{$t('username')}}</div>
+        <div>{{$t('senderName')}}</div>
         <div>
           <span v-if="setNameShow" class="edit-name-input">
-            <el-input v-model="accountName"  ></el-input>
-            <span class="edit-name" @click="setName">
-             {{$t('save')}}
-            </span>
+            <el-input v-model="accountName" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="30" clearable @keyup.enter="setName" />
+            <el-button link type="primary" :loading="setNameLoading" @click="setName">{{$t('save')}}</el-button>
           </span>
           <span v-else class="user-name">
-            <span >{{ userStore.user.name }}</span>
+            <span >{{ userStore.user.name || userStore.user.email?.split('@')[0] }}</span>
             <span class="edit-name" @click="showSetName">
              {{$t('change')}}
             </span>
           </span>
         </div>
       </div>
+      <p class="sender-name-hint">{{$t('senderNameHint')}}</p>
       <div class="item">
         <div>{{$t('password')}}</div>
         <div>
@@ -83,6 +82,7 @@ const accountStore = useAccountStore()
 const userStore = useUserStore();
 const setPwdLoading = ref(false)
 const setNameShow = ref(false)
+const setNameLoading = ref(false)
 const accountName = ref(null)
 
 defineOptions({
@@ -100,42 +100,34 @@ async function copyText(text) {
 }
 
 function showSetName() {
-  accountName.value = userStore.user.name
+  accountName.value = userStore.user.name || ''
   setNameShow.value = true
 }
 
 function setName() {
-
-  if (!accountName.value) {
-    ElMessage({
-      message: t('emptyUserNameMsg'),
-      type: 'error',
-      plain: true,
-    })
-    return;
-  }
-
-  setNameShow.value = false
-  let name = accountName.value
-
+  if (setNameLoading.value) return
+  const name = accountName.value.trim()
   if (name === userStore.user.name) {
+    setNameShow.value = false
     return
   }
-
-  userStore.user.name = accountName.value
-
-  accountSetName(userStore.user.account.accountId,name).then(() => {
+  setNameLoading.value = true
+  accountSetName(userStore.user.account.accountId,name).then(saved => {
+    userStore.user.name = saved.name
+    userStore.user.account.name = saved.name
+    if (accountStore.currentAccount.accountId === userStore.user.account.accountId) {
+      accountStore.currentAccount.name = saved.name
+    }
+    setNameShow.value = false
     ElMessage({
       message: t('saveSuccessMsg'),
       type: 'success',
       plain: true,
     })
 
-    accountStore.changeUserAccountName = name
+    accountStore.changeUserAccountName = saved.name
 
-  }).catch(() => {
-    userStore.user.name = name
-  })
+  }).catch(() => {}).finally(() => { setNameLoading.value = false })
 }
 
 const pwdShow = ref(false)
@@ -223,6 +215,12 @@ function submitPwd() {
 
 </script>
 <style scoped lang="scss">
+.sender-name-hint {
+  margin: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
 .box {
   padding: 40px 40px;
   max-width: 600px;
@@ -251,8 +249,8 @@ function submitPwd() {
 
     .item {
       display: grid;
-      grid-template-columns: 50px 1fr;
-      gap: 100px;
+      grid-template-columns: 90px minmax(0, 1fr);
+      gap: 24px;
       position: relative;
       .user-name {
         display: grid;
@@ -265,10 +263,12 @@ function submitPwd() {
       }
 
       .edit-name-input {
-        position: absolute;
-        bottom: -6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
         .el-input {
-          width: min(200px, calc(100vw - 222px));
+          flex: 1;
+          min-width: 0;
         }
       }
 
@@ -283,7 +283,7 @@ function submitPwd() {
       }
 
       @media (max-width: 767px) {
-        gap: 50px;
+        gap: 12px;
       }
 
       div:first-child {

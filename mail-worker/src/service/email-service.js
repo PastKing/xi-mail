@@ -280,10 +280,12 @@ const emailService = {
 		const domain = emailUtils.getDomain(accountRow.email);
 		const resendToken = resendTokens[domain];
 
-		//没有发件人名字自动截取
-		if (!name) {
-			name = emailUtils.getName(accountRow.email);
+		// 网页发信使用已保存的邮箱名称；兼容 API 显式传入名称。
+		if (name != null && (typeof name !== 'string' || /[\x00-\x1f\x7f]/.test(name))) {
+			throw new BizError(t('invalidSenderName'));
 		}
+		name = (name || accountRow.name || '').replace(/[<>\x00-\x1f\x7f]/g, '').trim()
+			|| emailUtils.getName(accountRow.email);
 
 		let emailRow = {
 			messageId: null
@@ -306,7 +308,7 @@ const emailService = {
 		if (!allInternal) {
 
 			const sendForm = {
-				from: `${name} <${accountRow.email}>`,
+				from: `${JSON.stringify(name)} <${accountRow.email}>`,
 				to: [...receiveEmail],
 				...(cc.length ? { cc: [...cc] } : {}),
 				subject: subject,

@@ -1,4 +1,7 @@
 const zh = {
+	wecomInvalidWebhook: '请填写有效的企业微信机器人地址：https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=机器人密钥',
+	wecomWebhookRequired: '请先填写企业微信机器人 Webhook 地址',
+	wecomSendFailed: '企业微信推送失败，请检查机器人地址、机器人状态和发送频率后重试',
 	invalidSendChannel: "发信渠道或域名配置无效",
 	cloudflareEmailNotBound: "Cloudflare 发信绑定未配置，请先绑定 EMAIL",
 	cloudflareDomainNotReady: "该域名尚未完成 Cloudflare Email Sending 开通或验证",
@@ -23,6 +26,7 @@ const zh = {
 	delMyAccount: '不可以删除自己的邮箱',
 	noUserAccount: '该邮箱不属于当前用户',
 	usernameLengthLimit: '用户名长度超出限制',
+	invalidSenderName: '发件人名称最多 30 个字符，不能包含换行或控制字符',
 	noOsSendPic: '对象存储未配置不能发送正文图片',
 	noOsDomainSendAtt: '对象存储域名未配置不能发送附件',
 	noOsSendAtt: '对象存储未配置不能发送附件',

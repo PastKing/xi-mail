@@ -43,6 +43,7 @@ beforeEach(() => {
   state.cf.mockReset().mockResolvedValue({messageId: 'cf-test-id'});
   state.insert.mockClear(); state.count.mockClear();
   state.channels = {}; state.images = [];
+  state.account.name = '';
   state.settings = {send: 0, domainList: ['@first.example'], resendTokens: {'first.example': 'fake-token'}, r2Domain: ''};
   state.user.sendCount = 0; state.role.sendCount = 10; state.role.sendType = 'day'; state.role.availDomain = '@first.example'; state.account.userId = 1;
 });
@@ -80,6 +81,23 @@ it('preserves batch recipients, sender name, reply headers, attachment MIME type
     ],
   });
   expect(state.count).toHaveBeenCalledWith(expect.anything(), 2, 1);
+});
+
+it('uses the saved sender name or email prefix for Resend, Cloudflare and internal delivery', async () => {
+  const internal = vi.spyOn(emailService, 'HandleOnSiteEmail').mockResolvedValue();
+  for (const name of [' 小鹅客服 ', '', '   ', 'Support, "Team"']) {
+    state.account.name = name;
+    const expected = name.trim() || 'user';
+    state.channels = {};
+    const [sent] = await emailService.send(context(), params(), 1);
+    expect(sent.name).toBe(expected);
+    expect(state.resend.mock.lastCall[0].from).toBe(`${JSON.stringify(expected)} <user@first.example>`);
+    state.channels = {'first.example': 'cloudflare'};
+    await emailService.send(context(), params(), 1);
+    expect(state.cf.mock.lastCall[0].from).toEqual({email: 'user@first.example', name: expected});
+    await emailService.send(context(), {...params(), receiveEmail: ['other@first.example']}, 1);
+    expect(internal.mock.lastCall[2].name).toBe(expected);
+  }
 });
 
 it('retains ownership, domain, role, quota and system gates before calling either provider', async () => {

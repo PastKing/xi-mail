@@ -11,6 +11,7 @@
             v-model="form.accountId"
             class="sender-select"
             popper-class="sender-select-popper"
+            :disabled="senderNameLoading || accountsLoading"
             @change="changeSender"
           >
             <template #label="{ label }">
@@ -20,14 +21,19 @@
               v-for="item in accountOptions"
               :key="item.accountId"
               :value="item.accountId"
-              :label="item.email"
+              :label="`${item.name?.trim() || item.email.split('@')[0]} <${item.email}>`"
             >
               <div class="sender-option">
-                <span class="sender-option-name">{{ item.name || item.email }}</span>
+                <span class="sender-option-name">{{ item.name?.trim() || item.email.split('@')[0] }}</span>
                 <span v-if="item.name && item.name !== item.email" class="sender-option-email">{{ item.email }}</span>
               </div>
             </el-option>
           </el-select>
+          <div class="sender-name-controls">
+            <label for="compose-sender-name" :title="$t('composeSenderNameHint')">{{ $t('senderName') }}</label>
+            <el-input id="compose-sender-name" v-model="form.name" :placeholder="$t('senderNamePlaceholder')" :title="$t('composeSenderNameHint')" :maxlength="30" clearable size="small" :disabled="senderNameLoading || accountsLoading" @keyup.enter="saveSenderName()" />
+            <el-button size="small" :loading="senderNameLoading" :disabled="accountsLoading" @click="saveSenderName()">{{ $t('save') }}</el-button>
+          </div>
         </div>
         <div @click="close" style="cursor: pointer;">
           <Icon icon="mingcute:close-line" width="20" height="20"/>
@@ -138,7 +144,7 @@ import dayjs from "dayjs";
 import {useI18n} from "vue-i18n";
 import router from "@/router/index.js";
 import {ElMessageBox} from "element-plus";
-import {accountList as fetchAccountList} from "@/request/account.js";
+import {accountList as fetchAccountList, accountSetName} from "@/request/account.js";
 import {useServerStore} from "@/store/server.js";
 
 defineExpose({
@@ -188,6 +194,9 @@ const form = reactive({
 
 const selectRecipientList = ref([])
 const accountOptions = ref([])
+const savedSenderName = ref('')
+const senderNameLoading = ref(false)
+const accountsLoading = ref(false)
 
 const contacts = computed(() => writerStore.sendRecipientRecord.map(item => ({email: item})))
 
@@ -239,6 +248,8 @@ function selectStatusChange(status) {
 }
 
 async function loadAccounts() {
+  accountsLoading.value = true
+  savedSenderName.value = form.name || ''
   try {
     // 先用当前账户填充，保证选择框立即有值显示
     if (form.sendEmail) {
@@ -253,11 +264,14 @@ async function loadAccounts() {
       if (!exists && form.sendEmail) {
         accountOptions.value = [{ accountId: form.accountId, email: form.sendEmail, name: form.name }, ...list]
       }
+      changeSender(form.accountId)
     }
   } catch (e) {
     if (form.sendEmail) {
       accountOptions.value = [{ accountId: form.accountId, email: form.sendEmail, name: form.name }]
     }
+  } finally {
+    accountsLoading.value = false
   }
 }
 
@@ -266,7 +280,34 @@ function changeSender(accountId) {
   if (account) {
     form.sendEmail = account.email
     form.accountId = account.accountId
-    form.name = account.name || account.email
+    form.name = account.name || ''
+    savedSenderName.value = form.name
+  }
+}
+
+async function saveSenderName(notify = true) {
+  if (senderNameLoading.value || accountsLoading.value) return false
+  const name = (form.name || '').trim()
+  if (name === savedSenderName.value) return true
+  senderNameLoading.value = true
+  try {
+    const saved = await accountSetName(form.accountId, name)
+    form.name = saved.name
+    savedSenderName.value = saved.name
+    const account = accountOptions.value.find(item => item.accountId === form.accountId)
+    if (account) account.name = saved.name
+    if (accountStore.currentAccount.accountId === form.accountId) accountStore.currentAccount.name = saved.name
+    if (userStore.user.account?.accountId === form.accountId) {
+      userStore.user.name = saved.name
+      userStore.user.account.name = saved.name
+    }
+    accountStore.changeAccountName = {accountId: form.accountId, name: saved.name}
+    if (notify) ElMessage({message: t('saveSuccessMsg'), type: 'success', plain: true})
+    return true
+  } catch {
+    return false
+  } finally {
+    senderNameLoading.value = false
   }
 }
 
@@ -408,6 +449,8 @@ async function sendEmail() {
     return
   }
 
+  if (!await saveSenderName(false)) return
+
   percentMessage = ElMessage({
     message: () => h(sendPercent, {value: percent.value, desc: t('sending')}),
     dangerouslyUseHTMLString: true,
@@ -420,7 +463,8 @@ async function sendEmail() {
 
   show.value = false
 
-  emailSend(form, (e) => {
+  // 名称由服务端读取，避免旧草稿或已打开的写信窗口覆盖最新设置。
+  emailSend({...form, name: undefined}, (e) => {
     percent.value = Math.round((e.loaded * 98) / e.total)
   }).then(emailList => {
     const email = emailList[0]
@@ -603,6 +647,7 @@ function open() {
 function openDraft(draft) {
   resetForm()
   Object.assign(form, {...draft, receiveEmail: [...draft.receiveEmail], cc: [...(draft.cc || [])]})
+  loadAccounts()
   defValue.value = ''
   setTimeout(() => defValue.value = form.content)
   show.value = true;
@@ -624,6 +669,7 @@ onUnmounted(() => {
 });
 
 function close() {
+  if (senderNameLoading.value) return
 
   if (selectStatus) openSelect();
 
@@ -773,6 +819,7 @@ function close() {
         gap: 6px;
         min-width: 0;
         flex: 1;
+        flex-wrap: wrap;
       }
 
       .title-text {
@@ -831,6 +878,29 @@ function close() {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .sender-name-controls {
+        display: flex;
+        align-items: center;
+        flex: 1 1 320px;
+        min-width: 0;
+        max-width: 440px;
+        gap: 8px;
+        margin-right: 10px;
+
+        label {
+          flex-shrink: 0;
+          font-size: 12px;
+          color: var(--el-text-color-regular);
+        }
+
+        .el-input { min-width: 0; }
+
+        @media (max-width: 500px) {
+          flex-basis: 100%;
+          max-width: none;
+        }
       }
 
       & > div:last-child {

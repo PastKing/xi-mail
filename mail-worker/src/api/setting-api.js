@@ -3,6 +3,22 @@ import result from '../model/result';
 import settingService from '../service/setting-service';
 import BizError from '../error/biz-error';
 import { t } from '../i18n/i18n';
+import wecomService from '../service/wecom-service';
+
+app.get('/setting/wecom/query', async (c) => {
+	c.header('Cache-Control', 'no-store');
+	return c.json(result.ok(await wecomService.get(c)));
+});
+
+app.put('/setting/wecom/set', async (c) => {
+	await wecomService.set(c, await c.req.json());
+	return c.json(result.ok());
+});
+
+app.post('/setting/wecom/test', async (c) => {
+	await wecomService.test(c, await c.req.json());
+	return c.json(result.ok());
+});
 
 app.put('/setting/set', async (c) => {
 	await settingService.set(c, await c.req.json());

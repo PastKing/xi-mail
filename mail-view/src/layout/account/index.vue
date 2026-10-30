@@ -66,7 +66,7 @@
                   <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">
                     <div class="row-menu-item">
                       <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
-                      <span>{{ $t('rename') }}</span>
+                      <span>{{ $t('senderName') }}</span>
                     </div>
                   </el-dropdown-item>
                   <el-dropdown-item
@@ -202,10 +202,12 @@
       </div>
     </el-dialog>
 
-    <!-- Rename dialog -->
-    <el-dialog v-model="setNameShow" :title="$t('changeUserName')">
+    <!-- Sender name dialog -->
+    <el-dialog v-model="setNameShow" :title="$t('senderName')" width="min(400px, calc(100% - 32px))">
       <div class="container">
-        <el-input v-model="accountName" type="text" :placeholder="$t('username')" autocomplete="off"/>
+        <div class="sender-name-hint">{{ account?.email }}</div>
+        <el-input v-model="accountName" type="text" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="30" show-word-limit clearable autocomplete="off" @keyup.enter="setName"/>
+        <div class="sender-name-hint">{{ $t('senderNameHint') }}</div>
         <el-button class="btn" type="primary" @click="setName" :loading="setNameLoading">{{ $t('save') }}</el-button>
       </div>
     </el-dialog>
@@ -304,7 +306,13 @@ if (hasPerm('account:query')) {
 }
 
 watch(() => accountStore.changeUserAccountName, () => {
-  if (accounts[0]) accounts[0].name = accountStore.changeUserAccountName;
+  const primary = accounts.find(item => item.accountId === userStore.user.account?.accountId);
+  if (primary) primary.name = accountStore.changeUserAccountName;
+});
+
+watch(() => accountStore.changeAccountName, saved => {
+  const item = accounts.find(item => item.accountId === saved?.accountId);
+  if (item) item.name = saved.name;
 });
 
 
@@ -332,23 +340,24 @@ function getSkeletonRows() {
 }
 
 function setName() {
-  let name = accountName.value;
+  if (setNameLoading.value) return;
+  const name = accountName.value.trim();
   if (name === account.name) { setNameShow.value = false; return; }
-  if (!name) {
-    ElMessage({ message: t('emptyUserNameMsg'), type: 'error', plain: true });
-    return;
-  }
   setNameLoading.value = true;
-  accountSetName(account.accountId, name).then(() => {
-    account.name = name;
+  accountSetName(account.accountId, name).then(saved => {
+    account.name = saved.name;
+    if (accountStore.currentAccount.accountId === account.accountId) accountStore.currentAccount.name = saved.name;
     setNameShow.value = false;
-    if (account.accountId === userStore.user.account.accountId) userStore.user.name = name;
+    if (account.accountId === userStore.user.account.accountId) {
+      userStore.user.name = saved.name;
+      userStore.user.account.name = saved.name;
+    }
     ElMessage({ message: t('saveSuccessMsg'), type: 'success', plain: true });
-  }).finally(() => { setNameLoading.value = false; });
+  }).catch(() => {}).finally(() => { setNameLoading.value = false; });
 }
 
 function openSetName(accountItem) {
-  accountName.value = accountItem.name;
+  accountName.value = accountItem.name || '';
   account = accountItem;
   setNameShow.value = true;
 }
@@ -726,6 +735,12 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.sender-name-hint {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .add-form {

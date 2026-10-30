@@ -1,4 +1,7 @@
 const en = {
+	wecomInvalidWebhook: 'Enter a valid WeCom bot URL: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=BOT_KEY',
+	wecomWebhookRequired: 'Enter a WeCom bot webhook URL first.',
+	wecomSendFailed: 'WeCom notification failed. Check the bot URL, bot status and sending rate before retrying.',
 	invalidSendChannel: "Invalid sending channel or domain",
 	cloudflareEmailNotBound: "Cloudflare email binding is missing. Bind EMAIL first.",
 	cloudflareDomainNotReady: "The sender domain is not onboarded or verified for Cloudflare Email Sending.",
@@ -23,6 +26,7 @@ const en = {
 	delMyAccount: 'Cannot delete your own email',
 	noUserAccount: 'This email does not belong to the current user',
 	usernameLengthLimit: 'Username length exceeds the limit',
+	invalidSenderName: 'Sender name must be at most 30 characters and contain no line breaks or control characters',
 	noOsSendPic: 'Cannot send body images: object storage not configured',
 	noOsDomainSendAtt: 'Cannot send attachments: object storage domain not configured',
 	noOsSendAtt: 'Cannot send attachments: object storage not configured',
