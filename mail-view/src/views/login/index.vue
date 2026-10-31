@@ -322,13 +322,6 @@ AUTH  WAITING
         </Transition>
       </div>
 
-      <!-- Footer below card -->
-      <div class="page-footer" v-motion :initial="{ opacity: 0 }" :enter="{ opacity: 1, transition: { delay: 300 } }">
-        <a href="https://github.com/PastKing/xi-mail" target="_blank">
-          <Icon icon="mingcute:github-line" width="14" height="14" />
-          <span>{{ $t('openSource') }}</span>
-        </a>
-      </div>
     </div>
 
     <!-- OAuth bind dialog -->

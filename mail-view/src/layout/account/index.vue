@@ -66,7 +66,7 @@
                   <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">
                     <div class="row-menu-item">
                       <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
-                      <span>{{ $t('rename') }}</span>
+                      <span>{{ $t('senderName') }}</span>
                     </div>
                   </el-dropdown-item>
                   <el-dropdown-item
@@ -172,11 +172,12 @@
         </div>
         <div class="add-field">
           <label class="field-label">{{ $t('select') }}</label>
-          <el-select v-model="addForm.suffix" style="width: 100%">
+          <el-select v-model="addForm.suffix" style="width: 100%" :disabled="domainList.length === 0">
             <el-option v-for="item in domainList" :key="item" :label="item" :value="item"/>
           </el-select>
         </div>
-        <div class="email-preview" v-if="addForm.email">
+        <div v-if="domainList.length === 0" role="status">{{ $t('noAvailableDomains') }}</div>
+        <div class="email-preview" v-if="addForm.email && addForm.suffix">
           <Icon icon="mingcute:mail-line" width="13" height="13" />
           <span class="email-preview-text">{{ addForm.email }}{{ addForm.suffix }}</span>
           <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
@@ -188,7 +189,7 @@
             />
           </el-tooltip>
         </div>
-        <el-button class="btn" type="primary" @click="submit" :loading="addLoading">{{ $t('add') }}</el-button>
+        <el-button class="btn" type="primary" @click="submit" :loading="addLoading" :disabled="domainList.length === 0">{{ $t('add') }}</el-button>
       </div>
       <div
         class="add-email-turnstile"
@@ -201,10 +202,12 @@
       </div>
     </el-dialog>
 
-    <!-- Rename dialog -->
-    <el-dialog v-model="setNameShow" :title="$t('changeUserName')">
+    <!-- Sender name dialog -->
+    <el-dialog v-model="setNameShow" :title="$t('senderName')" width="min(400px, calc(100% - 32px))">
       <div class="container">
-        <el-input v-model="accountName" type="text" :placeholder="$t('username')" autocomplete="off"/>
+        <div class="sender-name-hint">{{ account?.email }}</div>
+        <el-input v-model="accountName" type="text" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="30" show-word-limit clearable autocomplete="off" @keyup.enter="setName"/>
+        <div class="sender-name-hint">{{ $t('senderNameHint') }}</div>
         <el-button class="btn" type="primary" @click="setName" :loading="setNameLoading">{{ $t('save') }}</el-button>
       </div>
     </el-dialog>
@@ -243,6 +246,7 @@ import { hasPerm } from "@/perm/perm.js";
 import { useI18n } from "vue-i18n";
 import { AccountAllReceiveEnum } from "@/enums/account-enum.js";
 import { transferCreate } from '@/request/account-transfer.js';
+import { availableAccountDomains } from '@/utils/domain-utils.js';
 
 const { t } = useI18n();
 const userStore = useUserStore();
@@ -252,7 +256,7 @@ const emailStore = useEmailStore();
 
 const showAdd = ref(false);
 const addLoading = ref(false);
-const domainList = settingStore.domainList;
+const domainList = computed(() => availableAccountDomains(settingStore.domainList, userStore.user));
 const accounts = reactive([]);
 const noLoading = ref(false);
 const loading = ref(false);
@@ -272,8 +276,13 @@ let verifyErrorCount = 0;
 let first = true;
 const addForm = reactive({
   email: '',
-  suffix: settingStore.domainList[0]
+  suffix: ''
 });
+watch(domainList, domains => {
+  if (!domains.includes(addForm.suffix)) {
+    addForm.suffix = domains[0] || '';
+  }
+}, { immediate: true });
 let skeletonRows = 8;
 const queryParams = { size: 100 };
 
@@ -297,7 +306,13 @@ if (hasPerm('account:query')) {
 }
 
 watch(() => accountStore.changeUserAccountName, () => {
-  if (accounts[0]) accounts[0].name = accountStore.changeUserAccountName;
+  const primary = accounts.find(item => item.accountId === userStore.user.account?.accountId);
+  if (primary) primary.name = accountStore.changeUserAccountName;
+});
+
+watch(() => accountStore.changeAccountName, saved => {
+  const item = accounts.find(item => item.accountId === saved?.accountId);
+  if (item) item.name = saved.name;
 });
 
 
@@ -325,23 +340,24 @@ function getSkeletonRows() {
 }
 
 function setName() {
-  let name = accountName.value;
+  if (setNameLoading.value) return;
+  const name = accountName.value.trim();
   if (name === account.name) { setNameShow.value = false; return; }
-  if (!name) {
-    ElMessage({ message: t('emptyUserNameMsg'), type: 'error', plain: true });
-    return;
-  }
   setNameLoading.value = true;
-  accountSetName(account.accountId, name).then(() => {
-    account.name = name;
+  accountSetName(account.accountId, name).then(saved => {
+    account.name = saved.name;
+    if (accountStore.currentAccount.accountId === account.accountId) accountStore.currentAccount.name = saved.name;
     setNameShow.value = false;
-    if (account.accountId === userStore.user.account.accountId) userStore.user.name = name;
+    if (account.accountId === userStore.user.account.accountId) {
+      userStore.user.name = saved.name;
+      userStore.user.account.name = saved.name;
+    }
     ElMessage({ message: t('saveSuccessMsg'), type: 'success', plain: true });
-  }).finally(() => { setNameLoading.value = false; });
+  }).catch(() => {}).finally(() => { setNameLoading.value = false; });
 }
 
 function openSetName(accountItem) {
-  accountName.value = accountItem.name;
+  accountName.value = accountItem.name || '';
   account = accountItem;
   setNameShow.value = true;
 }
@@ -477,6 +493,10 @@ async function doTransfer() {
 }
 
 function submit() {
+  if (!domainList.value.includes(addForm.suffix)) {
+    ElMessage({ message: t('noAvailableDomains'), type: 'error', plain: true });
+    return;
+  }
   if (!addForm.email) {
     ElMessage({ message: t('emptyEmailMsg'), type: 'error', plain: true });
     return;
@@ -715,6 +735,12 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.sender-name-hint {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .add-form {

@@ -19,8 +19,8 @@ app.post('/account/add', async (c) => {
 });
 
 app.put('/account/setName', async (c) => {
-	await accountService.setName(c, await c.req.json(), userContext.getUserId(c));
-	return c.json(result.ok());
+	const saved = await accountService.setName(c, await c.req.json(), userContext.getUserId(c));
+	return c.json(result.ok(saved));
 });
 
 app.put('/account/setAllReceive', async (c) => {

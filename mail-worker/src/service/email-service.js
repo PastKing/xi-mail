@@ -8,7 +8,7 @@ import settingService from './setting-service';
 import accountService from './account-service';
 import BizError from '../error/biz-error';
 import emailUtils from '../utils/email-utils';
-import { Resend } from 'resend';
+import sendChannelService from './send-channel-service';
 import attService from './att-service';
 import { parseHTML } from 'linkedom';
 import userService from './user-service';
@@ -22,6 +22,7 @@ import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import permService from './perm-service';
+import verifyUtils from '../utils/verify-utils';
 
 const emailService = {
 
@@ -175,11 +176,32 @@ const emailService = {
 			sendType, //发件类型
 			emailId, //邮件id，如果是回复邮件会带
 			receiveEmail, //收件人邮箱
+			cc = [], //可选抄送邮箱
 			text, //邮件纯文本
 			content, //邮件内容
 			subject, //邮件标题
 			attachments //附件
 		} = params;
+
+		// Validate and deduplicate at the API boundary; To takes precedence over CC.
+		const seen = new Set();
+		const normalizeRecipients = addresses => {
+			if (!Array.isArray(addresses)) throw new BizError(t('notEmail'));
+			return addresses.flatMap(address => {
+				if (typeof address !== 'string' || !verifyUtils.isEmail(address.trim())) {
+					throw new BizError(t('notEmail'));
+				}
+				address = address.trim();
+				const key = address.toLowerCase();
+				if (seen.has(key)) return [];
+				seen.add(key);
+				return [address];
+			});
+		};
+		receiveEmail = normalizeRecipients(receiveEmail);
+		cc = normalizeRecipients(cc);
+		if (!receiveEmail.length) throw new BizError(t('emptyEmail'));
+		const allRecipients = [...receiveEmail, ...cc];
 
 		const { resendTokens, r2Domain, send, domainList } = await settingService.query(c);
 
@@ -203,8 +225,8 @@ const emailService = {
 		const roleRow = await roleService.selectById(c, userRow.type);
 
 		//判断接收方是不是全部为站内邮箱
-		const allInternal = receiveEmail.every(email => {
-			const domain = '@' + emailUtils.getDomain(email);
+		const allInternal = allRecipients.every(email => {
+			const domain = '@' + emailUtils.getDomain(email).toLowerCase();
 			return domainList.includes(domain);
 		});
 
@@ -230,7 +252,7 @@ const emailService = {
 				if (roleRow.sendType === 'count') throw new BizError(t('totalSendLimit'), 403);
 			}
 
-			if (userRow.sendCount + receiveEmail.length > roleRow.sendCount) {
+			if (userRow.sendCount + allRecipients.length > roleRow.sendCount) {
 				if (roleRow.sendType === 'day') throw new BizError(t('daySendLack'), 403);
 				if (roleRow.sendType === 'count') throw new BizError(t('totalSendLack'), 403);
 			}
@@ -258,15 +280,12 @@ const emailService = {
 		const domain = emailUtils.getDomain(accountRow.email);
 		const resendToken = resendTokens[domain];
 
-		//如果接收方存在站外邮箱，又没有resend token
-		if (!resendToken && !allInternal) {
-			throw new BizError(t('noResendToken'));
+		// 网页发信使用已保存的邮箱名称；兼容 API 显式传入名称。
+		if (name != null && (typeof name !== 'string' || /[\x00-\x1f\x7f]/.test(name))) {
+			throw new BizError(t('invalidSenderName'));
 		}
-
-		//没有发件人名字自动截取
-		if (!name) {
-			name = emailUtils.getName(accountRow.email);
-		}
+		name = (name || accountRow.name || '').replace(/[<>\x00-\x1f\x7f]/g, '').trim()
+			|| emailUtils.getName(accountRow.email);
 
 		let emailRow = {
 			messageId: null
@@ -283,38 +302,32 @@ const emailService = {
 
 		}
 
-		let resendResult = {};
+		let outboundId;
 
-		//存在站外时邮箱全部由resend发送
+		//存在站外邮箱时，全部收件人由发件域名配置的渠道发送
 		if (!allInternal) {
 
-			const resend = new Resend(resendToken);
-
 			const sendForm = {
-				from: `${name} <${accountRow.email}>`,
+				from: `${JSON.stringify(name)} <${accountRow.email}>`,
 				to: [...receiveEmail],
+				...(cc.length ? { cc: [...cc] } : {}),
 				subject: subject,
 				text: text,
 				html: html,
-				attachments: [...imageDataList, ...attachments]
+				attachments: [...imageDataList, ...(attachments || [])]
 			};
 
-			if (sendType === 'reply') {
+			if (sendType === 'reply' && emailRow.messageId) {
 				sendForm.headers = {
 					'in-reply-to': emailRow.messageId,
 					'references': emailRow.messageId
 				};
 			}
 
-			resendResult = await resend.emails.send(sendForm);
+			outboundId = await sendChannelService.send(c, domain, resendToken, sendForm, {
+				email: accountRow.email, name
+			});
 
-		}
-
-		const { data, error } = resendResult;
-
-
-		if (error) {
-			throw new BizError(error.message);
 		}
 
 		imageDataList = imageDataList.map(item => ({...item, contentId: `<${item.contentId}>`}))
@@ -333,7 +346,7 @@ const emailService = {
 		emailData.status = emailConst.status.SENT;
 		emailData.type = emailConst.type.SEND;
 		emailData.userId = userId;
-		emailData.resendEmailId = data?.id;
+		emailData.resendEmailId = outboundId;
 
 		const recipient = [];
 
@@ -342,6 +355,7 @@ const emailService = {
 		});
 
 		emailData.recipient = JSON.stringify(recipient);
+		emailData.cc = JSON.stringify(cc.map(address => ({ address, name: '' })));
 
 		if (sendType === 'reply') {
 			emailData.inReplyTo = emailRow.messageId;
@@ -350,7 +364,7 @@ const emailService = {
 
 		//如果权限有发送次数增加用户发送次数
 		if (roleRow.sendCount && roleRow.sendType !== 'internal') {
-			await userService.incrUserSendCount(c, receiveEmail.length, userId);
+			await userService.incrUserSendCount(c, allRecipients.length, userId);
 		}
 
 		//保存到数据库并返回结果
@@ -371,7 +385,7 @@ const emailService = {
 
 		//如果全是站内接收方，直接写入数据库
 		if (allInternal) {
-			await this.HandleOnSiteEmail(c, receiveEmail, emailResult, attList);
+			await this.HandleOnSiteEmail(c, allRecipients, emailResult, attList);
 		}
 
 		const dateStr = dayjs().format('YYYY-MM-DD');
@@ -379,9 +393,9 @@ const emailService = {
 
 		//记录每天发件次数统计
 		if (!daySendTotal) {
-			await c.env.kv.put(kvConst.SEND_DAY_COUNT + dateStr, JSON.stringify(receiveEmail.length), { expirationTtl: 60 * 60 * 24 });
+			await c.env.kv.put(kvConst.SEND_DAY_COUNT + dateStr, JSON.stringify(allRecipients.length), { expirationTtl: 60 * 60 * 24 });
 		} else  {
-			daySendTotal = Number(daySendTotal) + receiveEmail.length
+			daySendTotal = Number(daySendTotal) + allRecipients.length
 			await c.env.kv.put(kvConst.SEND_DAY_COUNT + dateStr, JSON.stringify(daySendTotal), { expirationTtl: 60 * 60 * 24 });
 		}
 

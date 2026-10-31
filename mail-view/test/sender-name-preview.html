@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>发件人名称本地验证</title><div id="app"></div>
+<script type="module">
+import {createApp,h,ref,onMounted} from 'vue';
+import {createPinia} from 'pinia';
+import {createI18n} from 'vue-i18n';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import '../src/style.css';
+import dayjs from 'dayjs';import utc from 'dayjs/plugin/utc';dayjs.extend(utc);
+import Accounts from '../src/layout/account/index.vue';
+import Settings from '../src/views/setting/index.vue';
+import Writer from '../src/layout/write/index.vue';
+import {useUserStore} from '../src/store/user.js';
+import {useAccountStore} from '../src/store/account.js';
+import {useSettingStore} from '../src/store/setting.js';
+import zh from '../src/i18n/zh.js';
+window.senderQA={accounts:JSON.parse(localStorage.getItem('sender-qa-accounts')||'null')||[{accountId:1,userId:1,email:'support@example.com',name:'support',sort:2},{accountId:2,userId:1,email:'sales@example.com',name:'sales',sort:0}],fail:false,sent:null};
+const pinia=createPinia();
+createApp({setup(){
+ const user=useUserStore(),account=useAccountStore(),setting=useSettingStore();
+ user.user={userId:1,email:'support@example.com',name:window.senderQA.accounts[0].name,account:{...window.senderQA.accounts[0]},permKeys:['*']};user.refreshUserInfo=()=>{};
+ account.currentAccountId=1;account.currentAccount={...window.senderQA.accounts[0]};
+ setting.settings={r2Domain:'',domainList:['@example.com']};setting.domainList=['@example.com'];
+ const writer=ref(),mode=ref('accounts');onMounted(()=>window.senderQA.writer=writer.value);
+ return()=>h('main',{},[h('p','本地模拟验证，仅使用假邮箱。'),h('nav',[h('button',{onClick:()=>mode.value='accounts'},'邮箱列表'),h('button',{onClick:()=>mode.value='settings'},'个人设置'),h('button',{onClick:()=>writer.value.open()},'写邮件'),h('button',{onClick:()=>writer.value.openDraft({accountId:1,sendEmail:'support@example.com',name:'旧名称',receiveEmail:['test@example.net'],subject:'旧草稿',content:'草稿正文',attachments:[]})},'打开旧草稿')]),mode.value==='accounts'?h('section',{style:'height:300px'},[h(Accounts)]):h(Settings),h(Writer,{ref:writer})]);
+}}).use(pinia).use(ElementPlus).use(createI18n({legacy:false,locale:'zh',messages:{zh}})).directive('perm',{mounted(){}}).mount('#app');
+</script><style>body{font-family:system-ui;margin:0;color:#303133}main>p,nav{padding:8px}nav{display:flex;flex-wrap:wrap;gap:8px}textarea{width:100%;height:100%;min-height:120px}.send{background:#fff}</style></html>

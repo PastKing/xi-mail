@@ -5,6 +5,9 @@ import BizError from '../error/biz-error';
 const resendService = {
 
 	async webhooks(c, body) {
+		if (typeof body.data?.email_id !== 'string' || body.data.email_id.startsWith('cloudflare:')) {
+			throw new BizError('Invalid Resend email ID');
+		}
 
 		const params = {
 			resendEmailId: body.data.email_id,

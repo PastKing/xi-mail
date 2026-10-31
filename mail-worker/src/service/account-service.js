@@ -236,15 +236,21 @@ const accountService = {
 
 	async setName(c, params, userId) {
 		const { accountId } = params
-		if (typeof params.name !== 'string') {
-			throw new BizError(t('usernameLengthLimit'));
+		if (typeof params.name !== 'string' || /[\x00-\x1f\x7f]/.test(params.name)) {
+			throw new BizError(t('invalidSenderName'));
 		}
 		// 去掉尖括号，避免显示名被当作 HTML 注入到回信模板 / 正文渲染
-		const name = params.name.replace(/[<>]/g, '').trim();
+		let name = params.name.replace(/[<>]/g, '').trim();
 		if (name.length > 30) {
-			throw new BizError(t('usernameLengthLimit'));
+			throw new BizError(t('invalidSenderName'));
 		}
-		await orm(c).update(account).set({name}).where(and(eq(account.userId, userId),eq(account.accountId, accountId))).run();
+		const accountRow = await this.selectById(c, accountId);
+		if (!accountRow || accountRow.userId !== userId) {
+			throw new BizError(t('noUserAccount'), 403);
+		}
+		name ||= emailUtils.getName(accountRow.email);
+		await orm(c).update(account).set({name}).where(and(eq(account.userId, userId),eq(account.accountId, accountId),eq(account.isDel, isDel.NORMAL))).run();
+		return { name };
 	},
 
 	async allAccount(c, params) {
