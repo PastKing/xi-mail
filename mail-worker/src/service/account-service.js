@@ -128,7 +128,33 @@ const accountService = {
 		return orm(c).select().from(account).where(sql`${account.email} COLLATE NOCASE = ${email}`).get();
 	},
 
-	list(c, params, userId) {
+	async list(c, params, userId) {
+		const rows = await this.selectList(c, params, userId);
+		const sendable = await this.sendableChecker(c, userId);
+		return rows.map(row => ({ ...row, canSend: sendable(row.email) }));
+	},
+
+	// 判断邮箱能否给站外发件：域名配置了发件服务，且用户等级允许对外发件和使用该域名
+	async sendableChecker(c, userId) {
+		const [{ resendTokens = {}, queenTokens = {} }, userRow] = await Promise.all([
+			settingService.query(c),
+			userService.selectById(c, userId),
+		]);
+		const isAdmin = userRow?.email === c.env.admin;
+		const roleRow = isAdmin ? null : await roleService.selectById(c, userRow?.type);
+
+		if (!isAdmin && (!roleRow || ['ban', 'internal'].includes(roleRow.sendType))) {
+			return () => false;
+		}
+
+		return email => {
+			const domain = emailUtils.getDomain(email || '');
+			if (!resendTokens[domain] && !queenTokens[domain]) return false;
+			return isAdmin || roleService.hasAvailDomainPerm(roleRow.availDomain || '', email);
+		};
+	},
+
+	selectList(c, params, userId) {
 
 		let { accountId, size, lastSort } = params;
 

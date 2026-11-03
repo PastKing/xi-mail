@@ -87,6 +87,8 @@ const en = {
     from: 'From',
     subject: 'Subject',
     sender: 'Sender',
+    senderInternalOnly: 'Internal only',
+    senderInternalOnlyDesc: 'None of your mailboxes can send externally yet (no sending service for the domain, or your level does not allow it). You can only send to mailboxes on this site',
     user: 'User',
     searchByContent: 'Enter text to search',
     noRecipient: 'No recipient',

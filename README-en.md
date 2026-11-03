@@ -6,7 +6,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.5.11-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -62,6 +62,26 @@ x-admin-auth: <your-token>
 
 ---
 
+## 🧩 Browser extension
+
+A companion Chrome extension for reading mail, copying verification codes, writing mail and managing mailboxes without opening the website.
+
+| Inbox | Reading | Dark · switch mailbox |
+|:---:|:---:|:---:|
+| ![Extension inbox](doc/images/plug-in/inbox.png) | ![Extension reader](doc/images/plug-in/reader.png) | ![Extension dark mode](doc/images/plug-in/mailbox-dropdown-dark.png) |
+
+- Inbox, sent, compose and reply; verification codes shown in the list with one-click copy
+- Switch, create and delete mailboxes; multiple accounts stay separate
+- Draggable floating button on the right edge of any page that opens the full mailbox window
+- New mail notifications; light / dark / follow system
+- Passwords are never stored and the login token is encrypted locally; mail bodies render in a sandbox with remote images blocked
+
+**Install**: download [`doc/plug-in/chrome-plug.zip`](doc/plug-in/chrome-plug.zip) and unzip it → open `chrome://extensions` and turn on Developer mode → click "Load unpacked" and pick the unzipped folder → click the Xi-Mail toolbar icon and sign in with your site URL (e.g. `https://mail.example.com`), email and password.
+
+Requires Chrome 120 or later. Attachments cannot be sent yet; actions that need a CAPTCHA (such as some mailbox creation) should be done on the website.
+
+---
+
 ## 🚀 Deployment
 
 Prerequisites: Node.js ≥ 20, `npx wrangler login` completed, and a domain hosted on Cloudflare with Email Routing enabled.
@@ -112,6 +132,7 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
+| **v3.5.12** | Browser extension; only senders that can send are listed |
 | **v3.5.11** | QueenSMTP sending service |
 | **v3.5.x** | Sub-worker mail in main site, login sessions, better code extraction, security fixes |
 | **v3.4.x** | Floating Island navigation and login templates |

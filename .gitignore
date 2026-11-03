@@ -10,6 +10,7 @@ node_modules
 dist-ssr
 *.local
 dist
+chrome-plug
 
 .vscode/*
 !.vscode/extensions.json

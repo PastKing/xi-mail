@@ -87,6 +87,8 @@ const zh = {
     from: '发件人',
     subject: '主题',
     sender: '发件人',
+    senderInternalOnly: '仅站内',
+    senderInternalOnlyDesc: '你的邮箱都还不能对外发件（域名未配置发件服务或等级不允许），目前只能发给本站邮箱',
     user: '用户',
     searchByContent: '输入内容查询',
     noRecipient: '无收件人',

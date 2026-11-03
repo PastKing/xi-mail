@@ -6,7 +6,7 @@
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.5.11-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -62,6 +62,26 @@ x-admin-auth: <your-token>
 
 ---
 
+## 🧩 浏览器插件
+
+配套的 Chrome 插件，不用打开网页就能收信、看验证码、写信和管理邮箱。
+
+| 收件箱 | 阅读邮件 | 深色 · 切换邮箱 |
+|:---:|:---:|:---:|
+| ![插件收件箱](doc/images/plug-in/inbox.png) | ![插件阅读邮件](doc/images/plug-in/reader.png) | ![插件深色模式](doc/images/plug-in/mailbox-dropdown-dark.png) |
+
+- 收件箱、已发送、写信与回复，邮件列表直接显示验证码，一键复制
+- 多个邮箱切换、新建与删除，多账号登录互不干扰
+- 任意网页右侧的悬浮入口，可拖动，展开后是完整的邮箱窗口
+- 新邮件通知，浅色 / 深色 / 跟随系统
+- 密码不保存，登录凭证加密存在本地；邮件正文在沙箱中显示，默认不加载远程图片
+
+**安装**：下载 [`doc/plug-in/chrome-plug.zip`](doc/plug-in/chrome-plug.zip) 并解压 → 打开 `chrome://extensions`，开启「开发者模式」→「加载已解压的扩展程序」，选择解压后的文件夹 → 点击工具栏的 Xi-Mail 图标，填写站点地址（如 `https://mail.example.com`）、邮箱和密码登录。
+
+需要 Chrome 120 及以上。暂不支持发送附件；需要人机验证的操作（如部分新建邮箱）请到网页版完成。
+
+---
+
 ## 🚀 部署
 
 前置条件：Node.js ≥ 20、已 `npx wrangler login`、一个托管在 Cloudflare 并开启 Email Routing 的域名。
@@ -112,6 +132,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
+| **v3.5.12** | 新增浏览器插件；写信只显示能发件的发件人 |
 | **v3.5.11** | 新增 QueenSMTP 发件服务 |
 | **v3.5.x** | 子 Worker 邮件在主站显示、登录会话管理、验证码识别优化、安全修复 |
 | **v3.4.x** | 浮岛导航与多套登录模板 |
