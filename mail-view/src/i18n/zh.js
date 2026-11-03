@@ -576,6 +576,8 @@ const zh = {
     sessionNoActivity: '暂无记录',
     sessionLegacyHint: '旧版本登录的设备，下次访问后显示详细信息',
     noticeGotIt: '知道了',
+    showAccountList: '展开邮箱列表',
+    hideAccountList: '收起邮箱列表',
     neBold: '加粗',
     neHeading: '小标题',
     neList: '列表（选中多行可批量转换）',

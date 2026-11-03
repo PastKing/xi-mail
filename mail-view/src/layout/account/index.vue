@@ -13,7 +13,9 @@
           <Icon icon="mingcute:search-line" width="14" height="14" />
         </template>
       </el-input>
-      <Icon class="icon refresh" icon="mingcute:refresh-2-line" width="16" height="16" @click="refresh"/>
+      <el-tooltip :content="$t('refresh')" placement="top">
+        <Icon class="icon" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
+      </el-tooltip>
     </div>
 
     <el-scrollbar class="scrollbar" ref="scrollbarRef">
@@ -570,11 +572,6 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
     :deep(.el-input__inner) {
       font-size: 12px;
     }
-  }
-
-  .refresh {
-    color: var(--el-text-color-placeholder);
-    &:hover { color: var(--el-text-color-primary); }
   }
 }
 

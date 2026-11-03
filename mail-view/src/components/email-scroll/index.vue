@@ -11,7 +11,9 @@
       <div class="header-left" :style="'padding-left:' + actionLeft">
 
         <slot name="first"></slot>
-        <Icon class="icon reload" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
+        <el-tooltip :content="$t('refresh')" placement="top">
+          <Icon class="icon reload" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
+        </el-tooltip>
         <Icon v-perm="'email:delete'" class="icon delete" icon="mingcute:delete-2-line" width="18" height="18"
               v-if="getSelectedMailsIds().length > 0"
               @click="handleDelete"/>
@@ -22,8 +24,11 @@
 
       <div class="header-right">
         <span class="email-count" v-if="total">{{ $t('emailCount', {total: total}) }}</span>
-        <Icon v-if="showAccountIcon" class="more-icon icon" width="18" height="18" icon="mingcute:dot-grid-line"
-              @click="changeAccountShow"/>
+        <el-tooltip v-if="canToggleAccount" :content="accountShow ? $t('hideAccountList') : $t('showAccountList')" placement="bottom">
+          <Icon class="icon" width="18" height="18"
+                :icon="accountShow ? 'mingcute:layout-leftbar-close-line' : 'mingcute:layout-leftbar-open-line'"
+                @click="changeAccountShow"/>
+        </el-tooltip>
       </div>
     </div>
 
@@ -234,6 +239,7 @@ import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmo
 import {useEmailStore} from "@/store/email.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
+import {hasPerm} from "@/perm/perm.js";
 import {sleep} from "@/utils/time-utils.js"
 import {fromNow} from "@/utils/day.js";
 import {useI18n} from "vue-i18n";
@@ -541,6 +547,10 @@ function getSkeletonRows() {
   if (emailList.length === 0) return skeletonRows = 1
   skeletonRows = emailList.length
 }
+
+const canToggleAccount = computed(() => {
+  return props.showAccountIcon && settingStore.settings.manyEmail === 0 && hasPerm('account:query')
+})
 
 const accountShow = computed(() => {
   return uiStore.accountShow && settingStore.settings.manyEmail === 0
@@ -1319,53 +1329,44 @@ function loadData() {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 16px;
-  padding: 6px 16px;
+  min-height: 42px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
+  font-size: 18px;
 
   .header-left {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
     position: relative;
-    gap: 10px;
-    padding-left: 4px;
+    gap: 16px;
     min-width: 0;
     overflow: hidden;
     color: var(--el-text-color-primary);
   }
 
   .header-right {
-    display: grid;
-    grid-template-columns: auto auto;
-    align-items: start;
-    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
     color: var(--el-text-color-secondary);
 
     .email-count {
       white-space: nowrap;
-      margin-top: 6px;
       font-size: 13px;
     }
   }
 
-  .icon {
-    font-size: 18px;
+  .icon,
+  :slotted(.icon) {
+    flex-shrink: 0;
     cursor: pointer;
     color: var(--el-text-color-secondary);
-    transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: var(--xi-radius-sm);
-    
-    &:hover {
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-    }
-  }
+    transition: color 0.15s;
+    outline: none;
 
-  .more-icon {
-    margin-top: 6px;
-    margin-left: 14px;
+    &:hover { color: var(--el-text-color-primary); }
   }
 }
 

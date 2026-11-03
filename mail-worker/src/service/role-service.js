@@ -154,6 +154,11 @@ const roleService = {
 		return orm(c).select(role).from(user).leftJoin(role, eq(role.roleId, user.type)).where(eq(user.userId, userId)).get();
 	},
 
+	// 主邮箱（注册/激活时使用的邮箱）不受角色域名限制，只用于收件
+	isPrimaryEmail(userEmail, email) {
+		return !!userEmail && !!email && userEmail.toLowerCase() === email.toLowerCase();
+	},
+
 	hasAvailDomainPerm(availDomain, email) {
 
 		availDomain = availDomain.split(',').filter(item => item !== '');
@@ -178,11 +183,11 @@ const roleService = {
 
 	selectByUserIds(c, userIds) {
 
-		if (!userIds && userIds.length === 0) {
+		if (!userIds || userIds.length === 0) {
 			return [];
 		}
 
-		return orm(c).select({ ...role, userId: user.userId }).from(user).leftJoin(role, eq(role.roleId, user.type)).where(inArray(user.userId, userIds)).all();
+		return orm(c).select({ ...role, userId: user.userId, userEmail: user.email }).from(user).leftJoin(role, eq(role.roleId, user.type)).where(inArray(user.userId, userIds)).all();
 
 	},
 

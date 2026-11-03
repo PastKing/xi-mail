@@ -142,7 +142,7 @@ export async function email(message, env, ctx) {
 
 			let { banEmail, availDomain } = await roleService.selectByUserId({ env: env }, account.userId);
 
-			if (!roleService.hasAvailDomainPerm(availDomain, recipientTo)) {
+			if (!roleService.isPrimaryEmail(userRow.email, account.email) && !roleService.hasAvailDomainPerm(availDomain, recipientTo)) {
 				message.setReject('The recipient is not authorized to use this domain.');
 				return;
 			}

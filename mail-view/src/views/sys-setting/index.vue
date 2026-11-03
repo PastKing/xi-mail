@@ -54,7 +54,7 @@ const sections = computed(() => {
     { id: 'security',     routeName: 'sys-setting-security',     icon: 'mingcute:shield-line',   label: 'securitySetting' },
     { id: 'registration', routeName: 'sys-setting-registration', icon: 'mingcute:user-add-line', label: 'emailAddressSetting' },
     { id: 'domain',       routeName: 'sys-setting-domain',       icon: 'mingcute:world-2-line',  label: 'domainManagement' },
-    { id: 'integration',  routeName: 'sys-setting-integration',  icon: 'mingcute:plug-2-line',   label: 'integration' },
+    { id: 'integration',  routeName: 'sys-setting-integration',  icon: 'mingcute:plugin-2-line',   label: 'integration' },
     { id: 'sub-workers',  routeName: 'sys-setting-sub-workers',  icon: 'mingcute:server-line',   label: 'subWorkerManage' },
     { id: 'appearance',   routeName: 'sys-setting-appearance',   icon: 'mingcute:palette-line',  label: 'appearance' },
   ]

@@ -426,12 +426,12 @@ const emailService = {
 
 				const roleRow = roleList.find(roleRow => roleRow.userId === accountRow.userId);
 
-				let { banEmail, availDomain } = roleRow;
+				let { banEmail, availDomain, userEmail } = roleRow;
 
 				//如果收件人没有这个域名的使用权限和有邮件拦截，就把邮件改为拒收状态
 				if (email !== c.env.admin) {
 
-					if (!roleService.hasAvailDomainPerm(availDomain, email)) {
+					if (!roleService.isPrimaryEmail(userEmail, accountRow.email) && !roleService.hasAvailDomainPerm(availDomain, email)) {
 						emailValues.status = emailConst.status.BOUNCED;
 						emailValues.message = `The recipient <${email}> is not authorized to use this domain.`;
 					} else if(roleService.isBanEmail(banEmail, sendEmailData.sendEmail)) {

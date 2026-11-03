@@ -576,6 +576,8 @@ const en = {
     sessionNoActivity: 'No record',
     sessionLegacyHint: 'Signed in before this feature; details appear after its next visit',
     noticeGotIt: 'Got it',
+    showAccountList: 'Show mailbox list',
+    hideAccountList: 'Hide mailbox list',
     neBold: 'Bold',
     neHeading: 'Heading',
     neList: 'List (select several lines to convert them)',
