@@ -77,16 +77,30 @@
                        v-model="setting.noRecipient"/>
           </div>
         </div>
-        <div class="setting-item">
-          <div><span>{{ $t('resendToken') }}</span></div>
+        <div class="setting-item" v-for="item in tokenProviders" :key="item.type">
+          <div><span>{{ item.label }}</span></div>
           <div>
-            <el-button class="opt-button" style="margin-top: 0" @click="showResendList = true" size="small"
+            <el-button class="opt-button" style="margin-top: 0" @click="openTokenList(item.type)" size="small"
                        type="primary">
               <Icon icon="mingcute:list-check-line" width="18" height="18"/>
             </el-button>
-            <el-button class="opt-button" style="margin-top: 0" @click="resendTokenFormShow = true" size="small"
+            <el-button class="opt-button" style="margin-top: 0" @click="openTokenForm(item.type)" size="small"
                        type="primary">
               <Icon icon="mingcute:add-line" width="16" height="16"/>
+            </el-button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <span>{{ $t('sendProvider') }}</span>
+            <el-tooltip effect="dark" :content="$t('sendProviderDesc')">
+              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+            </el-tooltip>
+          </div>
+          <div>
+            <el-button class="opt-button" style="margin-top: 0" @click="sendProviderShow = true" size="small"
+                       type="primary">
+              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
         </div>
@@ -109,7 +123,7 @@
       <el-button type="primary" style="width: 100%;" :loading="settingLoading" @click="saveEmailPrefix">{{ $t('save') }}</el-button>
     </el-dialog>
 
-    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="resendTokenFormShow" :title="$t('resendToken')"
+    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="resendTokenFormShow" :title="currentProvider.label"
                @closed="resendTokenForm.token = ''">
       <form>
         <el-select style="margin-bottom: 15px" v-model="resendTokenForm.domain" placeholder="Select">
@@ -125,12 +139,30 @@
       </form>
     </el-dialog>
 
-    <el-dialog class="sys-setting-dialog resend-table" v-model="showResendList" :title="$t('resendTokenList')">
+    <el-dialog class="sys-setting-dialog resend-table" v-model="showResendList"
+               :title="`${currentProvider.label} · ${$t('resendTokenList')}`">
       <el-table :data="resendList">
         <el-table-column :min-width="emailColumnWidth" property="key" :label="$t('domain')"
                          :show-overflow-tooltip="true"/>
         <el-table-column :width="tokenColumnWidth" property="value" label="Token" fixed="right"
                          :show-overflow-tooltip="true"/>
+      </el-table>
+    </el-dialog>
+
+    <el-dialog class="sys-setting-dialog resend-table" v-model="sendProviderShow" :title="$t('sendProvider')">
+      <div v-if="providerDomains.length === 0" class="provider-empty">{{ $t('sendProviderEmpty') }}</div>
+      <el-table v-else :data="providerDomains">
+        <el-table-column property="domain" :label="$t('domain')" :show-overflow-tooltip="true"/>
+        <el-table-column :label="$t('sendProvider')" width="170">
+          <template #default="{ row }">
+            <el-select size="small" :model-value="row.value" :disabled="settingLoading"
+                       @change="value => saveSendProvider(row.domain, value)">
+              <el-option :label="$t('sendProviderAuto')" value=""/>
+              <el-option label="Resend" value="resend" :disabled="!row.hasResend"/>
+              <el-option label="QueenSMTP" value="queensmtp" :disabled="!row.hasQueen"/>
+            </el-select>
+          </template>
+        </el-table-column>
       </el-table>
     </el-dialog>
   </div>
@@ -169,10 +201,46 @@ const authRefreshOptions = computed(() => [
   {label: '20s', value: 20},
 ])
 
+const tokenProviders = computed(() => [
+  {type: 'resend', label: t('resendToken'), field: 'resendTokens'},
+  {type: 'queensmtp', label: t('queenToken'), field: 'queenTokens'},
+])
+const tokenProvider = ref('resend')
+const currentProvider = computed(() => tokenProviders.value.find(item => item.type === tokenProvider.value))
+const sendProviderShow = ref(false)
+
+const providerDomains = computed(() => {
+  const resendTokens = setting.value.resendTokens || {}
+  const queenTokens = setting.value.queenTokens || {}
+  const providers = setting.value.sendProviders || {}
+  const domains = [...new Set([...Object.keys(resendTokens), ...Object.keys(queenTokens)])]
+  return domains.map(domain => ({
+    domain,
+    hasResend: !!resendTokens[domain],
+    hasQueen: !!queenTokens[domain],
+    value: providers[domain] || ''
+  }))
+})
+
+function openTokenList(type) {
+  tokenProvider.value = type
+  showResendList.value = true
+}
+
+function openTokenForm(type) {
+  tokenProvider.value = type
+  resendTokenFormShow.value = true
+}
+
+function saveSendProvider(domain, value) {
+  editSetting({sendProviders: {[domain]: value}})
+}
+
 const resendList = computed(() => {
-  const list = Object.keys(setting.value.resendTokens || {}).map(key => ({
+  const tokens = setting.value[currentProvider.value.field] || {}
+  const list = Object.keys(tokens).map(key => ({
     key,
-    value: setting.value.resendTokens[key]
+    value: tokens[key]
   }))
 
   if (list.length > 0) {
@@ -215,7 +283,7 @@ function saveEmailPrefix() {
 
 function saveResendToken() {
   const domain = resendTokenForm.domain.slice(1)
-  editSetting({resendTokens: {[domain]: resendTokenForm.token}}).then(ok => {
+  editSetting({[currentProvider.value.field]: {[domain]: resendTokenForm.token}}).then(ok => {
     if (ok) resendTokenFormShow.value = false
   })
 }
@@ -230,6 +298,13 @@ function saveResendToken() {
 .prefix-filter {
   display: flex;
   flex-direction: column;
+}
+
+.provider-empty {
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  padding: 30px 0;
+  font-size: 13px;
 }
 
 :deep(.resend-table.el-dialog) {

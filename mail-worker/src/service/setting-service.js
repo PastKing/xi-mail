@@ -11,6 +11,8 @@ import verifyRecordService from './verify-record-service';
 import { AI_CODE_MODELS, resolveAiModel } from '../const/ai-models';
 import subWorkerService from './sub-worker-service';
 
+const SEND_PROVIDERS = ['resend', 'queensmtp'];
+
 function generateToken(len = 32) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	const arr = new Uint8Array(len);
@@ -20,9 +22,26 @@ function generateToken(len = 32) {
 
 const settingService = {
 
+	async ensureSendColumns(c) {
+		for (const column of ['queen_tokens', 'send_providers']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN ${column} TEXT NOT NULL DEFAULT '{}';`).run();
+			} catch (e) {}
+		}
+	},
+
 	async refresh(c) {
-		const settingRow = await orm(c).select().from(setting).get();
+		let settingRow;
+		try {
+			settingRow = await orm(c).select().from(setting).get();
+		} catch (e) {
+			// 新增的发件服务字段还没迁移时先补列再读
+			await this.ensureSendColumns(c);
+			settingRow = await orm(c).select().from(setting).get();
+		}
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
+		settingRow.queenTokens = JSON.parse(settingRow.queenTokens || '{}');
+		settingRow.sendProviders = JSON.parse(settingRow.sendProviders || '{}');
 		settingRow.subWorkerDomains = await subWorkerService.domains(c, true);
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
@@ -56,6 +75,18 @@ const settingService = {
 				await this.refresh(c);
 			} catch (e) {}
 			settingRow.aiModel = resolveAiModel('', c.env.ai_model);
+		}
+
+		if (!settingRow.queenTokens || !settingRow.sendProviders) {
+			try {
+				await this.ensureSendColumns(c);
+				const raw = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+				raw.queenTokens = raw.queenTokens || {};
+				raw.sendProviders = raw.sendProviders || {};
+				await c.env.kv.put(KvConst.SETTING, JSON.stringify(raw));
+			} catch (e) {}
+			settingRow.queenTokens = settingRow.queenTokens || {};
+			settingRow.sendProviders = settingRow.sendProviders || {};
 		}
 
 		// Parse managed domains (web-configured), fall back to env domain
@@ -139,6 +170,10 @@ const settingService = {
 			settingRow.resendTokens[key] = `${settingRow.resendTokens[key].slice(0, 12)}******`;
 		});
 
+		Object.keys(settingRow.queenTokens).forEach(key => {
+			settingRow.queenTokens[key] = `${settingRow.queenTokens[key].slice(0, 12)}******`;
+		});
+
 		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
 		settingRow.hasR2 = !!c.env.r2
@@ -188,6 +223,19 @@ const settingService = {
 			if (!resendTokens[domain]) delete resendTokens[domain];
 		});
 
+		const queenInput = Object.fromEntries(Object.entries(params.queenTokens || {})
+			.filter(([, value]) => !String(value || '').endsWith('******')));
+		let queenTokens = { ...settingData.queenTokens, ...queenInput };
+		Object.keys(queenTokens).forEach(domain => {
+			if (!queenTokens[domain]) delete queenTokens[domain];
+		});
+
+		// 每个域名选用的发件服务：resend / queensmtp，空值表示自动（优先 Resend）
+		let sendProviders = { ...settingData.sendProviders, ...params.sendProviders };
+		Object.keys(sendProviders).forEach(domain => {
+			if (!SEND_PROVIDERS.includes(sendProviders[domain])) delete sendProviders[domain];
+		});
+
 		if (Array.isArray(params.emailPrefixFilter)) {
 			params.emailPrefixFilter = params.emailPrefixFilter + '';
 		}
@@ -213,6 +261,8 @@ const settingService = {
 		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
+		params.queenTokens = JSON.stringify(queenTokens);
+		params.sendProviders = JSON.stringify(sendProviders);
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		await this.refresh(c);
 	},

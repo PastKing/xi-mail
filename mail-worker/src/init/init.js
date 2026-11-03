@@ -43,6 +43,7 @@ const dbInit = {
 		await this.v4_2DB(c);
 		await this.v4_3DB(c);
 		await this.v4_4DB(c);
+		await this.v4_5DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},
@@ -253,6 +254,10 @@ const dbInit = {
 		try {
 			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN ai_model TEXT NOT NULL DEFAULT '@cf/meta/llama-3.1-8b-instruct-fast';`).run();
 		} catch (e) {}
+	},
+
+	async v4_5DB(c) {
+		await settingService.ensureSendColumns(c);
 	},
 
 	async v2_9DB(c) {

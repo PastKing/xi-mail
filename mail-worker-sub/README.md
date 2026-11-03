@@ -129,7 +129,7 @@ curl -H "x-api-token: your-token" "https://your-sub-worker.workers.dev/api/mails
 | 用户系统 | 有（注册、登录、权限） | 无 |
 | 前端页面 | 有（mail-view） | 无 |
 | 邮件接收 | 有 | 有 |
-| 邮件发送 | 有（Resend） | 无 |
+| 邮件发送 | 有（Resend / QueenSMTP） | 无 |
 | 附件存储 | R2 / S3 | 无 |
 | 认证方式 | JWT | API Token |
 | 数据库 | D1（多表） | D1（仅 email 表） |

@@ -23,6 +23,11 @@ import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import permService from './perm-service';
 import subWorkerService from './sub-worker-service';
+import queenSmtpService from './queen-smtp-service';
+import domainUtils from '../utils/domain-uitls';
+
+// QueenSMTP 的消息 id 存在 resend_email_id 字段，加前缀区分来源，避免和 Resend 的状态回调混淆
+const QUEEN_ID_PREFIX = 'queensmtp:';
 
 const emailService = {
 
@@ -173,6 +178,26 @@ const emailService = {
 		return orm(c).insert(email).values({ ...params }).returning().get();
 	},
 
+	// 选择域名的发件服务：按「发件服务」设置优先，未设置时 Resend 优先，保持旧行为
+	resolveSendProvider(setting, domain, hasAttachments) {
+		const resendToken = setting.resendTokens?.[domain];
+		const queenToken = setting.queenTokens?.[domain];
+		const preferred = setting.sendProviders?.[domain];
+
+		const resend = resendToken ? { type: 'resend', token: resendToken } : null;
+		const queen = queenToken ? { type: 'queensmtp', token: queenToken } : null;
+
+		let provider = preferred === 'queensmtp' ? (queen || resend) : (resend || queen);
+
+		//QueenSMTP 不支持附件，有附件时换用 Resend
+		if (provider?.type === 'queensmtp' && hasAttachments) {
+			if (!resend) throw new BizError(t('queenNoAttachment'));
+			provider = resend;
+		}
+
+		return provider;
+	},
+
 	//邮件发送
 	async send(c, params, userId) {
 
@@ -188,7 +213,8 @@ const emailService = {
 			attachments //附件
 		} = params;
 
-		const { resendTokens, r2Domain, send, domainList } = await settingService.query(c);
+		const setting = await settingService.query(c);
+		const { r2Domain, send, domainList } = setting;
 
 		let { imageDataList, html } = await attService.toImageUrlHtml(c, content);
 
@@ -263,10 +289,10 @@ const emailService = {
 		}
 
 		const domain = emailUtils.getDomain(accountRow.email);
-		const resendToken = resendTokens[domain];
+		const provider = allInternal ? null : this.resolveSendProvider(setting, domain, attachments?.length > 0);
 
-		//如果接收方存在站外邮箱，又没有resend token
-		if (!resendToken && !allInternal) {
+		//如果接收方存在站外邮箱，又没有可用的发件服务
+		if (!provider && !allInternal) {
 			throw new BizError(t('noResendToken'));
 		}
 
@@ -291,11 +317,34 @@ const emailService = {
 		}
 
 		let resendResult = {};
+		let providerMessage = null;
 
-		//存在站外时邮箱全部由resend发送
-		if (!allInternal) {
+		//存在站外时邮箱全部交给该域名的发件服务
+		if (!allInternal && provider.type === 'queensmtp') {
 
-			const resend = new Resend(resendToken);
+			//QueenSMTP 不支持 cid 内嵌图片，正文图片换成可公开访问的地址（图片在发件后写入存储，收件人打开时已可访问）
+			const baseUrl = domainUtils.toOssDomain(r2Domain) || new URL(c.req.url).origin;
+			const queenHtml = this.imgReplace(html, imageDataList, r2Domain).replace(/{{domain}}/g, baseUrl + '/');
+
+			const { ids, failed } = await queenSmtpService.send(provider.token, {
+				from: accountRow.email,
+				fromName: name,
+				to: receiveEmail,
+				subject,
+				html: queenHtml,
+				text,
+				inReplyTo: sendType === 'reply' ? emailRow.messageId : null,
+			});
+
+			resendResult = { data: { id: QUEEN_ID_PREFIX + ids[0] } };
+
+			if (failed.length > 0) {
+				providerMessage = 'QueenSMTP: ' + failed.map(item => `${item.to} ${item.error}`).join('; ');
+			}
+
+		} else if (!allInternal) {
+
+			const resend = new Resend(provider.token);
 
 			const sendForm = {
 				from: `${name} <${accountRow.email}>`,
@@ -341,6 +390,9 @@ const emailService = {
 		emailData.type = emailConst.type.SEND;
 		emailData.userId = userId;
 		emailData.resendEmailId = data?.id;
+		if (providerMessage) {
+			emailData.message = providerMessage;
+		}
 
 		const recipient = [];
 
