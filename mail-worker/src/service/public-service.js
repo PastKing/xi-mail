@@ -15,12 +15,15 @@ import { isDel, roleConst } from '../const/entity-const';
 import email from '../entity/email';
 import userService from './user-service';
 import KvConst from '../const/kv-const';
+import subWorkerService from './sub-worker-service';
 
 const publicService = {
 
 	async emailList(c, params) {
 
 		let { toEmail, content, subject, sendName, sendEmail, timeSort, num, size, type , isDel } = params
+
+		await subWorkerService.syncAll(c);
 
 		const query = orm(c).select({
 				emailId: email.emailId,

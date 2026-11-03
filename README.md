@@ -6,7 +6,7 @@
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.5.9-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.10-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,22 +112,15 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
-| **v3.5.9** | 子 Worker 域名邮件在主站显示；修复子 Worker 域名读取 |
-| **v3.5.8** | 主邮箱收信不受域名限制；按钮样式统一 |
-| **v3.5.7** | 新建邮箱一键复制；修复潜在的安全风险 |
-| **v3.5.6** | 新增登录会话管理；公告弹窗优化 |
-| **v3.5.5** | 修复潜在的安全风险 |
-| **v3.5.4** | 手机底栏没有其他可去页面时，不再显示「更多」按钮 |
-| **v3.5.3** | 验证码识别更准：不再误抓链接参数，也不会把验证码截成半截 |
-| **v3.5.2** | 浮岛导航常驻邮箱转移，个人设置排在其下；用户 ID 提到邮箱上方；3.4.x 版本记录合并 |
-| **v3.5.1** | 验证码识别默认开启，入口移到服务集成；支持选择 Workers AI 模型，改为模型优先、失败才回退正则；子 Worker 支持子地址查询与按天数自动清理 |
-| **v3.5.0** | 邮件列表只查摘要字段并懒加载正文，补齐数据库索引；新增自动清理邮件、同步删除开关、验证码识别一键复制、子地址投递与新邮件通知 |
-| **v3.4.x** | 浮岛导航（桌面窄轨 + 移动底栏）与 9 套登录模板；系统设置拆分子页、域名内联排序；禁止主账号转移；正文插图一步插入并修复发送丢图 |
-| **v3.3.x** | 发件人白名单模式；黑白名单合并入同一入口；`/settings` 重排与 ID 点击复制；图标与尺寸统一 |
-| **v3.2.x** | 发件人域名屏蔽修复（信封 + From 双检）；侧边栏收窄至 200px |
-| **v3.1.0** | 子 Worker 聚合；语言偏好持久化到用户账号 |
-| **v3.0.0** | 前后端分离；多 Server 架构；standalone 独立部署 |
-| **v2.0.0** | 外观模板系统；登录后主布局切换；系统设置页重构 |
+| **v3.5.10** | 子 Worker 邮件自动同步到主站；部署教程完善 |
+| **v3.5.x** | 子 Worker 邮件在主站显示、登录会话管理、验证码识别优化、安全修复 |
+| **v3.4.x** | 浮岛导航与多套登录模板 |
+| **v3.3.x** | 发件人白名单模式 |
+| **v3.2.x** | 发件人域名屏蔽 |
+| **v3.0 – 3.1** | 前后端分离、多 Server、子 Worker |
+| **v2.0.0** | 外观模板系统 |
+
+完整更新记录见 [Releases](https://github.com/PastKing/xi-mail/releases)。
 
 ---
 

@@ -58,7 +58,7 @@ const emailService = {
 		}
 
 		if (firstPage && Number(type) === emailConst.type.RECEIVE) {
-			await this.syncSubWorker(c, userId, accountId, allReceive);
+			await subWorkerService.syncAll(c);
 		}
 
 		const query = orm(c)
@@ -588,13 +588,6 @@ const emailService = {
 		};
 	},
 
-	async syncSubWorker(c, userId, accountId, allReceive) {
-		const accountRows = allReceive
-			? await orm(c).select().from(account).where(and(eq(account.userId, userId), eq(account.isDel, isDel.NORMAL))).all()
-			: [await accountService.selectById(c, accountId)].filter(row => row && row.userId === userId);
-		await subWorkerService.syncAccounts(c, accountRows);
-	},
-
 	async latest(c, params, userId) {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
@@ -604,7 +597,7 @@ const emailService = {
 			allReceive = accountRow.allReceive;
 		}
 
-		await this.syncSubWorker(c, userId, Number(accountId), allReceive);
+		await subWorkerService.syncAll(c);
 
 		let list = await orm(c).select({...emailBriefColumns}).from(email)
 			.innerJoin(
@@ -680,6 +673,8 @@ const emailService = {
 		}
 
 		if (!emailId) {
+
+			await subWorkerService.syncAll(c);
 
 			if (timeSort) {
 				emailId = 0;
@@ -790,6 +785,8 @@ const emailService = {
 	async allEmailLatest(c, params) {
 
 		const { emailId } = params;
+
+		await subWorkerService.syncAll(c);
 
 		let list = await orm(c).select({...emailBriefColumns, userEmail: user.email}).from(email)
 			.leftJoin(user, eq(email.userId, user.userId))

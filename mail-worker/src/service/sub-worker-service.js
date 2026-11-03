@@ -1,19 +1,24 @@
 import orm from '../entity/orm';
 import subWorker from '../entity/sub-worker';
 import email from '../entity/email';
-import { and, eq, inArray } from 'drizzle-orm';
-import { emailConst, isDel } from '../const/entity-const';
+import { and, eq, gte, inArray } from 'drizzle-orm';
+import { emailConst, isDel, settingConst } from '../const/entity-const';
 import emailUtils from '../utils/email-utils';
 import settingService from './setting-service';
 import roleService from './role-service';
 import userService from './user-service';
+import accountService from './account-service';
 import aiService from './ai-service';
+import telegramService from './telegram-service';
 
-const SYNC_CURSOR = 'sub-sync:';
+const SYNC_CURSOR = 'sub-sync-sw:';
+const SYNC_LOCK = 'sub-sync-lock:';
 const SYNC_BATCH = 20;
-// 一次请求最多同步的邮箱数，避免「全部邮件」视图下子请求过多
-const MAX_SYNC_ACCOUNTS = 10;
+const SYNC_INTERVAL_MS = 10000;
 const FETCH_TIMEOUT_MS = 8000;
+
+// 同一个 isolate 内的节流，避免每个请求都去拉子 Worker
+let lastSyncAt = 0;
 
 export function parseDomains(raw) {
 	let list = raw;
@@ -27,6 +32,17 @@ export function parseDomains(raw) {
 	if (typeof list === 'string') list = [list];
 	if (!Array.isArray(list)) return [];
 	return list.map(item => String(item).trim().replace(/^@/, '').toLowerCase()).filter(Boolean);
+}
+
+function matchDomainList(list, address) {
+	if (!address) return false;
+	const atIdx = address.lastIndexOf('@');
+	if (atIdx === -1) return false;
+	const senderDomain = address.slice(atIdx + 1).toLowerCase().trim();
+	return list.some(item => {
+		const d = item.toLowerCase().trim().replace(/^@/, '');
+		return d && (senderDomain === d || senderDomain.endsWith('.' + d));
+	});
 }
 
 // 子 Worker 邮件在主库里的唯一标识，用于去重
@@ -66,111 +82,142 @@ const subWorkerService = {
 		return [...new Set(list.flatMap(row => row.domains))];
 	},
 
-	findByEmail(list, address) {
-		const domain = emailUtils.getDomain(address || '').toLowerCase();
-		if (!domain) return null;
-		return list.find(row => row.domains.includes(domain)) || null;
-	},
+	// 按投递规则处理一封子 Worker 邮件，与 email.js 收信逻辑保持一致；返回 null 表示被拒收
+	async resolveTarget(c, row, settings) {
+		const { noRecipient, senderFilterMode, senderDomainBlacklist, senderDomainWhitelist, domainMapping } = settings;
+		const fromAddress = row.send_email || '';
 
-	// 拉取 remoteId > after 的邮件；子 Worker 1.2.0 起有 /api/sync，旧版本退回逐封查询
-	async fetchSince(sw, address, after) {
-		const query = `address=${encodeURIComponent(address)}&after=${after}&limit=${SYNC_BATCH}`;
-		const synced = await fetchJson(`${sw.url}/api/sync?${query}`, sw.apiToken);
-		if (!synced.notFound) {
-			return synced.data || [];
+		if (senderFilterMode === 1) {
+			if (senderDomainWhitelist?.length > 0 && !matchDomainList(senderDomainWhitelist, fromAddress)) return null;
+		} else if (senderDomainBlacklist?.length > 0 && matchDomainList(senderDomainBlacklist, fromAddress)) {
+			return null;
 		}
 
-		const listed = await fetchJson(`${sw.url}/api/mails?address=${encodeURIComponent(address)}&limit=${SYNC_BATCH}&offset=0`, sw.apiToken);
-		const ids = (listed.data?.results || [])
-			.map(row => row.email_id)
-			.filter(id => id > after)
-			.sort((a, b) => a - b)
-			.slice(0, 10);
-
-		const rows = [];
-		for (const id of ids) {
-			const detail = await fetchJson(`${sw.url}/api/mail/${id}`, sw.apiToken);
-			if (detail.data) rows.push(detail.data);
+		let recipientTo = (row.to_email || '').trim();
+		const atIdx = recipientTo.indexOf('@');
+		if (atIdx !== -1 && domainMapping && typeof domainMapping === 'object') {
+			const mapped = domainMapping[recipientTo.slice(atIdx + 1)];
+			if (mapped) recipientTo = `${recipientTo.slice(0, atIdx)}@${mapped}`;
 		}
-		return rows;
+
+		let account = await accountService.selectByEmailIncludeDel(c, recipientTo);
+		if (!account) {
+			const baseEmail = emailUtils.getBaseEmail(recipientTo);
+			if (baseEmail && baseEmail !== recipientTo) {
+				account = await accountService.selectByEmailIncludeDel(c, baseEmail);
+			}
+		}
+
+		if (!account) {
+			return noRecipient === settingConst.noRecipient.CLOSE ? null : { recipientTo, account: null };
+		}
+
+		const userRow = await userService.selectByIdIncludeDel(c, account.userId);
+		if (userRow && userRow.email !== c.env.admin) {
+			const { banEmail, availDomain } = await roleService.selectByUserId(c, account.userId) || {};
+			if (!roleService.isPrimaryEmail(userRow.email, account.email) && !roleService.hasAvailDomainPerm(availDomain || '', recipientTo)) return null;
+			if (roleService.isBanEmail(banEmail || '', fromAddress)) return null;
+		}
+
+		return { recipientTo, account };
 	},
 
-	async syncAccount(c, sw, accountRow, settings) {
-		const cursorKey = SYNC_CURSOR + accountRow.accountId;
-		const after = Number(await c.env.kv.get(cursorKey)) || 0;
+	async importRow(c, sw, row, settings) {
+		const target = await this.resolveTarget(c, row, settings);
+		if (!target) return;
 
-		const rows = await this.fetchSince(sw, accountRow.email, after);
-		if (rows.length === 0) return;
+		const { recipientTo, account } = target;
+		const fromAddress = row.send_email || '';
+		const code = await aiService.extractCode(c, {
+			subject: row.subject || '',
+			html: row.content || '',
+			text: row.text || '',
+			from: { address: fromAddress, name: row.name || '' },
+		}, settings);
 
-		const messageIds = rows.map(row => syncMessageId(sw.id, row.email_id));
-		const existing = await orm(c).select({ messageId: email.messageId }).from(email)
-			.where(and(eq(email.accountId, accountRow.accountId), inArray(email.messageId, messageIds)))
-			.all();
-		const existingSet = new Set(existing.map(row => row.messageId));
+		const emailRow = await orm(c).insert(email).values({
+			sendEmail: fromAddress,
+			name: row.name || emailUtils.getName(fromAddress),
+			subject: row.subject || '',
+			content: row.content || '',
+			text: row.text || '',
+			toEmail: recipientTo,
+			toName: row.to_name || '',
+			recipient: JSON.stringify([{ address: recipientTo, name: row.to_name || '' }]),
+			messageId: syncMessageId(sw.id, row.email_id),
+			userId: account ? account.userId : 0,
+			accountId: account ? account.accountId : 0,
+			type: emailConst.type.RECEIVE,
+			status: account ? emailConst.status.RECEIVE : emailConst.status.NOONE,
+			isDel: isDel.NORMAL,
+			code: code || '',
+			...(row.create_time ? { createTime: row.create_time } : {}),
+		}).returning().get();
 
-		const userRow = await userService.selectByIdIncludeDel(c, accountRow.userId);
-		const roleRow = userRow ? await roleService.selectByUserId(c, accountRow.userId) : null;
-		const isAdmin = userRow?.email === c.env.admin;
-		const isPrimary = roleService.isPrimaryEmail(userRow?.email, accountRow.email);
+		const { tgBotStatus, tgChatId, ruleType, ruleEmail } = settings;
+		if (ruleType === settingConst.ruleType.RULE && !(ruleEmail || '').split(',').includes(recipientTo)) return;
+		if (tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
+			try {
+				await telegramService.sendEmailToBot(c, emailRow);
+			} catch (e) {
+				console.error('子 Worker 邮件转发 TG 失败:', e?.message);
+			}
+		}
+	},
 
-		for (const row of rows) {
-			const messageId = syncMessageId(sw.id, row.email_id);
-			if (existingSet.has(messageId)) continue;
+	async fetchSince(sw, after) {
+		const synced = await fetchJson(`${sw.url}/api/sync?after=${after}&limit=${SYNC_BATCH}`, sw.apiToken);
+		if (synced.notFound) {
+			throw new Error('子 Worker 版本过旧，请更新到 1.2.0 及以上');
+		}
+		return synced.data || [];
+	},
 
-			const fromAddress = row.send_email || '';
-			if (!isAdmin && roleRow) {
-				if (!isPrimary && !roleService.hasAvailDomainPerm(roleRow.availDomain || '', accountRow.email)) continue;
-				if (roleService.isBanEmail(roleRow.banEmail || '', fromAddress)) continue;
+	async syncWorker(c, sw, settings) {
+		const lockKey = SYNC_LOCK + sw.id;
+		if (await c.env.kv.get(lockKey)) return;
+		await c.env.kv.put(lockKey, '1', { expirationTtl: 60 });
+
+		try {
+			const cursorKey = SYNC_CURSOR + sw.id;
+			const after = Number(await c.env.kv.get(cursorKey)) || 0;
+			const rows = await this.fetchSince(sw, after);
+			if (rows.length === 0) return;
+
+			// message_id 没有索引，用 create_time 索引缩小范围（同步时原样保存了子 Worker 的收信时间）
+			const minTime = rows.map(row => row.create_time).filter(Boolean).sort()[0];
+			const idFilter = inArray(email.messageId, rows.map(row => syncMessageId(sw.id, row.email_id)));
+			const existing = await orm(c).select({ messageId: email.messageId }).from(email)
+				.where(minTime ? and(gte(email.createTime, minTime), idFilter) : idFilter)
+				.all();
+			const existingSet = new Set(existing.map(row => row.messageId));
+
+			for (const row of rows) {
+				if (existingSet.has(syncMessageId(sw.id, row.email_id))) continue;
+				await this.importRow(c, sw, row, settings);
 			}
 
-			const parsed = {
-				subject: row.subject || '',
-				html: row.content || '',
-				text: row.text || '',
-				from: { address: fromAddress, name: row.name || '' },
-			};
-			const code = await aiService.extractCode(c, parsed, settings);
-
-			await orm(c).insert(email).values({
-				sendEmail: fromAddress,
-				name: row.name || emailUtils.getName(fromAddress),
-				subject: row.subject || '',
-				content: row.content || '',
-				text: row.text || '',
-				toEmail: row.to_email || accountRow.email,
-				toName: row.to_name || '',
-				recipient: JSON.stringify([{ address: row.to_email || accountRow.email, name: row.to_name || '' }]),
-				messageId,
-				userId: accountRow.userId,
-				accountId: accountRow.accountId,
-				type: emailConst.type.RECEIVE,
-				status: emailConst.status.RECEIVE,
-				isDel: isDel.NORMAL,
-				code: code || '',
-				...(row.create_time ? { createTime: row.create_time } : {}),
-			}).run();
+			const maxId = Math.max(after, ...rows.map(row => Number(row.email_id) || 0));
+			await c.env.kv.put(cursorKey, String(maxId));
+		} finally {
+			await c.env.kv.delete(lockKey);
 		}
-
-		const maxId = Math.max(after, ...rows.map(row => Number(row.email_id) || 0));
-		await c.env.kv.put(cursorKey, String(maxId));
 	},
 
-	// 在查询收件箱前调用：把子 Worker 域名邮箱的新邮件同步进主库，失败不影响正常查询
-	async syncAccounts(c, accountRows) {
+	// 在查询邮件前调用：把所有子 Worker 的新邮件按收信规则同步进主库，失败不影响正常查询
+	async syncAll(c) {
 		try {
+			if (Date.now() - lastSyncAt < SYNC_INTERVAL_MS) return;
+			lastSyncAt = Date.now();
+
 			const list = await this.enabledList(c);
 			if (list.length === 0) return;
 
-			const targets = accountRows
-				.filter(row => row && row.isDel !== isDel.DELETE)
-				.map(row => ({ row, sw: this.findByEmail(list, row.email) }))
-				.filter(item => item.sw)
-				.slice(0, MAX_SYNC_ACCOUNTS);
-			if (targets.length === 0) return;
-
 			const settings = await settingService.query(c);
-			await Promise.all(targets.map(({ row, sw }) =>
-				this.syncAccount(c, sw, row, settings).catch(e => console.error('子 Worker 同步失败:', sw.url, e?.message))
+			if (settings.receive === settingConst.receive.CLOSE) return;
+
+			await Promise.all(list.map(sw =>
+				this.syncWorker(c, sw, settings).catch(e => console.error('子 Worker 同步失败:', sw.url, e?.message))
 			));
 		} catch (e) {
 			console.error('子 Worker 同步异常:', e?.message);

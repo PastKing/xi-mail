@@ -29,7 +29,8 @@ not_found_handling = "single-page-application"
 run_worker_first = true
 
 [triggers]
-crons = ["0 16 * * *"]
+# 每天 0 点（UTC+8）执行清理任务；每分钟同步子 Worker 邮件，不用子 Worker 可删掉第二项
+crons = ["0 16 * * *", "* * * * *"]
 
 [vars]
 orm_log = false

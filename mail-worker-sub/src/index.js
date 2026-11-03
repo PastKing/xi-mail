@@ -51,22 +51,22 @@ app.get('/api/info', (c) => {
 	return c.json({ code: 200, data: { name: c.env.name || 'Xi-Mail Sub', domains, version: '1.2.0' } });
 });
 
-// 增量同步：返回 email_id > after 的完整邮件（含正文），按 id 升序，供主 Worker 拉取
+// 增量同步：返回 email_id > after 的完整邮件（含正文），按 id 升序，供主 Worker 拉取；不传 address 则返回所有地址
 app.get('/api/sync', async (c) => {
 	const address = c.req.query('address');
 	const after = parseInt(c.req.query('after') || '0') || 0;
 	const limit = Math.min(parseInt(c.req.query('limit') || '20') || 20, 50);
+	const columns = 'email_id, send_email, name, subject, content, text, to_email, to_name, create_time';
 
-	if (!address) {
-		return c.json({ code: 400, message: 'address is required' }, 400);
-	}
+	const stmt = address
+		? c.env.db.prepare(
+			`SELECT ${columns} FROM email WHERE ${ADDRESS_WHERE} AND email_id > ?3 ORDER BY email_id ASC LIMIT ?4`
+		).bind(address, subAddressPattern(address), after, limit)
+		: c.env.db.prepare(
+			`SELECT ${columns} FROM email WHERE is_del = 0 AND email_id > ?1 ORDER BY email_id ASC LIMIT ?2`
+		).bind(after, limit);
 
-	const { results } = await c.env.db.prepare(
-		`SELECT email_id, send_email, name, subject, content, text, to_email, to_name, create_time
-		 FROM email WHERE ${ADDRESS_WHERE} AND email_id > ?3
-		 ORDER BY email_id ASC LIMIT ?4`
-	).bind(address, subAddressPattern(address), after, limit).all();
-
+	const { results } = await stmt.all();
 	return c.json({ code: 200, data: results || [] });
 });
 
@@ -128,8 +128,10 @@ async function handleEmail(message, env) {
 	const email = await parser.parse(rawEmail);
 
 	const toAddress = message.to;
-	const fromAddress = message.from;
+	// message.from 是信封发件人（如 Resend/SES 的退信地址），展示用邮件头里的 From
+	const fromAddress = email.from?.address || message.from;
 	const fromName = email.from?.name || fromAddress.split('@')[0];
+	const toName = (email.to || []).find(item => item.address?.toLowerCase() === toAddress.toLowerCase())?.name || '';
 
 	await env.db.prepare(
 		`INSERT INTO email (send_email, name, subject, content, text, to_email, to_name, create_time, is_del, account_id, user_id)
@@ -141,7 +143,7 @@ async function handleEmail(message, env) {
 		email.html || '',
 		email.text || '',
 		toAddress,
-		'',
+		toName,
 	).run();
 }
 

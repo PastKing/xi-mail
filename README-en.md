@@ -6,7 +6,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.5.9-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.10-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,22 +112,15 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
-| **v3.5.9** | Sub-worker domain mail shown in main site; sub-worker domain fix |
-| **v3.5.8** | Primary mailbox always receives mail; consistent buttons |
-| **v3.5.7** | One-click copy when adding a mailbox; fixed potential security risks |
-| **v3.5.6** | Login sessions management; announcement popup improvements |
-| **v3.5.5** | Fixed potential security risks |
-| **v3.5.4** | The mobile dock hides the "More" button when there is nowhere else to go |
-| **v3.5.3** | More accurate verification codes: no more truncated codes or URL tokens mistaken as OTPs |
-| **v3.5.2** | Floating Island now pins mailbox transfer on the rail above Settings; user ID sits above the email; 3.4.x release notes collapsed |
-| **v3.5.1** | Code extraction is on by default under Integrations, with a Workers AI model picker; the model runs first and regex is only a fallback; sub-worker now supports plus-address queries and day-based auto cleanup |
-| **v3.5.0** | Email lists now fetch summary columns with lazy-loaded bodies plus new database indexes; added auto email cleaning, hard-delete switch, verification code extraction with one-click copy, sub-addressing and new email notifications |
-| **v3.4.x** | Floating Island (desktop rail + mobile dock) and nine login templates; settings split into sub-pages with inline domain sorting; primary-mailbox transfers blocked; one-step inline images and send-loss fixes |
-| **v3.3.x** | Sender whitelist mode; blacklist and whitelist merged into one entry point; `/settings` reordered with click-to-copy IDs; icon set and sizes unified |
-| **v3.2.x** | Sender-domain blocking fixed (envelope + header `From`); sidebar narrowed to 200px |
-| **v3.1.0** | Sub-worker aggregation; language preference persisted to the user account |
-| **v3.0.0** | Frontend/backend split; multi-server architecture; standalone deployment |
-| **v2.0.0** | Appearance template system; switchable post-login layout; system settings rewrite |
+| **v3.5.10** | Sub-worker mail auto-synced to main site; better deployment guide |
+| **v3.5.x** | Sub-worker mail in main site, login sessions, better code extraction, security fixes |
+| **v3.4.x** | Floating Island navigation and login templates |
+| **v3.3.x** | Sender whitelist mode |
+| **v3.2.x** | Sender-domain blocking |
+| **v3.0 – 3.1** | Frontend/backend split, multi-server, sub-worker |
+| **v2.0.0** | Appearance template system |
+
+Full changelog: [Releases](https://github.com/PastKing/xi-mail/releases).
 
 ---
 

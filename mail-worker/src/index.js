@@ -5,6 +5,9 @@ import verifyRecordService from './service/verify-record-service';
 import emailService from './service/email-service';
 import r2Service from './service/r2-service';
 import oauthService from "./service/oauth-service";
+import subWorkerService from './service/sub-worker-service';
+
+const SUB_SYNC_CRON = '* * * * *';
 export default {
 	 async fetch(req, env, ctx) {
 
@@ -27,6 +30,10 @@ export default {
 	},
 	email: email,
 	async scheduled(c, env, ctx) {
+		await subWorkerService.syncAll({ env })
+		// 每分钟的 cron 只用于同步子 Worker 邮件，其余清理任务只在每日 cron 执行
+		if (c.cron === SUB_SYNC_CRON) return;
+
 		await verifyRecordService.clearRecord({ env })
 		await userService.resetDaySendCount({ env })
 		await emailService.completeReceiveAll({ env })
