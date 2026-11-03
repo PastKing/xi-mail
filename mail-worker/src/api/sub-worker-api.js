@@ -3,12 +3,28 @@ import result from '../model/result';
 import orm from '../entity/orm';
 import subWorker from '../entity/sub-worker';
 import { eq } from 'drizzle-orm';
+import settingService from '../service/setting-service';
+import { parseDomains } from '../service/sub-worker-service';
+
+async function fetchDomains(url, apiToken) {
+	try {
+		const res = await fetch(url + '/api/info', {
+			headers: { 'x-api-token': apiToken },
+			signal: AbortSignal.timeout(10000),
+		});
+		const data = await res.json();
+		if (data?.code === 200) {
+			return parseDomains(data.data?.domains);
+		}
+	} catch {}
+	return null;
+}
 
 app.get('/sub-worker/list', async (c) => {
 	const rows = await orm(c).select().from(subWorker).all();
 	const list = rows.map(r => ({
 		...r,
-		domains: (() => { try { return JSON.parse(r.domains); } catch { return []; } })(),
+		domains: parseDomains(r.domains),
 		apiToken: '••••••••',
 	}));
 	return c.json(result.ok(list));
@@ -21,17 +37,7 @@ app.post('/sub-worker/add', async (c) => {
 	}
 	const normalized = url.replace(/\/+$/, '');
 
-	let domains = [];
-	try {
-		const res = await fetch(normalized + '/api/info', {
-			headers: { 'x-api-token': apiToken },
-			signal: AbortSignal.timeout(10000),
-		});
-		const data = await res.json();
-		if (data?.code === 200 && data.data?.domains) {
-			domains = data.data.domains;
-		}
-	} catch {}
+	const domains = await fetchDomains(normalized, apiToken) || [];
 
 	const row = await orm(c).insert(subWorker).values({
 		name,
@@ -40,6 +46,7 @@ app.post('/sub-worker/add', async (c) => {
 		domains: JSON.stringify(domains),
 	}).returning().get();
 
+	await settingService.refresh(c);
 	return c.json(result.ok({ ...row, domains, apiToken: '••••••••' }));
 });
 
@@ -72,31 +79,26 @@ app.put('/sub-worker/:id', async (c) => {
 	if (body.url) patch.url = body.url.replace(/\/+$/, '');
 	if (body.apiToken) patch.apiToken = body.apiToken;
 
-	if (patch.url || patch.apiToken) {
-		const row = await orm(c).select().from(subWorker).where(eq(subWorker.id, id)).get();
-		if (row) {
-			const testUrl = patch.url || row.url;
-			const testToken = patch.apiToken || row.apiToken;
-			try {
-				const res = await fetch(testUrl + '/api/info', {
-					headers: { 'x-api-token': testToken },
-					signal: AbortSignal.timeout(10000),
-				});
-				const data = await res.json();
-				if (data?.code === 200 && data.data?.domains) {
-					patch.domains = JSON.stringify(data.data.domains);
-				}
-			} catch {}
+	// 每次保存都重新读取子 Worker 域名，子 Worker 改了域名后在这里点保存即可同步
+	const row = await orm(c).select().from(subWorker).where(eq(subWorker.id, id)).get();
+	if (row) {
+		const domains = await fetchDomains(patch.url || row.url, patch.apiToken || row.apiToken);
+		if (domains) {
+			patch.domains = JSON.stringify(domains);
 		}
 	}
 
-	await orm(c).update(subWorker).set(patch).where(eq(subWorker.id, id)).run();
+	if (Object.keys(patch).length > 0) {
+		await orm(c).update(subWorker).set(patch).where(eq(subWorker.id, id)).run();
+	}
+	await settingService.refresh(c);
 	return c.json(result.ok());
 });
 
 app.delete('/sub-worker/:id', async (c) => {
 	const id = parseInt(c.req.param('id'));
 	await orm(c).delete(subWorker).where(eq(subWorker.id, id)).run();
+	await settingService.refresh(c);
 	return c.json(result.ok());
 });
 
@@ -104,6 +106,7 @@ app.put('/sub-worker/:id/status', async (c) => {
 	const id = parseInt(c.req.param('id'));
 	const { status } = await c.req.json();
 	await orm(c).update(subWorker).set({ status: status ? 1 : 0 }).where(eq(subWorker.id, id)).run();
+	await settingService.refresh(c);
 	return c.json(result.ok());
 });
 

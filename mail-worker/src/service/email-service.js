@@ -22,6 +22,7 @@ import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import permService from './perm-service';
+import subWorkerService from './sub-worker-service';
 
 const emailService = {
 
@@ -39,6 +40,8 @@ const emailService = {
 			size = 50;
 		}
 
+		const firstPage = !emailId;
+
 		if (!emailId) {
 
 			if (timeSort) {
@@ -52,6 +55,10 @@ const emailService = {
 		if (isNaN(allReceive)) {
 			let accountRow = await accountService.selectById(c, accountId);
 			allReceive = accountRow.allReceive;
+		}
+
+		if (firstPage && Number(type) === emailConst.type.RECEIVE) {
+			await this.syncSubWorker(c, userId, accountId, allReceive);
 		}
 
 		const query = orm(c)
@@ -581,6 +588,13 @@ const emailService = {
 		};
 	},
 
+	async syncSubWorker(c, userId, accountId, allReceive) {
+		const accountRows = allReceive
+			? await orm(c).select().from(account).where(and(eq(account.userId, userId), eq(account.isDel, isDel.NORMAL))).all()
+			: [await accountService.selectById(c, accountId)].filter(row => row && row.userId === userId);
+		await subWorkerService.syncAccounts(c, accountRows);
+	},
+
 	async latest(c, params, userId) {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
@@ -589,6 +603,8 @@ const emailService = {
 			let accountRow = await accountService.selectById(c, accountId);
 			allReceive = accountRow.allReceive;
 		}
+
+		await this.syncSubWorker(c, userId, Number(accountId), allReceive);
 
 		let list = await orm(c).select({...emailBriefColumns}).from(email)
 			.innerJoin(

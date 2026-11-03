@@ -6,7 +6,7 @@
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.5.8-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.5.9-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -112,6 +112,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
+| **v3.5.9** | 子 Worker 域名邮件在主站显示；修复子 Worker 域名读取 |
 | **v3.5.8** | 主邮箱收信不受域名限制；按钮样式统一 |
 | **v3.5.7** | 新建邮箱一键复制；修复潜在的安全风险 |
 | **v3.5.6** | 新增登录会话管理；公告弹窗优化 |

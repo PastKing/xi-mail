@@ -9,6 +9,7 @@ import BizError from '../error/biz-error';
 import {t} from '../i18n/i18n'
 import verifyRecordService from './verify-record-service';
 import { AI_CODE_MODELS, resolveAiModel } from '../const/ai-models';
+import subWorkerService from './sub-worker-service';
 
 function generateToken(len = 32) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -22,6 +23,7 @@ const settingService = {
 	async refresh(c) {
 		const settingRow = await orm(c).select().from(setting).get();
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
+		settingRow.subWorkerDomains = await subWorkerService.domains(c, true);
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 	},
@@ -72,6 +74,23 @@ const settingService = {
 				try { envDomain = JSON.parse(envDomain); } catch (error) { envDomain = []; }
 			}
 			domainList = envDomain ? envDomain.map(item => '@' + item) : [];
+		}
+
+		// 子 Worker 的域名追加在后面，由子 Worker 收信、主站同步展示
+		if (!Array.isArray(settingRow.subWorkerDomains)) {
+			try {
+				settingRow.subWorkerDomains = await subWorkerService.domains(c);
+				const raw = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+				raw.subWorkerDomains = settingRow.subWorkerDomains;
+				await c.env.kv.put(KvConst.SETTING, JSON.stringify(raw));
+			} catch (e) {
+				settingRow.subWorkerDomains = [];
+			}
+		}
+		for (const domain of settingRow.subWorkerDomains) {
+			if (!domainList.includes('@' + domain)) {
+				domainList.push('@' + domain);
+			}
 		}
 		settingRow.domainList = domainList;
 

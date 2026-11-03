@@ -553,6 +553,8 @@ const en = {
     subWorkerTestFail: 'Connection failed',
     subWorkerAddSuccess: 'Sub worker added successfully',
     subWorkerDeleteConfirm: 'Delete this sub worker?',
+    subWorkerNoDomain: 'No domain found',
+    subWorkerSyncDomains: 'Reload domains',
     subWorkerEmpty: 'No sub workers configured',
     subWorkerUrlPlaceholder: 'e.g. https://your-sub-worker.workers.dev',
     subWorkerTokenPlaceholder: 'Sub worker api_token',

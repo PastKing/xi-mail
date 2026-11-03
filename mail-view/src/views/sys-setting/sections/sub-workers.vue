@@ -18,12 +18,18 @@
             <div class="sw-info">
               <span class="sw-name">{{ sw.name }}</span>
               <span class="sw-domains-tag" v-for="d in sw.domains" :key="d">{{ d }}</span>
+              <span v-if="!sw.domains?.length" class="sw-domains-tag sw-domains-empty">{{ $t('subWorkerNoDomain') }}</span>
             </div>
             <div class="sw-actions">
               <el-tag :type="sw.status ? 'success' : 'info'" size="small">
                 {{ sw.status ? $t('subWorkerEnabled') : $t('subWorkerDisabled') }}
               </el-tag>
               <el-switch :model-value="!!sw.status" size="small" @change="toggleStatus(sw)"/>
+              <el-tooltip :content="$t('subWorkerSyncDomains')">
+                <el-button size="small" plain :loading="syncingId === sw.id" @click="syncDomains(sw)">
+                  <Icon icon="mingcute:refresh-2-line" width="14" height="14" />
+                </el-button>
+              </el-tooltip>
               <el-button size="small" type="danger" plain @click="removeSubWorker(sw)">
                 <Icon icon="mingcute:delete-2-line" width="14" height="14" />
               </el-button>
@@ -69,7 +75,8 @@ import {
   subWorkerDelete,
   subWorkerList,
   subWorkerSetStatus,
-  subWorkerTest
+  subWorkerTest,
+  subWorkerUpdate
 } from "@/request/sub-worker.js";
 
 defineOptions({
@@ -123,6 +130,13 @@ function removeSubWorker(sw) {
 
 function toggleStatus(sw) {
   subWorkerSetStatus(sw.id, sw.status ? 0 : 1).then(loadSubWorkers)
+}
+
+const syncingId = ref(null)
+
+function syncDomains(sw) {
+  syncingId.value = sw.id
+  subWorkerUpdate(sw.id, {}).then(loadSubWorkers).finally(() => { syncingId.value = null })
 }
 </script>
 
@@ -193,6 +207,11 @@ function toggleStatus(sw) {
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
   font-weight: 500;
+}
+
+.sw-domains-empty {
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
 }
 
 .sw-actions {

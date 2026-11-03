@@ -15,7 +15,7 @@ npx wrangler d1 create xi-mail-sub   # 记录 database_id
 
 # 配置
 cp wrangler.example.toml wrangler.toml
-# 编辑 wrangler.toml：填入 database_id、api_token（随机 32 位字符串）、domain（JSON 数组）
+# 编辑 wrangler.toml：填入 database_id、api_token（随机 32 位字符串）、domain（数组，如 ["a.com"]，也支持 a.com,b.com）
 # 可选：auto_clean_days 邮件保留天数（0 = 永久保留）
 
 # 部署
@@ -43,6 +43,7 @@ curl -H "x-api-token: <your-token>" https://your-sub-worker.workers.dev/init
 | GET | `/api/addresses` | 已收到邮件的地址列表（按最新排序，最多 200 条） |
 | GET | `/api/mails?address=xxx&limit=20&offset=0` | 按地址查询邮件列表（含子地址 `xxx+tag@domain` 的邮件） |
 | GET | `/api/mail/:id` | 单封邮件详情（含 HTML 内容） |
+| GET | `/api/sync?address=xxx&after=0&limit=20` | 增量拉取 `email_id > after` 的完整邮件，供主 Worker 同步 |
 
 ### 请求示例
 
@@ -58,8 +59,11 @@ curl -H "x-api-token: your-token" "https://your-sub-worker.workers.dev/api/mails
 
 1. 在主 Worker 的 **系统设置 → 子服务器** 中点击「添加子服务器」
 2. 填入名称、子 Worker 的 URL（如 `https://xi-mail-sub.workers.dev`）和 API Token
-3. 点击「测试连接」验证后保存
-4. 子 Worker 的域名邮件将聚合显示在主 Worker 的前端中
+3. 点击「测试连接」验证后保存，列表中会显示读取到的域名（子 Worker 改了域名后点「重新读取域名」）
+4. 子 Worker 的域名会出现在主站的域名列表中：用户可直接添加该域名的邮箱（普通用户需在「权限等级」里放开该域名）
+5. 打开收件箱时主站会自动从子 Worker 拉取新邮件，之后和普通邮件一样查看、星标、删除
+
+> 主 Worker 需 v3.5.9 及以上，子 Worker 需 1.2.0 及以上。
 
 ## 与主 Worker 的区别
 

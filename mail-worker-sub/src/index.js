@@ -18,6 +18,28 @@ function verifyToken(c) {
 	}
 }
 
+// wrangler.toml 里 domain = ["a.com"] 部署后是 JSON 变量（数组），控制台手填则是字符串，两种都要兼容
+function parseDomains(raw) {
+	let list = raw;
+	if (typeof raw === 'string') {
+		try {
+			list = JSON.parse(raw);
+		} catch {
+			list = raw.split(',');
+		}
+	}
+	if (typeof list === 'string') list = [list];
+	if (!Array.isArray(list)) return [];
+	return list.map(item => String(item).trim().replace(/^@/, '').toLowerCase()).filter(Boolean);
+}
+
+function subAddressPattern(address) {
+	const atIdx = address.indexOf('@');
+	return atIdx > 0 ? address.slice(0, atIdx) + '+%' + address.slice(atIdx) : address;
+}
+
+const ADDRESS_WHERE = `(to_email = ?1 COLLATE NOCASE OR to_email LIKE ?2 COLLATE NOCASE) AND is_del = 0`;
+
 app.use('/api/*', async (c, next) => {
 	const err = verifyToken(c);
 	if (err) return err;
@@ -25,10 +47,27 @@ app.use('/api/*', async (c, next) => {
 });
 
 app.get('/api/info', (c) => {
-	const domains = (() => {
-		try { return JSON.parse(c.env.domain); } catch { return []; }
-	})();
-	return c.json({ code: 200, data: { name: c.env.name || 'Xi-Mail Sub', domains, version: '1.1.0' } });
+	const domains = parseDomains(c.env.domain);
+	return c.json({ code: 200, data: { name: c.env.name || 'Xi-Mail Sub', domains, version: '1.2.0' } });
+});
+
+// 增量同步：返回 email_id > after 的完整邮件（含正文），按 id 升序，供主 Worker 拉取
+app.get('/api/sync', async (c) => {
+	const address = c.req.query('address');
+	const after = parseInt(c.req.query('after') || '0') || 0;
+	const limit = Math.min(parseInt(c.req.query('limit') || '20') || 20, 50);
+
+	if (!address) {
+		return c.json({ code: 400, message: 'address is required' }, 400);
+	}
+
+	const { results } = await c.env.db.prepare(
+		`SELECT email_id, send_email, name, subject, content, text, to_email, to_name, create_time
+		 FROM email WHERE ${ADDRESS_WHERE} AND email_id > ?3
+		 ORDER BY email_id ASC LIMIT ?4`
+	).bind(address, subAddressPattern(address), after, limit).all();
+
+	return c.json({ code: 200, data: results || [] });
 });
 
 app.get('/api/mails', async (c) => {
@@ -41,11 +80,8 @@ app.get('/api/mails', async (c) => {
 	}
 
 	// 子地址机制：查询 user@domain 时同时返回 user+tag@domain 的邮件
-	const where = `(to_email = ?1 COLLATE NOCASE OR to_email LIKE ?2 COLLATE NOCASE) AND is_del = 0`;
-	const atIdx = address.indexOf('@');
-	const subPattern = atIdx > 0
-		? address.slice(0, atIdx) + '+%' + address.slice(atIdx)
-		: address;
+	const where = ADDRESS_WHERE;
+	const subPattern = subAddressPattern(address);
 
 	const countResult = await c.env.db.prepare(
 		`SELECT COUNT(*) as total FROM email WHERE ${where}`
@@ -73,10 +109,7 @@ app.get('/api/mail/:id', async (c) => {
 });
 
 app.get('/api/domains', (c) => {
-	const domains = (() => {
-		try { return JSON.parse(c.env.domain); } catch { return []; }
-	})();
-	return c.json({ code: 200, data: domains });
+	return c.json({ code: 200, data: parseDomains(c.env.domain) });
 });
 
 app.get('/api/addresses', async (c) => {

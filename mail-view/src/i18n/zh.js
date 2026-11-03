@@ -553,6 +553,8 @@ const zh = {
     subWorkerTestFail: '连接失败',
     subWorkerAddSuccess: '子服务器添加成功',
     subWorkerDeleteConfirm: '确定删除该子服务器？',
+    subWorkerNoDomain: '未读取到域名',
+    subWorkerSyncDomains: '重新读取域名',
     subWorkerEmpty: '暂无子服务器',
     subWorkerUrlPlaceholder: '例如：https://your-sub-worker.workers.dev',
     subWorkerTokenPlaceholder: '子 Worker 的 api_token',
