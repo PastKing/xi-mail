@@ -6,6 +6,7 @@ import emailService from './service/email-service';
 import r2Service from './service/r2-service';
 import oauthService from "./service/oauth-service";
 import subWorkerService from './service/sub-worker-service';
+import securityRateLimit from './service/security-rate-limit-service';
 
 const SUB_SYNC_CRON = '* * * * *';
 export default {
@@ -33,6 +34,7 @@ export default {
 		await subWorkerService.syncAll({ env })
 		// 每分钟的 cron 只用于同步子 Worker 邮件，其余清理任务只在每日 cron 执行
 		if (c.cron === SUB_SYNC_CRON) return;
+		await securityRateLimit.cleanup({ env });
 
 		await verifyRecordService.clearRecord({ env })
 		await userService.resetDaySendCount({ env })

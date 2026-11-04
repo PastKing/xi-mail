@@ -342,6 +342,7 @@ const submit = () => {
   loginLoading.value = true;
   login(email, form.password)
     .then(async data => { await saveToken(data.token); })
+    .catch(() => { /* The request interceptor displays credential and rate-limit errors. */ })
     .finally(() => { loginLoading.value = false; });
 };
 

@@ -8,12 +8,12 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.0-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.1-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
 
-[简体中文](README.md) | [English](README-en.md)
+[简体中文](README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md)
 
 </div>
 
@@ -39,33 +39,15 @@ Try it at [mail.azx.us](https://mail.azx.us) using invite code `viewUser` (limit
 
 ## ✨ Highlights
 
-**Interface**
-Six login templates: Minimal, Editorial, Night Post, Composition, Open Letter and Postal Passport, with automatic compatibility for retired templates. Six color themes and four post-login layouts (full sidebar, icon-only sidebar, top navigation and Floating Island) are switchable from system settings and persisted server-side. Floating Island uses a detached rail on desktop and a bottom dock on mobile. Icons are unified on `mingcute`; the UI ships in English and Chinese, and the language preference follows the account across devices.
+- **Mail**: multiple mailboxes, compose and reply, verification-code extraction and new mail notifications.
+- **Domains and filtering**: manage domains in the dashboard, with sender allowlists, blocklists and keyword filters.
+- **Users and permissions**: tiered roles, invitation codes, mailbox transfers and login session management.
+- **Provider sign-in**: connect NodeLoc, Telegram or LinuxDo to an existing mailbox.
+- **Appearance**: six login templates, six color themes and four navigation layouts, with mobile support and English/Chinese UI.
+- **Flexible deployment**: deploy together or with a standalone frontend; connect multiple Workers and receiving sub-workers.
+- **API integration**: query mail with a global API token for use in other tools.
 
-**Third-party sign-in**
-System Settings includes a dedicated OAuth Integration page ordered as NodeLoc, Telegram and LinuxDo. Administrators configure application credentials and, for LinuxDo and NodeLoc, a minimum trust level. Users register a mailbox through the existing invitation-code rules, then connect or disconnect providers in Personal Settings. OAuth only signs in to an already connected mailbox and never creates an account automatically. Enabled providers appear side by side on the login page. Reconfiguring an application does not delete existing connections.
-
-Callback URLs are generated automatically and displayed as read-only: `/oauth/linuxdo`, `/oauth/telegram` and `/oauth/nodeloc`. Register the corresponding URL in [LinuxDo Connect](https://connect.linux.do/), Login Widget in [BotFather](https://t.me/BotFather), or [NodeLoc applications](https://www.nodeloc.com/oauth-provider/applications). Telegram uses OIDC authorization codes with PKCE and server-side ID token signature verification. NodeLoc requests only `openid profile`, without email access. Client secrets stay on the server; leaving the field blank preserves the existing secret. Worker environment variables remain a fallback when no administrator configuration has been saved.
-
-**Users and accounts**
-User IDs are random alphanumeric strings and can be copied with one click. Each user can hold up to 100 mailbox accounts, and a deleted mailbox can be recreated. Mailboxes can be transferred to another user along with all their mail, subject to the recipient's approval. Roles carry a `level` field, so a user can only issue invite codes for roles below their own.
-
-**Delivery control**
-Sender-domain filtering runs in either blacklist or whitelist mode; in whitelist mode only authorized providers are accepted. Both the SMTP envelope sender and the header `From` address are checked, with subdomain matching. There is also an address keyword blacklist and configurable invite-code hints and links (separately for English and Chinese).
-
-**Domain management**
-No need to edit `wrangler.toml` — add, remove, enable and disable domains directly in system settings, and reorder them by dragging or with the up/down buttons. That order is exactly the order of mailbox suffixes on the registration page, with the first entry as the default.
-
-**Deployment shapes**
-Deploy the frontend and Worker together, or run `build:standalone` to produce a static frontend for CF Pages, Vercel or any static host. The frontend can connect to several Worker instances at once and aggregate their data, and `mail-worker-sub/` provides a lightweight sub-worker template that only receives mail and serves the API — no user system, no pages.
-
-**Admin API**
-Generate a global API token and query mail without logging in via the `x-admin-auth` header:
-
-```http
-GET /api/admin/mails?limit=20&offset=0&address=user@domain.com
-x-admin-auth: <your-token>
-```
+Setup instructions and request examples: [OAuth and API integration](doc/INTEGRATIONS-en.md).
 
 ---
 
@@ -139,7 +121,8 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
-| **v3.6.0** | Refreshed login templates and brand icons, provider sign-in, account connections and authorization status pages, smaller compose button |
+| **v3.6.1** | Fixed potential security risks; improved admin filters and added Traditional Chinese documentation |
+| **v3.6.x** | Refreshed login templates and brand icons, provider sign-in, account connections and authorization status pages |
 | **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |
 | **v3.4.x** | Floating Island navigation and login templates |
 | **v3.3.x** | Sender whitelist mode |

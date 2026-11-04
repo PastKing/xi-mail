@@ -26,6 +26,13 @@ const oauthBindingService = {
     await this.ensure(c);
     return orm(c).select().from(oauthBinding).where(eq(oauthBinding.userId, userId)).all();
   },
+  async listByUserIds(c, ids) {
+    if (!ids.length) return [];
+    await this.ensure(c);
+    return orm(c).select({ userId: oauthBinding.userId, provider: oauthBinding.provider,
+      displayName: oauthBinding.displayName, createTime: oauthBinding.createTime })
+      .from(oauthBinding).where(inArray(oauthBinding.userId, ids)).all();
+  },
   async findIdentity(c, provider, identity) {
     await this.ensure(c);
     return orm(c).select().from(oauthBinding).where(and(eq(oauthBinding.provider, provider), eq(oauthBinding.providerUserId, identity))).get();

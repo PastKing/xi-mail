@@ -13,6 +13,7 @@ import subWorkerService from './sub-worker-service';
 import { normalizeLoginTemplate } from '../const/login-templates';
 import oauthConfigService from './oauth-config-service';
 import { OAUTH_PROVIDERS } from '../const/oauth-providers';
+import webhookConfig from './resend-webhook-config-service';
 
 const SEND_PROVIDERS = ['resend', 'queensmtp'];
 
@@ -130,6 +131,7 @@ const settingService = {
 		settingRow.domainList = domainList;
 
 		const oauthConfigs = await Promise.all(OAUTH_PROVIDERS.map(provider => oauthConfigService.get(c, provider.id)));
+		settingRow.hasResendWebhookSecret = (await webhookConfig.get(c)).length > 0;
 		OAUTH_PROVIDERS.forEach((provider, index) => {
 			const config = oauthConfigs[index], id = provider.id;
 			settingRow[id + 'ClientId'] = config.clientId;
@@ -203,6 +205,9 @@ const settingService = {
 	},
 
 	async set(c, params) {
+		await webhookConfig.save(c, params);
+		delete params.resendWebhookSecret;
+		delete params.hasResendWebhookSecret;
 		for (const provider of OAUTH_PROVIDERS) await oauthConfigService.save(c, params, provider.id);
 		if (Object.hasOwn(params, 'loginTemplate')) params.loginTemplate = normalizeLoginTemplate(params.loginTemplate);
 		delete params.hasAi

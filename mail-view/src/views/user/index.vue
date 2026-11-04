@@ -9,15 +9,27 @@
             v-model="params.email"
             class="search-input"
             :placeholder="$t('searchByEmail')"
+            @keyup.enter="search"
         >
         </el-input>
       </div>
-      <el-select v-model="params.status" placeholder="Select" class="status-select"
-                 :style="`width: ${locale === 'en' ? 95 : 80 }px`">
+      <el-select v-model="params.status" :aria-label="$t('adminStatusFilter')" class="status-select" @change="search">
+        <template #prefix>{{ $t('adminStatusFilter') }}</template>
         <el-option :key="-1" :label="$t('all')" :value="-1"/>
         <el-option :key="0" :label="$t('active')" :value="0"/>
         <el-option :key="1" :label="$t('banned')" :value="1"/>
         <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
+      </el-select>
+      <el-select v-model="params.roleId" :aria-label="$t('adminRoleFilter')" class="role-filter" @change="search" filterable>
+        <el-option :label="$t('adminAllRoles')" value="" />
+        <el-option :label="$t('admin')" :value="0" />
+        <el-option v-for="role in roleList" :key="role.roleId" :label="role.name" :value="role.roleId" />
+      </el-select>
+      <el-select v-model="params.provider" :aria-label="$t('adminProviderFilter')" class="provider-filter" @change="search">
+        <el-option :label="$t('adminAllProviders')" value="" />
+        <el-option :label="$t('adminHasBindings')" value="bound" />
+        <el-option :label="$t('adminNoBindings')" value="unbound" />
+        <el-option v-for="provider in OAUTH_PROVIDERS" :key="provider.id" :label="provider.name" :value="provider.id" />
       </el-select>
       <el-tooltip :content="$t('searchAction')" placement="top">
         <Icon class="icon" icon="mingcute:search-line" @click="search" width="18" height="18"/>
@@ -70,8 +82,17 @@
             <template #default="props">
               <div style="display: flex;gap: 5px">
                 <div class="email-row">{{ props.row.email }}</div>
-                <el-tag type="warning" v-if="props.row.username">L</el-tag>
               </div>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="typeShow" :label="$t('adminProviderFilter')" min-width="125">
+            <template #default="props">
+              <div v-if="props.row.oauthBindings?.length" class="user-binding-icons">
+                <el-tooltip v-for="binding in props.row.oauthBindings" :key="binding.provider" :content="providerName(binding.provider) + (binding.displayName ? ' · ' + binding.displayName : '')">
+                  <button type="button" class="user-binding-button" :aria-label="$t('adminBindingDetails') + ' ' + providerName(binding.provider)" @click="openDetails(props.row)"><img :src="providerLogo(binding.provider)" :alt="providerName(binding.provider)" width="18" height="18" /></button>
+                </el-tooltip>
+              </div>
+              <span v-else class="user-binding-empty">{{ $t('oauthUnbound') }}</span>
             </template>
           </el-table-column>
           <el-table-column :formatter="formatterReceive" label-class-name="receive" column-key="receive"
@@ -249,12 +270,13 @@
     <el-dialog class="account-dialog" v-model="detailsShow" :title="t('userDetails')"  >
       <div class="details">
         <div v-if="userDetails.displayId"><span class="details-item-title">{{ $t('displayId') }}:</span><span style="font-family: monospace; font-size: 13px; letter-spacing: 0.5px;">{{ userDetails.displayId }}</span></div>
-        <div v-if="userDetails.username"><span class="details-item-title">LinuxDo:</span>
-          <el-avatar :src="userDetails.avatar" :size="30" class="linuxdo-avatar"  />
-          <span style="margin: 0 10px">用户名：{{userDetails.username}}</span>
-          <span>
-                    等级：<el-tag type="success">{{userDetails.trustLevel}}</el-tag>
-                  </span>
+        <div class="user-binding-details">
+          <span class="details-item-title">{{ $t('adminProviderFilter') }}:</span>
+          <span v-if="!userDetails.oauthBindings?.length" class="user-binding-empty">{{ $t('adminNoBindings') }}</span>
+          <div v-for="binding in userDetails.oauthBindings || []" :key="binding.provider" class="user-binding-detail">
+            <img :src="providerLogo(binding.provider)" :alt="providerName(binding.provider)" width="22" height="22" />
+            <div><strong>{{ providerName(binding.provider) }}</strong><span>{{ binding.displayName || $t('oauthBound') }}</span><small>{{ $t('adminBoundAt') }} {{ binding.createTime ? tzDayjs(binding.createTime).format('YYYY-MM-DD HH:mm') : $t('unknown') }}</small></div>
+          </div>
         </div>
         <div v-if="!sendNumShow"><span
             class="details-item-title">{{ $t('tabSent') }}:</span>{{ userDetails.sendEmailCount }}
@@ -411,12 +433,15 @@ import {isEmail} from "@/utils/verify-utils.js";
 import {useRoleStore} from "@/store/role.js";
 import {useUserStore} from "@/store/user.js";
 import {useI18n} from 'vue-i18n';
+import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
 
 defineOptions({
   name: 'user'
 })
 
 const {t, locale} = useI18n();
+const providerName = id => OAUTH_PROVIDERS.find(provider => provider.id === id)?.name || id
+const providerLogo = id => OAUTH_PROVIDERS.find(provider => provider.id === id)?.logo
 const roleStore = useRoleStore()
 const userStore = useUserStore()
 const settingStore = useSettingStore()
@@ -473,7 +498,9 @@ const params = reactive({
   size: 15,
   timeSort: 0,
   loginSort: 0,
-  status: -1
+  status: -1,
+  roleId: '',
+  provider: '',
 })
 let chooseUser = {}
 const userForm = reactive({
@@ -490,6 +517,7 @@ const setPwdShow = ref(false)
 const pagerCount = ref(10)
 const settingLoading = ref(false)
 const tableLoading = ref(true)
+let userListRequest = 0
 const roleList = reactive([])
 const accountList = reactive([])
 const accountParams = reactive({
@@ -512,6 +540,8 @@ if (paramsStar) {
   params.timeSort = localParams.timeSort
   params.loginSort = localParams.loginSort || 0
   params.status = localParams.status
+  params.roleId = localParams.roleId ?? ''
+  params.provider = localParams.provider || ''
 }
 
 watch(() => params, () => {
@@ -1067,6 +1097,8 @@ function refresh() {
   params.email = ''
   params.num = 1
   params.status = -1
+  params.roleId = ''
+  params.provider = ''
   params.timeSort = 0
   params.loginSort = 0
   getUserList();
@@ -1102,7 +1134,7 @@ function sizeChange(size) {
 }
 
 function getUserList(loading = true) {
-
+  const requestId = ++userListRequest
   tableLoading.value = loading
   const newParams = {...params}
 
@@ -1111,10 +1143,12 @@ function getUserList(loading = true) {
     newParams.isDel = 1
   }
   userList(newParams).then(data => {
+    if (requestId !== userListRequest) return
     users.value = data.list.map(item => ({...item, checkedClass: ''}))
     total.value = data.total
     scrollbarRef.value?.setScrollTop(0);
-  }).finally(() => {
+  }).catch(() => { /* The request interceptor displays the error. */ }).finally(() => {
+    if (requestId !== userListRequest) return
     tableLoading.value = false
     setTimeout(() => {
       first.value = false
@@ -1169,6 +1203,11 @@ function adjustWidth() {
 .user-box {
   overflow: hidden;
   height: 100%;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 :deep(.el-dialog) {
@@ -1251,10 +1290,8 @@ function adjustWidth() {
 .scrollbar {
   width: 100%;
   overflow: auto;
-  height: calc(100% - 50px);
-  @media (max-width: 464px) {
-    height: calc(100% - 90px);
-  }
+  flex: 1;
+  min-height: 0;
 }
 
 .details {
@@ -1306,10 +1343,24 @@ function adjustWidth() {
 }
 
 .status-select {
+  width: 168px;
   :deep(.el-select__wrapper) {
     min-height: 28px;
   }
 }
+.role-filter { width: 150px; }
+.provider-filter { width: 155px; }
+.user-binding-icons { display: flex; align-items: center; gap: 5px; }
+.user-binding-button { display: grid; place-items: center; width: 28px; height: 28px; padding: 4px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color-lighter); border-radius: 7px; cursor: pointer; }
+.user-binding-button:hover, .user-binding-button:focus-visible { border-color: var(--el-color-primary); outline: none; }
+.user-binding-button img, .user-binding-detail > img { object-fit: contain; flex-shrink: 0; }
+.user-binding-empty { font-size: 12px; color: var(--el-text-color-secondary); }
+.user-binding-details { display: flex; flex-direction: column; gap: 12px; }
+.user-binding-detail { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--el-border-color-lighter); border-radius: 8px; }
+.user-binding-detail > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.user-binding-detail strong { font-size: 13px; font-weight: 500; }
+.user-binding-detail span { font-size: 12px; overflow-wrap: anywhere; }
+.user-binding-detail small { color: var(--el-text-color-secondary); font-size: 11px; }
 
 .dialog {
   .dialog-box {

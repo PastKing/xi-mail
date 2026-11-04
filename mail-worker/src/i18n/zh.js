@@ -1,4 +1,7 @@
 const zh = {
+	invalidCredentials: '邮箱或密码错误',
+	tooManyAttempts: '尝试过于频繁，请稍后重试',
+	accountUnavailable: '该邮箱暂不可用',
 	IncorrectPwd: '密码输入错误',
 	addAccountDisabled: '添加邮箱功能已关闭',
 	regDisabled: '注册功能已关闭',

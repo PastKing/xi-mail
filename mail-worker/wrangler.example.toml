@@ -38,6 +38,10 @@ domain = ["example.com", "mail.example.com"]
 admin = "admin@example.com"
 jwt_secret = "<YOUR_JWT_SECRET_MIN_32_CHARS>"
 
+# Resend webhook signature verification is required. Configure Signing Secret in
+# System Settings → Service Integration, or use the secret below (comma-separated values supported).
+# npx wrangler secret put resend_webhook_secret
+
 # OAuth can be configured in System Settings → OAuth Integration.
 # These variables remain supported as a fallback for existing installations.
 # linuxdo_switch = "false"

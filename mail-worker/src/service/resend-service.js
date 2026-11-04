@@ -1,14 +1,34 @@
 import emailService from './email-service';
 import { emailConst } from '../const/entity-const';
 import BizError from '../error/biz-error';
+import { Resend } from 'resend';
+import webhookConfig from './resend-webhook-config-service';
+
+const verifier = new Resend('webhook-verification-only');
 
 const resendService = {
 
-	async webhooks(c, body) {
+	async webhooks(c, payload, headers) {
+		if (!headers?.id || !headers?.timestamp || !headers?.signature) throw new BizError('Invalid webhook signature', 401);
+		const secrets = await webhookConfig.get(c);
+		if (!secrets.length) throw new BizError('Webhook verification is not configured', 503);
+		let body;
+		for (const secret of secrets) {
+			try { body = verifier.webhooks.verify({ payload, headers, webhookSecret: secret }); break; } catch {}
+		}
+		if (!body) throw new BizError('Invalid webhook signature', 401);
+		const statuses = {
+			'email.delivered': emailConst.status.DELIVERED, 'email.complained': emailConst.status.COMPLAINED,
+			'email.bounced': emailConst.status.BOUNCED, 'email.delivery_delayed': emailConst.status.DELAYED,
+			'email.failed': emailConst.status.FAILED, 'email.sent': emailConst.status.SENT,
+		};
+		if (!Object.hasOwn(statuses, body.type)) return;
+		if (typeof body.data?.email_id !== 'string' || !body.data.email_id || body.data.email_id.length > 256)
+			throw new BizError('Invalid webhook event', 400);
 
 		const params = {
 			resendEmailId: body.data.email_id,
-			status: emailConst.status.SENT
+			status: statuses[body.type]
 		}
 
 		if (body.type === 'email.delivered') {
@@ -35,14 +55,11 @@ const resendService = {
 
 		if (body.type === 'email.failed') {
 			params.status = emailConst.status.FAILED
-			params.message = body.data.failed.reason
+			params.message = typeof body.data.failed?.reason === 'string' ? body.data.failed.reason.slice(0, 4096) : null
 		}
 
-		const emailRow = await emailService.updateEmailStatus(c, params)
-
-		if (!emailRow) {
-			throw new BizError('更新邮件状态记录失败');
-		}
+		// Valid events for unrelated Resend mail are acknowledged without exposing database existence.
+		await emailService.updateEmailStatus(c, params);
 
 	}
 }

@@ -20,6 +20,7 @@ import { toUtc } from '../utils/date-uitil';
 import { t } from '../i18n/i18n.js';
 import verifyRecordService from './verify-record-service';
 import sessionService from './session-service';
+import securityRateLimit from './security-rate-limit-service';
 
 const loginService = {
 
@@ -205,21 +206,19 @@ const loginService = {
 
 	async login(c, params, noVerifyPwd = false) {
 
-		const { email, password } = params;
-
-		if ((!email || !password) && !noVerifyPwd) {
-			throw new BizError(t('emailAndPwdEmpty'));
-		}
+		const email = typeof params?.email === 'string' ? params.email.trim().toLowerCase() : '';
+		const password = params?.password;
+		if (!email || email.length > 320 || (!noVerifyPwd && (typeof password !== 'string' || !password || password.length > 256)))
+			throw new BizError(t('invalidCredentials'));
+		if (!noVerifyPwd) await securityRateLimit.login(c, email);
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
-		if (!userRow) {
-			throw new BizError(t('notExistUser'));
-		}
-
-		if(userRow.isDel === isDel.DELETE) {
-			throw new BizError(t('isDelUser'));
-		}
+		// Hash even for unknown accounts, and use one response for unknown/deleted/wrong-password logins.
+		const validPassword = noVerifyPwd || await cryptoUtils.verifyPassword(password,
+			userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || 'unmatchable-dummy-hash');
+		if (!userRow || userRow.isDel === isDel.DELETE || !validPassword)
+			throw new BizError(t('invalidCredentials'));
 
 		if(userRow.status === userConst.status.BAN) {
 			const settings = await settingService.query(c);
@@ -227,9 +226,7 @@ const loginService = {
 			throw new BizError(banMsg);
 		}
 
-		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password) && !noVerifyPwd) {
-			throw new BizError(t('IncorrectPwd'));
-		}
+		if (!noVerifyPwd) await securityRateLimit.loginSuccess(c, email);
 
 		const uuid = uuidv4();
 		const jwt = await JwtUtils.generateToken(c,{ userId: userRow.userId, token: uuid });

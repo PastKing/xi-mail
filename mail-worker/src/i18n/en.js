@@ -1,4 +1,7 @@
 const en = {
+	invalidCredentials: 'Incorrect email or password',
+	tooManyAttempts: 'Too many attempts. Please try again later.',
+	accountUnavailable: 'This email address is unavailable',
 	IncorrectPwd: 'Incorrect password',
 	addAccountDisabled: 'Add Email Address feature is disabled',
 	regDisabled: 'Sign up is disabled',

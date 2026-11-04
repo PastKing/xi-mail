@@ -4,7 +4,7 @@ import accountEntity from '../entity/account';
 import settingService from './setting-service';
 import orm from '../entity/orm';
 import user from '../entity/user';
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, sql, ne, exists, notExists, getTableColumns } from 'drizzle-orm';
 import { emailConst, isDel, roleConst, userConst } from '../const/entity-const';
 import kvConst from '../const/kv-const';
 import KvConst from '../const/kv-const';
@@ -18,7 +18,9 @@ import saltHashUtils from '../utils/crypto-utils';
 import constant from '../const/constant';
 import { t } from '../i18n/i18n'
 import reqUtils from '../utils/req-utils';
-import {oauth} from "../entity/oauth";
+import { oauthBinding } from '../entity/oauth-binding';
+import oauthBindingService from './oauth-binding-service';
+import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import oauthService from "./oauth-service";
 import accountTransfer from '../entity/account-transfer';
 import userContext from '../security/user-context';
@@ -169,13 +171,13 @@ const userService = {
 
 	async list(c, params) {
 
-		let { num, size, email, timeSort, loginSort, status } = params;
+		let { num, size, email, timeSort, loginSort, status, roleId, provider } = params;
+		await oauthBindingService.ensure(c);
 
-		size = Number(size);
-		num = Number(num);
+		size = Math.min(50, Math.max(1, Math.floor(Number(size) || 15)));
+		num = Math.max(1, Math.floor(Number(num) || 1));
 		timeSort = Number(timeSort);
 		loginSort = Number(loginSort);
-		params.isDel = Number(params.isDel);
 		if (size > 50) {
 			size = 50;
 		}
@@ -184,9 +186,25 @@ const userService = {
 
 		const conditions = [];
 
-		if (status > -1) {
-			conditions.push(eq(user.status, status));
+		if (Number(params.isDel) === 1 || Number(status) === -2) {
+			conditions.push(eq(user.isDel, isDel.DELETE));
+		} else if (status !== undefined && [0, 1].includes(Number(status))) {
+			conditions.push(eq(user.status, Number(status)));
 			conditions.push(eq(user.isDel, isDel.NORMAL));
+		}
+		if (roleId !== undefined && roleId !== '') {
+			const id = Number(roleId);
+			if (!Number.isSafeInteger(id) || id < 0) throw new BizError('Invalid role filter', 400);
+			conditions.push(id === 0 ? eq(user.email, c.env.admin) : and(eq(user.type, id), ne(user.email, c.env.admin)));
+		}
+		if (provider) {
+			const bindingConditions = [eq(oauthBinding.userId, user.userId)];
+			if (!['bound', 'unbound'].includes(provider)) {
+				if (!OAUTH_PROVIDERS.some(item => item.id === provider)) throw new BizError('Invalid provider filter', 400);
+				bindingConditions.push(eq(oauthBinding.provider, provider));
+			}
+			const bindingQuery = orm(c).select({ one: sql`1` }).from(oauthBinding).where(and(...bindingConditions));
+			conditions.push(provider === 'unbound' ? notExists(bindingQuery) : exists(bindingQuery));
 		}
 
 
@@ -208,18 +226,8 @@ const userService = {
 		}
 
 
-		if (params.isDel) {
-			conditions.push(eq(user.isDel, params.isDel));
-		}
-
-
-		const query = orm(c).select({
-			...user,
-			username: oauth.username,
-			trustLevel: oauth.trustLevel,
-			avatar: oauth.avatar,
-			name: oauth.name
-		}).from(user).leftJoin(oauth, eq(oauth.userId, user.userId))
+		const { password: _password, salt: _salt, ...listColumns } = getTableColumns(user);
+		const query = orm(c).select(listColumns).from(user)
 			.where(and(...conditions));
 
 
@@ -240,6 +248,7 @@ const userService = {
 			.from(user)
 			.where(and(...conditions)).get();
 		const userIds = list.map(user => user.userId);
+		const bindings = await oauthBindingService.listByUserIds(c, userIds);
 
 		const types = [...new Set(list.map(user => user.type))];
 
@@ -264,6 +273,8 @@ const userService = {
 		for (const user of list) {
 
 			const userId = user.userId;
+			user.oauthBindings = OAUTH_PROVIDERS.flatMap(provider => bindings.filter(binding => binding.userId === userId && binding.provider === provider.id)
+				.map(({ provider, displayName, createTime }) => ({ provider, displayName, createTime })));
 
 			user.receiveEmailCount = receiveMap[userId] || 0;
 			user.sendEmailCount = sendMap[userId] || 0;

@@ -9,19 +9,14 @@ import sessionService from '../service/session-service';
 import { t } from '../i18n/i18n'
 import app from '../hono/hono';
 
-const exclude = [
+const publicExact = [
 	'/login',
 	'/register',
-	'/oss',
 	'/setting/websiteConfig',
 	'/webhooks',
-	'/init',
 	'/public/genToken',
-	'/telegram',
-	'/test',
-	'/oauth',
-	'/admin/',
 ];
+const publicTrees = ['/oss/', '/init/', '/telegram/', '/oauth/', '/admin/'];
 
 const requirePerms = [
 	'/email/send',
@@ -99,11 +94,7 @@ app.use('*', async (c, next) => {
 
 	const path = c.req.path;
 
-	const index = exclude.findIndex(item => {
-		return path.startsWith(item);
-	});
-
-	if (index > -1) {
+	if (publicExact.includes(path) || publicTrees.some(root => path.startsWith(root))) {
 		return await next();
 	}
 

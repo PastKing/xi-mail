@@ -317,6 +317,8 @@ let scrollTop = 0
 const latestEmail = ref(null)
 const scrollbarRef = ref(null)
 let reqLock = false
+let queuedRefresh = false
+let disposed = false
 let isMobile = ref(innerWidth < 1367)
 let skeletonRows = 0
 const timePaddingRight = ref('');
@@ -372,6 +374,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  disposed = true
   clearInterval(timer)
 })
 
@@ -804,8 +807,8 @@ function jumpDetails(email) {
 
 
 function getEmailList(refresh = false) {
-
-  if (reqLock) return;
+  if (disposed) return;
+  if (reqLock) { if (refresh) queuedRefresh = true; return; }
 
   let emailId = emailList.length > 0 ? emailList.at(-1).emailId : 0;
 
@@ -838,6 +841,7 @@ function getEmailList(refresh = false) {
     if (duration < 300 && !emailId) {
         await sleep(300 - duration)
     }
+    if (queuedRefresh || disposed) return;
     firstLoad.value = false
 
     let list = data.list.map(item => ({
@@ -860,9 +864,10 @@ function getEmailList(refresh = false) {
     followLoading.value = data.list.length >= queryParam.size;
 
     total.value = data.total;
-  }).finally(() => {
+  }).catch(() => { /* The request interceptor displays the error. */ }).finally(() => {
     loading.value = false
     reqLock = false
+    if (queuedRefresh) { queuedRefresh = false; getEmailList(true); }
   })
 }
 

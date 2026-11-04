@@ -1,6 +1,20 @@
 <template>
   <div class="sys-setting-section">
     <div class="settings-card">
+      <div class="card-title">{{ $t('resendWebhookTitle') }}</div>
+      <div class="card-content">
+        <p class="ai-code-desc">{{ $t('resendWebhookDescription') }}</p>
+        <div class="webhook-endpoint"><span>{{ $t('oauthCallbackUrl') }}</span><code>{{ webhookUrl }}</code></div>
+        <label class="webhook-secret-field"><span>Signing Secret</span>
+          <el-input v-model="webhookSecret" type="password" show-password autocomplete="new-password" :placeholder="setting.hasResendWebhookSecret ? $t('oauthSecretKept') : 'whsec_…'" />
+        </label>
+        <div class="webhook-secret-actions">
+          <el-tag :type="setting.hasResendWebhookSecret ? 'success' : 'warning'" size="small">{{ $t(setting.hasResendWebhookSecret ? 'resendWebhookConfigured' : 'resendWebhookUnconfigured') }}</el-tag>
+          <el-button type="primary" size="small" :loading="settingLoading" @click="saveWebhookSecret">{{ $t('save') }}</el-button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-card">
       <div class="card-title"><Icon icon="mingcute:scan-line" width="15" height="15"/>{{ $t('aiCode') }}</div>
       <div class="card-content">
         <p class="ai-code-desc">{{ $t('aiCodeDesc') }}</p>
@@ -407,6 +421,7 @@ import {isEmail} from "@/utils/verify-utils.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSysSetting} from "../use-sys-setting.js";
 import NoticeEditor from "../components/notice-editor.vue";
+import { useServerStore } from '@/store/server.js';
 
 defineOptions({
   name: 'sys-setting-integration'
@@ -415,6 +430,13 @@ defineOptions({
 const {t, locale} = useI18n()
 const uiStore = useUiStore()
 const {setting, settingLoading, clearS3Loading, editSetting, change, beforeChange, onSettingsLoaded} = useSysSetting()
+const webhookSecret = ref('')
+const webhookServer = useServerStore()
+const webhookUrl = computed(() => new URL(webhookServer.getActiveBaseURL().replace(/\/+$/, '') + '/webhooks', window.location.origin).href)
+onSettingsLoaded(() => { webhookSecret.value = '' })
+async function saveWebhookSecret() {
+  if (await editSetting({ resendWebhookSecret: webhookSecret.value })) webhookSecret.value = ''
+}
 
 const r2DomainShow = ref(false)
 const r2DomainInput = ref('')
@@ -860,6 +882,10 @@ function saveNoticePopup() {
   margin: 0 0 12px;
   line-height: 1.6;
 }
+.webhook-endpoint { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-bottom: 18px; font-size: 12px; }
+.webhook-endpoint code { overflow-wrap: anywhere; color: var(--el-text-color-secondary); }
+.webhook-secret-field { display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+.webhook-secret-actions { margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 .ai-model-name {
   font-size: 12px;

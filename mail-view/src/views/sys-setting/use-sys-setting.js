@@ -8,7 +8,7 @@ import {useUserStore} from "@/store/user.js";
 import i18n from "@/i18n/index.js";
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
 
-export const SYS_SETTING_VERSION = 'v3.6.0'
+export const SYS_SETTING_VERSION = 'v3.6.1'
 
 let context = null
 
@@ -74,6 +74,7 @@ function createContext() {
     delete settingForm.hasAi
     delete settingForm.aiModels
     delete settingForm.domainList
+    delete settingForm.hasResendWebhookSecret
     // OAuth settings are saved only by the provider form, never by unrelated switches.
     for (const provider of OAUTH_PROVIDERS) {
       for (const suffix of ['Switch', 'ClientId', 'ClientSecret', 'CallbackUrl', 'HasSecret', 'MinTrustLevel']) delete settingForm[provider.id + suffix]

@@ -25,6 +25,7 @@ import permService from './perm-service';
 import subWorkerService from './sub-worker-service';
 import queenSmtpService from './queen-smtp-service';
 import domainUtils from '../utils/domain-uitls';
+import { mailFilterConditions } from './mail-filter-service';
 
 // QueenSMTP 的消息 id 存在 resend_email_id 字段，加前缀区分来源，避免和 Resend 的状态回调混淆
 const QUEEN_ID_PREFIX = 'queensmtp:';
@@ -57,10 +58,11 @@ const emailService = {
 
 		}
 
-		if (isNaN(allReceive)) {
-			let accountRow = await accountService.selectById(c, accountId);
-			allReceive = accountRow.allReceive;
-		}
+		if (accountId > 0) {
+			const accountRow = await accountService.selectOwnedById(c, accountId, userId);
+			if (!accountRow) return { list: [], total: 0, latestEmail: { emailId: 0, accountId, userId } };
+			if (isNaN(allReceive)) allReceive = accountRow.allReceive;
+		} else if (isNaN(allReceive)) allReceive = 1;
 
 		if (firstPage && Number(type) === emailConst.type.RECEIVE) {
 			await subWorkerService.syncAll(c);
@@ -270,14 +272,10 @@ const emailService = {
 
 		}
 
-		const accountRow = await accountService.selectById(c, accountId);
+		const accountRow = await accountService.selectOwnedById(c, accountId, userId);
 
 		if (!accountRow) {
 			throw new BizError(t('senderAccountNotExist'));
-		}
-
-		if (accountRow.userId !== userId) {
-			throw new BizError(t('sendEmailNotCurUser'));
 		}
 
 		if (c.env.admin !== userRow.email) {
@@ -610,27 +608,22 @@ const emailService = {
 	// 懒加载正文：列表只返回摘要，打开邮件时再取全文
 	async content(c, params, userId) {
 		const emailId = Number(params.emailId);
+		const currentUser = c.get('user');
+		let canViewAll = currentUser?.email === c.env.admin;
+		if (!canViewAll) {
+			const keys = await permService.userPermKeys(c, userId);
+			canViewAll = keys.includes('all-email:query') || keys.includes('*');
+		}
 
 		const emailRow = await orm(c).select({
 			emailId: email.emailId,
 			userId: email.userId,
 			content: email.content,
 			text: email.text
-		}).from(email).where(eq(email.emailId, emailId)).get();
+		}).from(email).where(and(eq(email.emailId, emailId), canViewAll ? sql`1 = 1` : eq(email.userId, userId))).get();
 
 		if (!emailRow) {
 			throw new BizError(t('unauthorized'), 404);
-		}
-
-		// 非本人邮件需要管理员或全部邮件查看权限
-		if (emailRow.userId !== userId) {
-			const userRow = c.get('user');
-			if (userRow?.email !== c.env.admin) {
-				const permKeys = await permService.userPermKeys(c, userId);
-				if (!permKeys.includes('all-email:query')) {
-					throw new BizError(t('unauthorized'), 403);
-				}
-			}
 		}
 
 		return {
@@ -643,9 +636,10 @@ const emailService = {
 	async latest(c, params, userId) {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
+		const accountRow = await accountService.selectOwnedById(c, accountId, userId);
+		if (!accountRow) return [];
 
 		if (isNaN(allReceive)) {
-			let accountRow = await accountService.selectById(c, accountId);
 			allReceive = accountRow.allReceive;
 		}
 
@@ -736,46 +730,7 @@ const emailService = {
 
 		}
 
-		const conditions = [];
-
-		if (type === 'send') {
-			conditions.push(eq(email.type, emailConst.type.SEND));
-		}
-
-		if (type === 'receive') {
-			conditions.push(eq(email.type, emailConst.type.RECEIVE));
-		}
-
-		if (type === 'delete') {
-			conditions.push(eq(email.isDel, isDel.DELETE));
-		}
-
-		if (type === 'noone') {
-			conditions.push(eq(email.status, emailConst.status.NOONE));
-		}
-
-		if (userEmail) {
-			conditions.push(sql`${user.email} COLLATE NOCASE LIKE ${'%'+ userEmail + '%'}`);
-		}
-
-		if (accountEmail) {
-			conditions.push(
-				or(
-					sql`${email.toEmail} COLLATE NOCASE LIKE ${'%'+ accountEmail + '%'}`,
-					sql`${email.sendEmail} COLLATE NOCASE LIKE ${'%'+ accountEmail + '%'}`,
-				)
-			)
-		}
-
-		if (name) {
-			conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${'%'+ name + '%'}`);
-		}
-
-		if (subject) {
-			conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${'%'+ subject + '%'}`);
-		}
-
-		conditions.push(ne(email.status, emailConst.status.SAVING));
+		const conditions = mailFilterConditions(c, params);
 
 		const countConditions = [...conditions];
 
@@ -837,6 +792,7 @@ const emailService = {
 	async allEmailLatest(c, params) {
 
 		const { emailId } = params;
+		const conditions = mailFilterConditions(c, { ...params, type: 'receive' });
 
 		await subWorkerService.syncAll(c);
 
@@ -844,9 +800,8 @@ const emailService = {
 			.leftJoin(user, eq(email.userId, user.userId))
 			.where(
 				and(
-					gt(email.emailId, emailId),
-					eq(email.type, emailConst.type.RECEIVE),
-					ne(email.status, emailConst.status.SAVING)
+					gt(email.emailId, Number(emailId) || 0),
+					...conditions
 				))
 			.orderBy(desc(email.emailId))
 			.limit(20);
