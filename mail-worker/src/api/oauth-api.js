@@ -1,13 +1,9 @@
 import app from '../hono/hono';
 import result from "../model/result";
 import oauthService from "../service/oauth-service";
+import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 
-app.post('/oauth/linuxDo/login', async (c) => {
-	const loginInfo = await oauthService.linuxDoLogin(c, await c.req.json());
-	return c.json(result.ok(loginInfo))
-});
-
-app.put('/oauth/bindUser', async (c) => {
-	const loginInfo = await oauthService.bindUser(c, await c.req.json());
-	return c.json(result.ok(loginInfo))
-})
+for (const provider of OAUTH_PROVIDERS) {
+  app.post(`/oauth/${provider.apiId}/authorize`, async c => c.json(result.ok(await oauthService.authorize(c, 'login', provider.id))));
+  app.post(`/oauth/${provider.apiId}/login`, async c => c.json(result.ok(await oauthService.finish(c, await c.req.json(), 'login', provider.id))));
+}

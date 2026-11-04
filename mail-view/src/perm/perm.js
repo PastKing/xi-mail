@@ -44,6 +44,7 @@ const sysSettingSections = [
     'registration',
     'domain',
     'integration',
+    'oauth',
     'sub-workers',
     'appearance',
     'servers',

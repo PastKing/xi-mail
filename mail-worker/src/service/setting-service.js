@@ -10,6 +10,9 @@ import {t} from '../i18n/i18n'
 import verifyRecordService from './verify-record-service';
 import { AI_CODE_MODELS, resolveAiModel } from '../const/ai-models';
 import subWorkerService from './sub-worker-service';
+import { normalizeLoginTemplate } from '../const/login-templates';
+import oauthConfigService from './oauth-config-service';
+import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 
 const SEND_PROVIDERS = ['resend', 'queensmtp'];
 
@@ -43,6 +46,7 @@ const settingService = {
 		settingRow.queenTokens = JSON.parse(settingRow.queenTokens || '{}');
 		settingRow.sendProviders = JSON.parse(settingRow.sendProviders || '{}');
 		settingRow.subWorkerDomains = await subWorkerService.domains(c, true);
+		settingRow.loginTemplate = normalizeLoginTemplate(settingRow.loginTemplate);
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 	},
@@ -125,19 +129,15 @@ const settingService = {
 		}
 		settingRow.domainList = domainList;
 
-		let linuxdoSwitch = c.env.linuxdo_switch;
-
-		if (typeof linuxdoSwitch === 'string' && linuxdoSwitch === 'true') {
-			linuxdoSwitch = true
-		} else if (linuxdoSwitch === true) {
-			linuxdoSwitch = true
-		} else {
-			linuxdoSwitch = false
-		}
-
-		settingRow.linuxdoClientId = c.env.linuxdo_client_id;
-		settingRow.linuxdoCallbackUrl = c.env.linuxdo_callback_url;
-		settingRow.linuxdoSwitch = linuxdoSwitch;
+		const oauthConfigs = await Promise.all(OAUTH_PROVIDERS.map(provider => oauthConfigService.get(c, provider.id)));
+		OAUTH_PROVIDERS.forEach((provider, index) => {
+			const config = oauthConfigs[index], id = provider.id;
+			settingRow[id + 'ClientId'] = config.clientId;
+			settingRow[id + 'CallbackUrl'] = config.callbackUrl;
+			settingRow[id + 'Switch'] = config.enabled && config.ready;
+			settingRow[id + 'HasSecret'] = !!config.clientSecret;
+			settingRow[id + 'MinTrustLevel'] = config.minTrustLevel ?? 0;
+		});
 
 		settingRow.emailPrefixFilter = settingRow.emailPrefixFilter.split(",").filter(Boolean);
 		settingRow.emailKeywordBlacklist = (settingRow.emailKeywordBlacklist || '').split(",").filter(Boolean);
@@ -148,6 +148,7 @@ const settingService = {
 			settingRow.domainMapping = JSON.parse(settingRow.domainMapping || '{}');
 		}
 
+		settingRow.loginTemplate = normalizeLoginTemplate(settingRow.loginTemplate);
 		c.set?.('setting', settingRow);
 		return settingRow;
 	},
@@ -202,13 +203,15 @@ const settingService = {
 	},
 
 	async set(c, params) {
+		for (const provider of OAUTH_PROVIDERS) await oauthConfigService.save(c, params, provider.id);
+		if (Object.hasOwn(params, 'loginTemplate')) params.loginTemplate = normalizeLoginTemplate(params.loginTemplate);
 		delete params.hasAi
 		delete params.hasR2
 		delete params.aiModels
 		delete params.domainList
-		delete params.linuxdoSwitch
-		delete params.linuxdoClientId
-		delete params.linuxdoCallbackUrl
+		for (const provider of OAUTH_PROVIDERS) {
+			for (const suffix of ['Switch', 'ClientId', 'CallbackUrl', 'ClientSecret', 'HasSecret', 'MinTrustLevel']) delete params[provider.id + suffix];
+		}
 		delete params.regVerifyOpen
 		delete params.addVerifyOpen
 		delete params.storageType
@@ -357,16 +360,14 @@ const settingService = {
 			noticeOffset: settingRow.noticeOffset,
 			notice: settingRow.notice,
 			loginDomain: settingRow.loginDomain,
-			linuxdoClientId: settingRow.linuxdoClientId,
-			linuxdoCallbackUrl: settingRow.linuxdoCallbackUrl,
-			linuxdoSwitch: settingRow.linuxdoSwitch,
+			...Object.fromEntries(OAUTH_PROVIDERS.map(provider => [provider.id + 'Switch', settingRow[provider.id + 'Switch']])),
 			minEmailPrefix: settingRow.minEmailPrefix,
 			randomPrefixLength: settingRow.randomPrefixLength,
 			regKeyHint: settingRow.regKeyHint || '',
 			regKeyHintEn: settingRow.regKeyHintEn || '',
 			regKeyLink: settingRow.regKeyLink || '',
 			colorTheme: settingRow.colorTheme || 'indigo',
-			loginTemplate: settingRow.loginTemplate || 'gradient',
+			loginTemplate: normalizeLoginTemplate(settingRow.loginTemplate),
 			layoutMode: settingRow.layoutMode || 'default',
 			newEmailNotify: settingRow.newEmailNotify ?? 0,
 		};

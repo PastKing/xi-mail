@@ -4,7 +4,7 @@
       <!-- Logo -->
       <div class="hnav-logo">
         <div class="logo-mark">
-          <Icon icon="mingcute:mail-send-fill" width="15" height="15" />
+          <BrandMark :size="25" />
         </div>
         <span class="logo-text">{{ settingStore.settings.title }}</span>
       </div>
@@ -50,6 +50,7 @@
 </template>
 
 <script setup>
+import BrandMark from '@/components/BrandMark.vue';
 import router from '@/router/index.js'
 import { useRoute } from 'vue-router'
 import { Icon } from '@iconify/vue'
@@ -93,14 +94,12 @@ const {transferStore, visibleMainNav, visibleAdminNav} = useNavigationAccess()
 .logo-mark {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
-  background: var(--xi-gradient);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--el-color-primary);
   flex-shrink: 0;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
 .logo-text {

@@ -1,12 +1,14 @@
 <div align="center">
 
+<img src="mail-view/public/brand/icon.svg" width="64" height="64" alt="Xi-Mail" />
+
 # Xi-Mail
 
 **Self-hosted mail service built entirely on Cloudflare**
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.5.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.0-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -23,7 +25,7 @@ With a single domain hosted on Cloudflare you can deploy a complete mail platfor
 
 | Login template | Floating Island |
 |:---:|:---:|
-| ![Split login template](doc/images/template/Split.png) | ![Floating Island navigation](doc/images/layout/FloatingIsland.png) |
+| ![Editorial login template](doc/images/template/Editorial.png) | ![Floating Island navigation](doc/images/layout/FloatingIsland.png) |
 | **Domain management** | **Analytics** |
 | ![Domain management](doc/images/system-setting-domain.png) | ![Analytics](doc/images/analysis.png) |
 
@@ -38,7 +40,12 @@ Try it at [mail.azx.us](https://mail.azx.us) using invite code `viewUser` (limit
 ## ✨ Highlights
 
 **Interface**
-Nine login templates with genuinely different compositions, including Open Letter, Mail Terminal and Postal Passport, and six color themes, plus four post-login layouts (full sidebar, icon-only sidebar, top navigation and Floating Island), all switchable from system settings and persisted server-side. Floating Island uses a detached rail on desktop and a bottom dock on mobile. Icons are unified on `mingcute`; the UI ships in English and Chinese, and the language preference follows the account across devices.
+Six login templates: Minimal, Editorial, Night Post, Composition, Open Letter and Postal Passport, with automatic compatibility for retired templates. Six color themes and four post-login layouts (full sidebar, icon-only sidebar, top navigation and Floating Island) are switchable from system settings and persisted server-side. Floating Island uses a detached rail on desktop and a bottom dock on mobile. Icons are unified on `mingcute`; the UI ships in English and Chinese, and the language preference follows the account across devices.
+
+**Third-party sign-in**
+System Settings includes a dedicated OAuth Integration page ordered as NodeLoc, Telegram and LinuxDo. Administrators configure application credentials and, for LinuxDo and NodeLoc, a minimum trust level. Users register a mailbox through the existing invitation-code rules, then connect or disconnect providers in Personal Settings. OAuth only signs in to an already connected mailbox and never creates an account automatically. Enabled providers appear side by side on the login page. Reconfiguring an application does not delete existing connections.
+
+Callback URLs are generated automatically and displayed as read-only: `/oauth/linuxdo`, `/oauth/telegram` and `/oauth/nodeloc`. Register the corresponding URL in [LinuxDo Connect](https://connect.linux.do/), Login Widget in [BotFather](https://t.me/BotFather), or [NodeLoc applications](https://www.nodeloc.com/oauth-provider/applications). Telegram uses OIDC authorization codes with PKCE and server-side ID token signature verification. NodeLoc requests only `openid profile`, without email access. Client secrets stay on the server; leaving the field blank preserves the existing secret. Worker environment variables remain a fallback when no administrator configuration has been saved.
 
 **Users and accounts**
 User IDs are random alphanumeric strings and can be copied with one click. Each user can hold up to 100 mailbox accounts, and a deleted mailbox can be recreated. Mailboxes can be transferred to another user along with all their mail, subject to the recipient's approval. Roles carry a `level` field, so a user can only issue invite codes for roles below their own.
@@ -132,9 +139,8 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
-| **v3.5.12** | Browser extension; only senders that can send are listed |
-| **v3.5.11** | QueenSMTP sending service |
-| **v3.5.x** | Sub-worker mail in main site, login sessions, better code extraction, security fixes |
+| **v3.6.0** | Refreshed login templates and brand icons, provider sign-in, account connections and authorization status pages, smaller compose button |
+| **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |
 | **v3.4.x** | Floating Island navigation and login templates |
 | **v3.3.x** | Sender whitelist mode |
 | **v3.2.x** | Sender-domain blocking |

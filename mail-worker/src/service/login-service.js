@@ -23,16 +23,11 @@ import sessionService from './session-service';
 
 const loginService = {
 
-	async register(c, params, oauth = false) {
+	async register(c, params) {
 
 		const { email, password, token, code } = params;
 
 		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter, emailKeywordBlacklist } = await settingService.query(c)
-
-		if (oauth) {
-			registerVerify = settingConst.registerVerify.CLOSE;
-			register = settingConst.register.OPEN;
-		}
 
 		if (register === settingConst.register.CLOSE) {
 			throw new BizError(t('regDisabled'));

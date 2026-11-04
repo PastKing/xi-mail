@@ -26,10 +26,23 @@ export default defineConfig(({mode}) => {
                     theme_color: '#FFFFFF',
                     icons: [
                         {
-                            src: 'mail-pwa.png',
+                            src: 'brand/icon-192.png?v=3.6.0-flight',
                             sizes: '192x192',
                             type: 'image/png',
-                        }
+                            purpose: 'any',
+                        },
+                        {
+                            src: 'brand/icon-512.png?v=3.6.0-flight',
+                            sizes: '512x512',
+                            type: 'image/png',
+                            purpose: 'any',
+                        },
+                        {
+                            src: 'brand/icon-maskable-512.png?v=3.6.0-flight',
+                            sizes: '512x512',
+                            type: 'image/png',
+                            purpose: 'maskable',
+                        },
                     ],
                 },
                 workbox: {

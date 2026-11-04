@@ -1,12 +1,14 @@
 <div align="center">
 
+<img src="mail-view/public/brand/icon.svg" width="64" height="64" alt="Xi-Mail" />
+
 # Xi-Mail
 
 **基于 Cloudflare 全家桶的自托管邮箱服务**
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.5.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.0-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -23,7 +25,7 @@
 
 | 登录模板 | 浮岛导航 |
 |:---:|:---:|
-| ![分栏登录模板](doc/images/template/Split.png) | ![浮岛导航](doc/images/layout/FloatingIsland.png) |
+| ![刊物登录模板](doc/images/template/Editorial.png) | ![浮岛导航](doc/images/layout/FloatingIsland.png) |
 | **域名管理** | **数据分析** |
 | ![域名管理](doc/images/system-setting-domain.png) | ![数据分析](doc/images/analysis.png) |
 
@@ -38,7 +40,12 @@
 ## ✨ 主要特性
 
 **界面**
-9 套拥有独立构图的登录模板（包含拆信、邮件终端和邮政护照）+ 6 套主题色，四种登录后布局（完整侧边栏 / 图标侧边栏 / 顶栏导航 / 浮岛导航），全部在系统设置中一键切换并持久化。浮岛布局在桌面端使用悬浮轨道，手机端自动切换为底部 Dock。图标统一使用 `mingcute`，中英文双语，语言偏好随账号跨设备同步。
+6 套登录模板：简约、刊物、夜航、构成、拆信和邮政护照，旧模板配置自动切换到对应模板。另有 6 套主题色，四种登录后布局（完整侧边栏 / 图标侧边栏 / 顶栏导航 / 浮岛导航），全部在系统设置中一键切换并持久化。浮岛布局在桌面端使用悬浮轨道，手机端自动切换为底部 Dock。图标统一使用 `mingcute`，中英文双语，语言偏好随账号跨设备同步。
+
+**第三方登录**
+系统设置提供独立的「OAuth 集成」，按 NodeLoc、Telegram、LinuxDo 排列。管理员按提供商配置 Client ID、Client Secret，LinuxDo 和 NodeLoc 可设置最低信任级别；用户先通过正常注册流程创建邮箱，再到「个人设置 → 第三方账号」绑定或解绑。只有已绑定的账号可以第三方登录，不会自动注册或绕过注册码。登录页将已启用的方式紧凑并排显示，现有绑定不会因重新配置应用而删除。
+
+回调地址由前端站点自动生成，只读显示：LinuxDo 使用 `/oauth/linuxdo`，Telegram 使用 `/oauth/telegram`，NodeLoc 使用 `/oauth/nodeloc`。分别在 [LinuxDo Connect](https://connect.linux.do/)、[BotFather](https://t.me/BotFather) 的 Login Widget、[NodeLoc 应用管理](https://www.nodeloc.com/oauth-provider/applications) 中登记同一地址。Telegram 使用 OIDC 授权码与 PKCE，并在服务端校验身份令牌签名；NodeLoc 只请求 `openid profile`，不需要邮箱权限。Client Secret 只保存于服务端，输入留空会保留现有密钥。Worker 环境变量仍可作为未配置后台时的回退配置。
 
 **用户与账号**
 用户 ID 为随机字母数字组合并支持点击复制；单用户最多 100 个邮箱账号，删除后可重建；支持将邮箱连同全部邮件转移给其他用户，接收方可确认或拒绝；角色带 `level` 字段，只能签发权限低于自己的邀请码。
@@ -132,9 +139,8 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
-| **v3.5.12** | 新增浏览器插件；写信只显示能发件的发件人 |
-| **v3.5.11** | 新增 QueenSMTP 发件服务 |
-| **v3.5.x** | 子 Worker 邮件在主站显示、登录会话管理、验证码识别优化、安全修复 |
+| **v3.6.0** | 登录模板与品牌图标更新；三方登录、账号绑定与授权状态页；写信按钮缩小 |
+| **v3.5.x** | 浏览器插件、QueenSMTP 发件、子 Worker、会话与验证码优化 |
 | **v3.4.x** | 浮岛导航与多套登录模板 |
 | **v3.3.x** | 发件人白名单模式 |
 | **v3.2.x** | 发件人域名屏蔽 |

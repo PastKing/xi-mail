@@ -4,6 +4,7 @@ import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useServerStore} from "@/store/server.js";
 import {cvtR2Url} from "@/utils/convert.js";
+import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 
 const routes = [
     {
@@ -81,6 +82,11 @@ const routes = [
         component: () => import('@/views/login/index.vue')
     },
     {
+        path: `/oauth/:provider(${OAUTH_PROVIDERS.map(provider => provider.id).join('|')})`,
+        name: 'oauth-provider-callback',
+        component: () => import('@/views/oauth-callback/index.vue')
+    },
+    {
         path: '/setup',
         name: 'setup',
         component: () => import('@/views/setup/index.vue')
@@ -133,7 +139,7 @@ router.beforeEach((to, from, next) => {
 
     const token = serverStore.getToken()
 
-    if (!token && to.name !== 'login' && to.name !== 'setup') {
+    if (!token && !['login', 'setup', 'oauth-provider-callback'].includes(to.name)) {
         return next({name: 'login'})
     }
 

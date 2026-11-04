@@ -2,7 +2,7 @@
   <div class="island-nav-shell">
     <nav class="island-rail" :aria-label="$t('islandNavigation')">
       <button class="island-logo" :aria-label="settingStore.settings.title" @click="goHome">
-        <Icon icon="mingcute:mail-send-fill" width="20" height="20" />
+        <BrandMark :size="29" />
       </button>
 
       <div class="island-primary">
@@ -93,6 +93,7 @@
 </template>
 
 <script setup>
+import BrandMark from '@/components/BrandMark.vue';
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {Icon} from '@iconify/vue'

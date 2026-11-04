@@ -1,4 +1,5 @@
 import settingService from '../service/setting-service';
+import oauthBindingService from '../service/oauth-binding-service';
 import emailUtils from '../utils/email-utils';
 import {emailConst} from "../const/entity-const";
 
@@ -42,6 +43,7 @@ const dbInit = {
 		await this.v4_1DB(c);
 		await this.v4_2DB(c);
 		await this.v4_3DB(c);
+		await oauthBindingService.ensure(c);
 		await this.v4_4DB(c);
 		await this.v4_5DB(c);
 		await settingService.refresh(c);

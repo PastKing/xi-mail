@@ -1,0 +1,38 @@
+/* Composition: a left-hand form and a primary-color modernist poster. */
+.template-grid {
+  background: #eeeae1;
+  --auth-focus: #c4513a; --auth-soft: #f0dfd6; --auth-fill: #fbf9f2;
+  --auth-ink: #292820; --auth-muted: #7f7a6f; --auth-line: #c9c3b5;
+  .card-wrapper { width: 47%; margin-right: 39%; min-height: 100vh; justify-content: center; align-items: stretch; padding: 120px 42px 45px; }
+  .auth-card { padding: 29px; max-width: 470px; border: 1px solid #34332c; background: #fbf9f2; }
+  .card-header { display: none; }
+  .card-heading h2 { font-size: 27px; }
+  .input-main.standalone, .input-group, .primary-btn, .social-btn { border-radius: 0; }
+  .primary-btn { background: #2c2b24; &:hover:not(:disabled) { background: #2c2b24; } }
+  .page-footer { margin-top: 22px; align-self: flex-start; }
+}
+.grid-banner { position: absolute; inset: 0; pointer-events: none; }
+.grid-wordmark {
+  position: absolute; top: 32px; left: 6%; right: 6%; padding-bottom: 18px; border-bottom: 1px solid #34332c;
+  > span { float: right; font: 10px/1.5 ui-monospace, monospace; letter-spacing: .18em; margin-top: 17px; }
+  h2 { color: #292820; font-size: 31px; font-weight: 600; letter-spacing: -.05em; margin: 0; }
+  p { display: none; }
+}
+.grid-tiles {
+  position: absolute; top: 27%; right: 7%; width: 31vw; height: 31vw; max-width: 440px; max-height: 440px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 9px;
+  > i { display: block; }
+  > i:nth-child(1) { background: #c4513a; border-radius: 50%; }
+  > i:nth-child(2) { background: #d5aa57; border-radius: 100% 0 0; }
+  > i:nth-child(3) { position: relative; background: #30312b; &::after { content: ''; position: absolute; inset: 22%; background: #eeeae1; border-radius: 50%; } }
+  > i:nth-child(4) { background: #617875; clip-path: polygon(0 100%, 100% 0, 100% 100%); }
+  &::after { content: '01 / CORRESPONDENCE'; position: absolute; top: calc(100% + 24px); left: 0; font: 9px/1.5 ui-monospace, monospace; letter-spacing: .15em; color: #7f7a6f; }
+}
+@media (max-width: 760px) {
+  .grid-wordmark { top: 25px; left: 25px; right: 25px; padding-bottom: 16px; h2 { font-size: 26px; } }
+  .grid-tiles { width: 80px; height: 80px; right: 26px; top: 100px; gap: 3px; &::after { display: none; } }
+  .template-grid .card-wrapper { width: 100%; margin: 0; padding: 205px 25px 28px; justify-content: flex-start; }
+  .template-grid .auth-card { max-width: none; padding: 24px 20px; }
+  .template-grid .page-footer { margin-top: 22px; }
+}
+@media (max-height: 700px) and (min-width: 761px) { .template-grid .card-wrapper { justify-content: flex-start; padding-top: 115px; } .grid-tiles { top: 29%; } }

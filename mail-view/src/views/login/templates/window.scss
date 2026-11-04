@@ -1,0 +1,28 @@
+/* Night Post: an ivory access window against a moonlit, flat-color sky. */
+.template-window {
+  background: #111a2b;
+  --auth-ink: #242b3b; --auth-muted: #878887; --auth-line: #deddd6;
+  --auth-fill: #faf9f4; --auth-focus: #29364f; --auth-soft: #e7eaf0;
+  .card-wrapper { width: min(450px, calc(100% - 48px)); min-height: 0; max-height: calc(100vh - 68px); padding: 0; overflow-y: auto; border: 1px solid #e3dfd1; border-radius: 9px; background: #f5f2e9; box-shadow: none; }
+  .window-bar { display: flex; width: 100%; justify-content: space-between; align-items: center; padding: 13px 19px; border-bottom: 1px solid #deddd6; color: #7a7e86; > span { display: flex; align-items: center; gap: 8px; font-size: 10px; } > i { width: 8px; height: 8px; border-radius: 50%; background: #b49c68; } }
+  .auth-card { max-width: none; padding: 30px 35px 25px; }
+  .logo-icon { color: #f5f2e9; border-radius: 50%; }
+  .primary-btn { color: #fff; }
+  .page-footer { width: 100%; margin: 0; padding: 0 35px 24px; }
+  .card-heading h2 { font-size: 26px; }
+}
+.window-scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.window-moon { position: absolute; width: min(35vw, 470px); height: min(35vw, 470px); left: 9%; top: 11%; border-radius: 50%; background: #dddbc7; &::after { content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%; background: #111a2b; left: 18%; top: -9%; } }
+.window-orbit { position: absolute; width: 94vw; height: 53vw; border: 1px solid #354052; border-radius: 50%; transform: rotate(-27deg); top: 8%; left: 1%; }
+.window-star { position: absolute; color: #a7acb5; font: 22px/1 Georgia, serif; }
+.star-one { right: 12%; top: 18%; }.star-two { right: 21%; bottom: 21%; font-size: 16px; }.star-three { left: 15%; top: 15%; }
+.window-scene-note { position: absolute; left: 5%; bottom: 6%; color: #d0d4d7; strong { display: block; font: 500 clamp(26px, 4.8vw, 68px)/1.03 Georgia, serif; letter-spacing: -.03em; } span { display: block; color: #7e899a; font-size: 10px; margin-top: 14px; } }
+@media (max-width: 760px) {
+  .window-moon { width: 210px; height: 210px; left: -40px; top: -15px; }
+  .window-orbit { width: 900px; height: 440px; left: -340px; top: 10%; }
+  .window-scene-note { display: none; }
+  .template-window .card-wrapper { width: calc(100% - 40px); max-height: calc(100vh - 48px); }
+  .template-window .auth-card { padding: 26px 25px 23px; }
+  .template-window .page-footer { padding: 0 25px 22px; }
+}
+@media (max-height: 700px) { .template-window .card-wrapper { max-height: calc(100vh - 28px); } }

@@ -1,117 +1,43 @@
 <template>
   <div :class="['login-page', 'template-' + loginTemplate]" v-loading="oauthLoading" element-loading-text="登录中...">
-    <!-- Background decoration (gradient template only) -->
-    <div class="bg-layer">
-      <div class="bg-orb bg-orb-1"></div>
-      <div class="bg-orb bg-orb-2"></div>
-      <div class="bg-orb bg-orb-3"></div>
-      <div class="bg-grid"></div>
-    </div>
-
-    <!-- Ink template: editorial poster, intentionally separate from the form -->
-    <section v-if="loginTemplate === 'gradient'" class="ink-poster" aria-hidden="true">
-      <div class="ink-poster-top">
-        <span class="ink-index">01</span>
-        <span class="ink-rule"></span>
-        <span class="ink-caption">{{ $t('privateMailbox') }}</span>
-      </div>
-      <div class="ink-poster-copy">
-        <span class="ink-eyebrow">XI / MAIL</span>
-        <h2>{{ settingStore.settings.title }}</h2>
-        <p>{{ $t('mailInYourControl') }}</p>
-      </div>
-      <div class="ink-stamp">
-        <Icon icon="mingcute:mail-send-fill" width="22" height="22"/>
-      </div>
-    </section>
-
-    <!-- Minimal template: an editorial masthead instead of a decorative scene -->
+    <!-- Each scene has its own composition; authentication stays shared. -->
     <header v-if="loginTemplate === 'minimal'" class="minimal-masthead">
       <div class="minimal-brand">
-        <Icon icon="mingcute:mail-send-line" width="19" height="19"/>
+        <BrandMark :size="25" />
         <span>{{ settingStore.settings.title }}</span>
       </div>
       <span class="minimal-edition">{{ $t('simpleAndFocused') }}</span>
     </header>
 
-    <!-- Split template: left brand panel -->
-    <div v-if="loginTemplate === 'split'" class="split-left">
-      <div class="split-brand">
-        <div class="split-logo">
-          <Icon icon="mingcute:mail-send-fill" width="28" height="28" />
-        </div>
-        <h1 class="split-title">{{ settingStore.settings.title }}</h1>
-        <p class="split-desc">{{ $t('loginSubTitle') }}</p>
-        <div class="split-dots">
-          <span></span><span></span><span></span>
-        </div>
+    <section v-if="loginTemplate === 'editorial'" class="editorial-scene" aria-hidden="true">
+      <div class="editorial-masthead"><span>{{ settingStore.settings.title }}</span><span>EST. {{ new Date().getFullYear() }}</span></div>
+      <div class="editorial-copy">
+        <span class="editorial-kicker">PERSONAL CORRESPONDENCE</span>
+        <h2><span>{{ $t('editorialHeadlineFirst') }}</span><span>{{ $t('editorialHeadlineLast') }}<i>.</i></span></h2>
+        <p>{{ $t('editorialNote') }}</p>
       </div>
+      <div class="editorial-art">
+        <span class="editorial-postmark">POST<br><b>XI—MAIL</b></span>
+        <div class="editorial-lines"><i></i><i></i><i></i><small>{{ $t('privateMailbox') }}</small></div>
+      </div>
+      <span class="editorial-bottom">XI / MAIL <i></i> {{ $t('editorialEdition') }}</span>
+    </section>
+
+    <div v-if="loginTemplate === 'window'" class="window-scene" aria-hidden="true">
+      <div class="window-moon"></div><div class="window-orbit"></div>
+      <span class="window-star star-one">+</span><span class="window-star star-two">+</span><span class="window-star star-three">·</span>
+      <div class="window-scene-note"><strong>NIGHT<br>POST.</strong><span>{{ $t('windowNote') }}</span></div>
     </div>
 
-    <!-- Glassmorphism template: full-screen image background -->
-    <div v-if="loginTemplate === 'glassmorphism'" class="glass-bg">
-      <div class="glass-orb glass-orb-1"></div>
-      <div class="glass-orb glass-orb-2"></div>
-      <div class="glass-orb glass-orb-3"></div>
-      <div class="glass-noise"></div>
-      <div class="glass-float glass-float-mail">
-        <Icon icon="mingcute:mail-open-line" width="18" height="18"/>
-        <span>{{ $t('mailReady') }}</span>
-      </div>
-      <div class="glass-float glass-float-lock">
-        <Icon icon="mingcute:shield-check-line" width="18" height="18"/>
-        <span>{{ $t('privateMailbox') }}</span>
-      </div>
-    </div>
-
-    <!-- Aurora template: right side brand panel -->
-    <div v-if="loginTemplate === 'aurora'" class="aurora-panel">
-      <div class="aurora-waves">
-        <div class="aurora-wave aurora-wave-1"></div>
-        <div class="aurora-wave aurora-wave-2"></div>
-        <div class="aurora-wave aurora-wave-3"></div>
-      </div>
-      <div class="aurora-stars"></div>
-      <div class="aurora-brand">
-        <div class="aurora-logo">
-          <Icon icon="mingcute:mail-send-fill" width="32" height="32" />
-        </div>
-        <h1 class="aurora-title">{{ settingStore.settings.title }}</h1>
-        <p class="aurora-desc">{{ $t('loginSubTitle') }}</p>
-        <div class="aurora-features">
-          <div class="aurora-feature">
-            <Icon icon="mingcute:shield-check-fill" width="18" height="18" />
-            <span>{{ $t('featureSecure') }}</span>
-          </div>
-          <div class="aurora-feature">
-            <Icon icon="mingcute:flash-fill" width="18" height="18" />
-            <span>{{ $t('featureFast') }}</span>
-          </div>
-          <div class="aurora-feature">
-            <Icon icon="mingcute:planet-fill" width="18" height="18" />
-            <span>{{ $t('featureGlobal') }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Geometric template: decorative shapes -->
-    <div v-if="loginTemplate === 'geometric'" class="geo-shapes">
-      <div class="geo-shape geo-circle"></div>
-      <div class="geo-shape geo-square"></div>
-      <div class="geo-shape geo-triangle"></div>
-      <div class="geo-shape geo-donut"></div>
-      <div class="geo-grid"></div>
-      <div class="geo-copy">
-        <span>MAIL / 06</span>
-        <strong>{{ $t('mailWithoutLimits') }}</strong>
-      </div>
-    </div>
+    <section v-if="loginTemplate === 'grid'" class="grid-banner" aria-hidden="true">
+      <div class="grid-wordmark"><span>XI / MAIL</span><h2>{{ settingStore.settings.title }}</h2><p>{{ $t('gridNote') }}</p></div>
+      <div class="grid-tiles"><i></i><i></i><i></i><i></i></div>
+    </section>
 
     <!-- Envelope template: tactile mail piece and sliding registration letter -->
     <section v-if="loginTemplate === 'envelope'" class="envelope-scene" aria-hidden="true">
       <div class="envelope-return">
-        <Icon icon="mingcute:mail-send-line" width="17" height="17" />
+        <BrandMark :size="23" />
         <span>{{ settingStore.settings.title }}</span>
       </div>
       <div class="envelope-postmark">
@@ -122,23 +48,11 @@
       <p>{{ $t('envelopeNote') }}</p>
     </section>
 
-    <!-- Terminal template: deliberately plain text workstation -->
-    <section v-if="loginTemplate === 'terminal'" class="terminal-aside" aria-hidden="true">
-      <pre>XI-MAIL SYSTEM
-----------------
-SMTP  READY
-IMAP  READY
-AUTH  WAITING
-
-{{ $t('terminalHint') }}</pre>
-      <span class="terminal-cursor">_</span>
-    </section>
-
     <!-- Passport template: postal identity booklet -->
     <section v-if="loginTemplate === 'passport'" class="passport-scene" aria-hidden="true">
       <div class="passport-number">XM · {{ new Date().getFullYear() }} · 09</div>
       <div class="passport-stamp">
-        <Icon icon="mingcute:mail-send-line" width="25" height="25" />
+        <BrandMark :size="33" />
         <span>XI MAIL</span>
       </div>
       <div class="passport-route">
@@ -148,20 +62,14 @@ AUTH  WAITING
 
     <!-- Centered card -->
     <div class="card-wrapper">
-      <div v-if="loginTemplate === 'glassmorphism'" class="glass-window-bar" aria-hidden="true">
-        <div class="glass-window-dots"><span></span><span></span><span></span></div>
-        <span>{{ settingStore.settings.title }}</span>
-        <Icon icon="mingcute:more-2-fill" width="15" height="15"/>
-      </div>
-      <div v-if="loginTemplate === 'terminal'" class="terminal-window-bar" aria-hidden="true">
-        <span>[ XI-MAIL / AUTH ]</span>
-        <span>tty-07</span>
+      <div v-if="loginTemplate === 'window'" class="window-bar" aria-hidden="true">
+        <span><Icon icon="mingcute:mail-line" width="14" height="14"/>{{ $t('windowAccess') }}</span><i></i>
       </div>
       <div class="auth-card" :class="{ 'is-register': show !== 'login' }" v-motion :initial="{ opacity: 0, y: 24, scale: 0.98 }" :enter="{ opacity: 1, y: 0, scale: 1, transition: { duration: 400 } }">
         <!-- Logo + Title -->
         <div class="card-header">
           <div class="logo-icon">
-            <Icon icon="mingcute:mail-send-fill" width="22" height="22" />
+            <BrandMark :size="30" />
           </div>
           <h1 class="app-name">{{ settingStore.settings.title }}</h1>
         </div>
@@ -169,7 +77,7 @@ AUTH  WAITING
         <!-- Heading -->
         <Transition name="hd" mode="out-in">
           <div class="card-heading" :key="show">
-            <h2>{{ show === 'login' ? $t('loginTitle') : $t('regTitle') }}</h2>
+            <h2>{{ refinedTemplate ? (show === 'login' ? $t('authSignIn') : $t('authCreate')) : (show === 'login' ? $t('loginTitle') : $t('regTitle')) }}</h2>
             <p>{{ show === 'login' ? $t('loginSubTitle') : $t('regSubTitle') }}</p>
           </div>
         </Transition>
@@ -230,12 +138,14 @@ AUTH  WAITING
               <span v-else>{{ $t('loginBtn') }}</span>
             </button>
 
-            <template v-if="settingStore.settings.linuxdoSwitch">
+            <template v-if="enabledOAuthProviders.length">
               <div class="divider"><span>{{ $t('orDivider') }}</span></div>
-              <button class="social-btn" @click="linuxDoLogin">
-                <el-avatar src="/image/linuxdo.webp" :size="16" style="flex-shrink:0" />
-                <span>{{ $t('continueWith') }} LinuxDo</span>
-              </button>
+              <div class="social-providers" :style="{ '--provider-count': enabledOAuthProviders.length }">
+                <button v-for="provider in enabledOAuthProviders" :key="provider.id" class="social-btn" :aria-label="$t('oauthSignInWith', { provider: provider.name })" :disabled="oauthLoading" @click="providerLogin(provider.id)">
+                  <img :src="provider.logo" alt="" width="18" height="18" />
+                  <span>{{ provider.name }}</span>
+                </button>
+              </div>
             </template>
           </div>
 
@@ -311,13 +221,7 @@ AUTH  WAITING
               <span v-else>{{ $t('regBtn') }}</span>
             </button>
 
-            <template v-if="settingStore.settings.linuxdoSwitch">
-              <div class="divider"><span>{{ $t('orDivider') }}</span></div>
-              <button class="social-btn" @click="linuxDoLogin">
-                <el-avatar src="/image/linuxdo.webp" :size="16" style="flex-shrink:0" />
-                <span>{{ $t('continueWith') }} LinuxDo</span>
-              </button>
-            </template>
+
           </div>
         </Transition>
       </div>
@@ -331,44 +235,12 @@ AUTH  WAITING
       </div>
     </div>
 
-    <!-- OAuth bind dialog -->
-    <el-dialog class="bind-dlg" v-model="showBindForm" title="绑定邮箱" :width="400">
-      <div class="bind-body">
-        <div class="field">
-          <label>邮箱地址</label>
-          <div class="input-group" :class="{ 'has-suffix': hasDomains }">
-            <div class="input-main">
-              <Icon class="input-icon" icon="mingcute:mail-line" width="16" height="16" />
-              <input v-model="bindForm.email" type="text" autocomplete="off"
-                :placeholder="hasDomains ? 'username' : $t('emailAccount')" />
-            </div>
-            <div v-if="hasDomains" class="input-suffix" @click.stop="openSelect">
-              <span>{{ suffix }}</span>
-              <Icon icon="mingcute:down-line" width="11" height="11" />
-              <el-select ref="mySelect" v-model="suffix" class="hidden-select" :popper-class="suffixPopperClass">
-                <el-option v-for="d in domainList" :key="d" :label="d" :value="d" />
-              </el-select>
-            </div>
-          </div>
-        </div>
-        <div v-if="settingStore.settings.regKey === 0 || settingStore.settings.regKey === 2" class="field" style="margin-top: 4px">
-          <label>{{ settingStore.settings.regKey === 0 ? $t('regKey') : $t('regKeyOptional') }}</label>
-          <div class="input-main standalone">
-            <Icon class="input-icon" icon="mingcute:key-2-line" width="16" height="16" />
-            <input v-model="bindForm.code" type="text" autocomplete="off"
-              :placeholder="settingStore.settings.regKey === 0 ? $t('regKey') : $t('regKeyOptional')" />
-          </div>
-        </div>
-        <button class="primary-btn" style="margin-top: 16px" @click="bind" :disabled="bindLoading">
-          <Icon v-if="bindLoading" icon="mingcute:loading-fill" class="spin" width="16" height="16" />
-          <span v-else>绑定</span>
-        </button>
-      </div>
-    </el-dialog>
+
   </div>
 </template>
 
 <script setup>
+import BrandMark from '@/components/BrandMark.vue';
 import router from "@/router";
 import {computed, nextTick, onMounted, reactive, ref} from "vue";
 import {login, register} from "@/request/login.js";
@@ -381,9 +253,11 @@ import {Icon} from "@iconify/vue";
 import {loginUserInfo} from "@/request/my.js";
 import {permsToRouter} from "@/perm/perm.js";
 import {useI18n} from "vue-i18n";
-import {oauthBindUser, oauthLinuxDoLogin} from "@/request/ouath.js";
+import {startOAuth} from '@/utils/oauth.js';
+import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 import {useServerStore} from "@/store/server.js";
 import {websiteConfig} from "@/request/setting.js";
+import {normalizeLoginTemplate} from '@/config/login-templates.js';
 
 const {t} = useI18n();
 const accountStore = useAccountStore();
@@ -391,7 +265,8 @@ const userStore = useUserStore();
 const uiStore = useUiStore();
 const settingStore = useSettingStore();
 const serverStore = useServerStore();
-const loginTemplate = computed(() => settingStore.settings?.loginTemplate || 'gradient');
+const loginTemplate = computed(() => normalizeLoginTemplate(settingStore.settings?.loginTemplate));
+const refinedTemplate = computed(() => ['editorial', 'window', 'grid'].includes(loginTemplate.value));
 const currentRegKeyHint = computed(() => {
   const s = settingStore.settings;
   if (!s) return '';
@@ -408,25 +283,19 @@ function onServerChange(id) {
   }).catch(() => {});
 }
 const loginLoading = ref(false);
-const bindLoading = ref(false);
 const oauthLoading = ref(false);
-const showBindForm = ref(false);
+const enabledOAuthProviders = computed(() => OAUTH_PROVIDERS.filter(provider => settingStore.settings[provider.id + 'Switch']));
 const show = ref('login');
 const showPwd = ref(false);
 const showConfirmPwd = ref(false);
 
-const bindForm = reactive({ email: '', oauthUserId: '', code: '' });
 const form = reactive({ email: '', password: '' });
 const mySelect = ref();
 const suffix = ref('');
 const registerForm = reactive({ email: '', password: '', confirmPassword: '', code: null });
 const domainList = settingStore.domainList;
 const hasDomains = computed(() => domainList && domainList.length > 0);
-const suffixPopperClass = computed(() =>
-  ['glassmorphism', 'aurora', 'terminal'].includes(settingStore.settings?.loginTemplate)
-    ? 'xi-dark-login-dropdown'
-    : ''
-);
+const suffixPopperClass = '';
 const registerLoading = ref(false);
 suffix.value = domainList[0];
 
@@ -460,48 +329,9 @@ window.loadBefore = () => {};
 
 const openSelect = () => { mySelect.value.toggleMenu(); };
 
-function linuxDoLogin() {
-  const clientId = settingStore.settings.linuxdoClientId;
-  const redirectUri = encodeURIComponent(settingStore.settings.linuxdoCallbackUrl);
-  window.location.href =
-    `https://connect.linux.do/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=openid+profile+email`;
-}
-
-linuxDoGetUser();
-
-async function linuxDoGetUser() {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  if (code) {
-    oauthLoading.value = true;
-    oauthLinuxDoLogin(code).then(data => {
-      bindForm.oauthUserId = data.userInfo.oauthUserId;
-      if (!data.token) {
-        showBindForm.value = true;
-        oauthLoading.value = false;
-        ElMessage({ message: '请注册绑定一个邮箱', type: 'warning', duration: 4000, plain: true });
-        return;
-      }
-      saveToken(data.token);
-    }).catch(() => { oauthLoading.value = false; });
-  }
-  window.history.replaceState({}, '', window.location.origin + window.location.pathname);
-}
-
-function bind() {
-  if (!bindForm.email) { ElMessage({ message: t('emptyEmailMsg'), type: 'error', plain: true }); return; }
-  if (bindForm.email.length < settingStore.settings.minEmailPrefix) {
-    ElMessage({ message: t('minEmailPrefix', { msg: settingStore.settings.minEmailPrefix }), type: 'error', plain: true }); return;
-  }
-  const bindSuffix = hasDomains.value ? suffix.value : '';
-  if (!isEmail(bindForm.email + bindSuffix)) { ElMessage({ message: t('notEmailMsg'), type: 'error', plain: true }); return; }
-  if (settingStore.settings.regKey === 0 && !bindForm.code) {
-    ElMessage({ message: t('emptyRegKeyMsg'), type: 'error', plain: true }); return;
-  }
-  bindLoading.value = true;
-  oauthBindUser({ email: bindForm.email + bindSuffix, oauthUserId: bindForm.oauthUserId, code: bindForm.code })
-    .then(data => { saveToken(data.token); })
-    .catch(() => { bindLoading.value = false; });
+async function providerLogin(provider) {
+  oauthLoading.value = true;
+  try { await startOAuth(provider); } catch { oauthLoading.value = false; }
 }
 
 const submit = () => {
@@ -526,7 +356,6 @@ async function saveToken(token) {
   await router.replace({ name: 'layout' });
   uiStore.showNotice();
   oauthLoading.value = false;
-  bindLoading.value = false;
 }
 
 function submitRegister() {
@@ -587,26 +416,26 @@ function submitRegister() {
 
 /* ── Dark login templates: readable suffix dropdown ── */
 .xi-dark-login-dropdown {
-  background: #16121e !important;
-  border-color: rgba(255, 255, 255, 0.10) !important;
+  background: #303b38 !important;
+  border-color: #4b5855 !important;
 }
 .xi-dark-login-dropdown .el-select-dropdown__list {
   padding: 4px 0;
 }
 .xi-dark-login-dropdown .el-select-dropdown__item {
-  color: rgba(240, 240, 255, 0.80);
+  color: #dce5d7;
 }
 .xi-dark-login-dropdown .el-select-dropdown__item.is-hovering {
   background: rgba(255, 255, 255, 0.08) !important;
-  color: #f0f0ff;
+  color: #e4e9df;
 }
 .xi-dark-login-dropdown .el-select-dropdown__item.is-selected {
-  color: var(--el-color-primary);
+  color: #c4d1bb;
   font-weight: 600;
 }
 .xi-dark-login-dropdown .el-popper__arrow::before {
-  background: #16121e !important;
-  border-color: rgba(255, 255, 255, 0.10) !important;
+  background: #303b38 !important;
+  border-color: #4b5855 !important;
 }
 </style>
 
@@ -780,15 +609,12 @@ function submitRegister() {
   width: 40px;
   height: 40px;
   border-radius: var(--xi-radius);
-  background: var(--xi-gradient);
+  background: var(--el-color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
-  box-shadow: 
-    0 3px 12px rgba(61, 139, 132, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .app-name {
@@ -1110,6 +936,14 @@ function submitRegister() {
 }
 
 /* ── Social button ── */
+.social-providers { display: grid; grid-template-columns: repeat(var(--provider-count), minmax(0, 1fr)); gap: 8px; }
+.social-providers .social-btn { min-width: 0; padding: 0 6px; gap: 6px; font-size: 12px; }
+.social-providers .social-btn img { flex-shrink: 0; object-fit: contain; }
+.social-providers .social-btn:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 3px; }
+@media (max-width: 360px) {
+  .social-providers { gap: 5px; }
+  .social-providers .social-btn { height: 54px; flex-direction: column; gap: 4px; padding: 5px 2px; font-size: 11px; }
+}
 .social-btn {
   width: 100%;
   height: 36px;
@@ -1168,6 +1002,7 @@ function submitRegister() {
 
 /* ── Bind dialog ── */
 .bind-body { display: flex; flex-direction: column; gap: 12px; }
+.oauth-bind-note { font-size: 12px; line-height: 1.7; color: var(--el-text-color-secondary); margin-bottom: 4px; }
 
 :deep(.bind-dlg) {
   .el-dialog__body { padding-top: 4px; }
@@ -1186,14 +1021,12 @@ function submitRegister() {
    ── */
 // stylelint-disable
 /* Login page templates — edit templates/*.scss to customize */
-@import './templates/gradient';
 @import './templates/minimal';
-@import './templates/split';
-@import './templates/glassmorphism';
-@import './templates/aurora';
-@import './templates/geometric';
+@import './templates/refined';
+@import './templates/editorial';
+@import './templates/window';
+@import './templates/grid';
 @import './templates/envelope';
-@import './templates/terminal';
 @import './templates/passport';
 
 /* Keep the registration layout compact even when a template customizes

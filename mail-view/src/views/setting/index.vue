@@ -1,7 +1,7 @@
 <template>
   <div class="box">
     <div class="container">
-      <div class="title">{{$t('profile')}}</div>
+      <div class="title"><Icon icon="mingcute:idcard-line" width="18" height="18" />{{$t('profile')}}</div>
       <div class="item">
         <div>{{$t('displayId')}}</div>
         <div>
@@ -48,14 +48,24 @@
         </div>
       </div>
     </div>
+    <div class="container oauth-connections">
+      <div class="title"><Icon icon="mingcute:key-2-line" width="18" height="18" />{{ $t('oauthAccounts') }}</div>
+      <p class="oauth-description">{{ $t('oauthAccountsNote') }}</p>
+      <div v-if="oauthLoading" class="oauth-description">{{ $t('oauthLoadingText') }}</div>
+      <div v-for="provider in oauthProviders" :key="provider.provider" class="oauth-connection-row">
+        <span class="oauth-logo"><img v-if="providerLogo(provider.provider)" :src="providerLogo(provider.provider)" :alt="provider.name" width="28" height="28" /><Icon v-else icon="mingcute:key-2-line" width="22" height="22" /></span>
+        <div><strong>{{ provider.name }}</strong><small>{{ provider.binding ? provider.binding.displayName || $t('oauthBound') : $t('oauthUnbound') }}</small></div>
+        <el-button v-if="provider.binding" size="small" :loading="oauthBusy === provider.provider" @click="unbindProvider(provider)">{{ $t('oauthUnbind') }}</el-button>
+        <el-button v-else size="small" type="primary" plain :disabled="!provider.enabled" :loading="oauthBusy === provider.provider" @click="bindProvider(provider)">{{ provider.enabled ? $t('oauthBind') : $t('oauthUnavailable') }}</el-button>
+      </div>
+      <el-button v-if="oauthLoadFailed" size="small" @click="loadOAuth">{{ $t('oauthRetry') }}</el-button>
+    </div>
     <div class="del-email" v-perm="'my:delete'">
-      <div class="title">{{$t('deleteUser')}}</div>
-      <div style="color: var(--regular-text-color);">
-        {{$t('delAccountMsg')}}
+      <div class="delete-copy">
+        <div class="title">{{$t('deleteUser')}}</div>
+        <p>{{$t('delAccountMsg')}}</p>
       </div>
-      <div>
-        <el-button type="primary" @click="deleteConfirm">{{$t('deleteUserBtn')}}</el-button>
-      </div>
+      <el-button type="danger" plain @click="deleteConfirm">{{$t('deleteUserBtn')}}</el-button>
     </div>
     <el-dialog v-model="pwdShow" :title="$t('changePassword')" width="340">
       <div class="update-pwd">
@@ -68,7 +78,7 @@
   </div>
 </template>
 <script setup>
-import {reactive, ref, defineOptions} from 'vue'
+import {reactive, ref, defineOptions, onMounted} from 'vue'
 import {Icon} from "@iconify/vue";
 import {resetPassword, userDelete} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
@@ -77,6 +87,9 @@ import {accountSetName} from "@/request/account.js";
 import {useAccountStore} from "@/store/account.js";
 import {useI18n} from "vue-i18n";
 import {useServerStore} from "@/store/server.js";
+import {oauthBindings, oauthUnbind} from '@/request/ouath.js';
+import {startOAuth} from '@/utils/oauth.js';
+import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 
 const { t } = useI18n()
 const accountStore = useAccountStore()
@@ -84,6 +97,32 @@ const userStore = useUserStore();
 const setPwdLoading = ref(false)
 const setNameShow = ref(false)
 const accountName = ref(null)
+const providerLogo = id => OAUTH_PROVIDERS.find(provider => provider.id === id)?.logo
+const oauthProviders = ref([])
+const oauthLoading = ref(false)
+const oauthBusy = ref('')
+const oauthLoadFailed = ref(false)
+async function loadOAuth() {
+  oauthLoading.value = true; oauthLoadFailed.value = false
+  try { oauthProviders.value = await oauthBindings() }
+  catch { oauthLoadFailed.value = true }
+  finally { oauthLoading.value = false }
+}
+onMounted(loadOAuth)
+async function bindProvider(provider) {
+  oauthBusy.value = provider.provider
+  try { await startOAuth(provider.provider, 'bind') }
+  catch { /* The request interceptor displays the error. */ }
+  finally { oauthBusy.value = '' }
+}
+async function unbindProvider(provider) {
+  try { await ElMessageBox.confirm(t('oauthUnbindConfirm'), { confirmButtonText: t('confirm'), cancelButtonText: t('cancel'), type: 'warning' }) }
+  catch { return }
+  oauthBusy.value = provider.provider
+  try { await oauthUnbind(provider.provider); await loadOAuth(); ElMessage.success(t('oauthUnboundSuccess')) }
+  catch { /* The request interceptor displays the error. */ }
+  finally { oauthBusy.value = '' }
+}
 
 defineOptions({
   name: 'setting'
@@ -116,7 +155,8 @@ function setName() {
   }
 
   setNameShow.value = false
-  let name = accountName.value
+  const previousName = userStore.user.name
+  const name = accountName.value
 
   if (name === userStore.user.name) {
     return
@@ -134,7 +174,7 @@ function setName() {
     accountStore.changeUserAccountName = name
 
   }).catch(() => {
-    userStore.user.name = name
+    userStore.user.name = previousName
   })
 }
 
@@ -224,110 +264,38 @@ function submitPwd() {
 </script>
 <style scoped lang="scss">
 .box {
-  padding: 40px 40px;
-  max-width: 600px;
-
-  @media (max-width: 767px) {
-    padding: 28px 24px;
+  width: 100%; max-width: 1280px; margin: 0 auto; padding: 32px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-content: start;
+  .title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .title > svg { color: var(--el-text-color-secondary); }
+  .container { min-width: 0; padding: 26px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); font-size: 13px; display: grid; align-content: start; gap: 24px; }
+  .container .item { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 18px; min-height: 28px;
+    > div:first-child { color: var(--el-text-color-secondary); font-size: 12px; }
+    > div:last-child { min-width: 0; }
   }
-
-  .update-pwd {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+  .user-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .user-name > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .edit-name { color: var(--el-color-primary); cursor: pointer; font-weight: 500; white-space: nowrap; font-size: 12px; flex-shrink: 0; }
+  .edit-name-input { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .edit-name-input .el-input { min-width: 0; flex: 1; }
+  .display-id-value { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: var(--el-text-color-secondary); letter-spacing: .5px; }
+  .copyable { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; overflow-wrap: anywhere;
+    .copy-icon { opacity: 0; flex-shrink: 0; }
+    &:hover { color: var(--el-color-primary); .copy-icon { opacity: 1; } }
   }
-
-  .title {
-    font-size: 16px;
-    font-weight: 650;
-    letter-spacing: -0.01em;
-  }
-
-  .container {
-    font-size: 13.5px;
-    display: grid;
-    gap: 20px;
-    margin-bottom: 40px;
-
-    .item {
-      display: grid;
-      grid-template-columns: 50px 1fr;
-      gap: 100px;
-      position: relative;
-      .user-name {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        span:first-child {
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-      }
-
-      .edit-name-input {
-        position: absolute;
-        bottom: -6px;
-        .el-input {
-          width: min(200px, calc(100vw - 222px));
-        }
-      }
-
-      .edit-name {
-        color: var(--el-color-primary);
-        padding-left: 10px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: opacity 0.15s;
-
-        &:hover { opacity: 0.8; }
-      }
-
-      @media (max-width: 767px) {
-        gap: 50px;
-      }
-
-      div:first-child {
-        font-weight: 550;
-        color: var(--el-text-color-secondary);
-      }
-
-      div:last-child {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-
-      .display-id-value {
-        font-family: 'SF Mono', 'Fira Code', monospace;
-        font-size: 12.5px;
-        color: var(--el-text-color-secondary);
-        letter-spacing: 0.5px;
-      }
-
-      .copyable {
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        transition: color 0.15s ease;
-
-        .copy-icon { opacity: 0; transition: opacity 0.15s ease; flex-shrink: 0; }
-
-        &:hover {
-          color: var(--el-color-primary);
-          .copy-icon { opacity: 1; }
-        }
-      }
-    }
-  }
-
-  .del-email {
-    font-size: 13.5px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding-top: 24px;
-    border-top: 1px solid var(--el-border-color-lighter);
-  }
+  .oauth-description { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.8; margin: -6px 0 0; }
+  .oauth-connection-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 9px; }
+  .oauth-connection-row > div { flex: 1; min-width: 0; }
+  .oauth-connection-row strong { font-size: 13px; font-weight: 500; }
+  .oauth-connection-row small { display: block; font-size: 11px; margin-top: 4px; color: var(--el-text-color-secondary); overflow-wrap: anywhere; }
+  .oauth-logo { display: grid; place-items: center; width: 36px; height: 36px; background: var(--el-fill-color-light); border-radius: 9px; flex-shrink: 0; }
+  .oauth-logo img { width: 28px; height: 28px; object-fit: contain; }
+  .del-email { grid-column: 1 / -1; padding: 24px 26px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--el-bg-color); }
+  .delete-copy p { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.8; margin: 10px 0 0; }
+}
+.update-pwd { display: flex; flex-direction: column; gap: 15px; }
+@media (max-width: 1023px) { .box { grid-template-columns: 1fr; padding: 24px; } }
+@media (max-width: 600px) {
+  .box { padding: 18px; gap: 18px; .container { padding: 20px; } .container .item { grid-template-columns: 66px minmax(0, 1fr); gap: 12px; } .del-email { padding: 20px; flex-direction: column; align-items: flex-start; gap: 18px; } }
 }
 </style>
