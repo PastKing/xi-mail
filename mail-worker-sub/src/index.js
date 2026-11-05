@@ -1,6 +1,21 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import PostalMime from 'postal-mime';
+import { managedSender, authenticatedSender, firstAuthenticationResult } from '../../mail-worker/src/utils/sender-auth';
+
+const authSchema = new WeakMap();
+async function ensureAuthColumn(env) {
+	if (!authSchema.has(env.db)) {
+		const pending = env.db.prepare('PRAGMA table_info(email)').all().then(async result => {
+			if (!result.results.some(column => column.name === 'auth_result')) {
+				try { await env.db.prepare("ALTER TABLE email ADD COLUMN auth_result TEXT NOT NULL DEFAULT ''").run(); }
+				catch (error) { if (!/duplicate column/i.test(error.message || '')) throw error; }
+			}
+		}).catch(error => { authSchema.delete(env.db); throw error; });
+		authSchema.set(env.db, pending);
+	}
+	await authSchema.get(env.db);
+}
 
 const app = new Hono();
 
@@ -48,15 +63,16 @@ app.use('/api/*', async (c, next) => {
 
 app.get('/api/info', (c) => {
 	const domains = parseDomains(c.env.domain);
-	return c.json({ code: 200, data: { name: c.env.name || 'Xi-Mail Sub', domains, version: '1.2.0' } });
+	return c.json({ code: 200, data: { name: c.env.name || 'Xi-Mail Sub', domains, version: '1.2.1' } });
 });
 
 // 增量同步：返回 email_id > after 的完整邮件（含正文），按 id 升序，供主 Worker 拉取；不传 address 则返回所有地址
 app.get('/api/sync', async (c) => {
+	await ensureAuthColumn(c.env);
 	const address = c.req.query('address');
 	const after = parseInt(c.req.query('after') || '0') || 0;
 	const limit = Math.min(parseInt(c.req.query('limit') || '20') || 20, 50);
-	const columns = 'email_id, send_email, name, subject, content, text, to_email, to_name, create_time';
+	const columns = 'email_id, send_email, name, subject, content, text, to_email, to_name, create_time, auth_result';
 
 	const stmt = address
 		? c.env.db.prepare(
@@ -130,12 +146,18 @@ async function handleEmail(message, env) {
 	const toAddress = message.to;
 	// message.from 是信封发件人（如 Resend/SES 的退信地址），展示用邮件头里的 From
 	const fromAddress = email.from?.address || message.from;
+	const auth = firstAuthenticationResult(message.headers?.get('Authentication-Results'));
+	if (managedSender(fromAddress, parseDomains(env.domain)) && !authenticatedSender(fromAddress, auth)) {
+		message.setReject('Sender authentication failed');
+		return;
+	}
+	await ensureAuthColumn(env);
 	const fromName = email.from?.name || fromAddress.split('@')[0];
 	const toName = (email.to || []).find(item => item.address?.toLowerCase() === toAddress.toLowerCase())?.name || '';
 
 	await env.db.prepare(
-		`INSERT INTO email (send_email, name, subject, content, text, to_email, to_name, create_time, is_del, account_id, user_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), 0, 0, 0)`
+		`INSERT INTO email (send_email, name, subject, content, text, to_email, to_name, auth_result, create_time, is_del, account_id, user_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), 0, 0, 0)`
 	).bind(
 		fromAddress,
 		fromName,
@@ -144,6 +166,7 @@ async function handleEmail(message, env) {
 		email.text || '',
 		toAddress,
 		toName,
+		auth,
 	).run();
 }
 
@@ -164,6 +187,7 @@ async function initDB(env) {
 			is_del INTEGER DEFAULT 0 NOT NULL
 		)
 	`).run();
+	await ensureAuthColumn(env);
 }
 
 export default {

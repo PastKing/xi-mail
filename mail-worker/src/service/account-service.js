@@ -61,6 +61,7 @@ const accountService = {
 		}
 
 		const roleRow = await roleService.selectById(c, userRow.type);
+		const quota = userRow.email === c.env.admin ? 0 : Math.max(0, Number(roleRow.accountCount) || 0);
 
 		if (userRow.email !== c.env.admin) {
 
@@ -99,12 +100,20 @@ const accountService = {
 		// Do not disclose availability until role, quota and CAPTCHA checks have passed.
 		let accountRow = await this.selectByEmailIncludeDel(c, email);
 		if (accountRow && accountRow.isDel !== isDel.DELETE) throw new BizError(t('accountUnavailable'));
+		// Each write must check the quota itself: a preceding COUNT can race with another request.
+		const quotaSql = '(? <= 0 OR (SELECT COUNT(*) FROM account WHERE user_id = ? AND is_del = 0) < ?)';
+		const quotaBindings = [quota, userId, quota];
+		const unavailable = async () => {
+			if (quota > 0 && await this.countUserAccount(c, userId) >= quota) throw new BizError(t('accountLimit'), 403);
+			throw new BizError(t('accountUnavailable'));
+		};
 		try {
 			if (accountRow?.isDel === isDel.DELETE && accountRow.userId === userId) {
 				const restored = await orm(c).update(account).set({ isDel: isDel.NORMAL, name: emailUtils.getName(email) })
 					.where(and(eq(account.accountId, accountRow.accountId), eq(account.userId, userId), eq(account.isDel, isDel.DELETE),
-						sql`${account.email} COLLATE NOCASE = ${email}`)).returning().get();
-				if (!restored) throw new BizError(t('accountUnavailable'));
+						sql`${account.email} COLLATE NOCASE = ${email}`,
+						sql`(${quota} <= 0 OR (SELECT COUNT(*) FROM account WHERE user_id = ${userId} AND is_del = 0) < ${quota})`)).returning().get();
+				if (!restored) await unavailable();
 				accountRow = restored;
 			} else if (accountRow) {
 				// A user's primary login identity must never be reassigned as somebody else's mailbox.
@@ -113,17 +122,20 @@ const accountService = {
 				// Reusing an address creates a new mailbox ID. Old mail/attachments keep their original owner and mailbox ID.
 				// The conditional archive and insert run in a single D1 transaction, so concurrent claims cannot share a mailbox.
 				const result = await c.env.db.batch([
-					c.env.db.prepare(`UPDATE account SET email = ? WHERE account_id = ? AND user_id <> ? AND is_del = 1 AND email = ? COLLATE NOCASE`)
-						.bind(`retired:${accountRow.accountId}:${accountRow.email}`, accountRow.accountId, userId, email),
+					c.env.db.prepare(`UPDATE account SET email = ? WHERE account_id = ? AND user_id <> ? AND is_del = 1 AND email = ? COLLATE NOCASE AND ${quotaSql}`)
+						.bind(`retired:${accountRow.accountId}:${accountRow.email}`, accountRow.accountId, userId, email, ...quotaBindings),
 					c.env.db.prepare(`INSERT INTO account(email, user_id, name) SELECT ?, ?, ?
-						WHERE NOT EXISTS (SELECT 1 FROM account WHERE email = ? COLLATE NOCASE) RETURNING account_id`)
-						.bind(email, userId, emailUtils.getName(email), email),
+						WHERE NOT EXISTS (SELECT 1 FROM account WHERE email = ? COLLATE NOCASE) AND ${quotaSql} RETURNING account_id`)
+						.bind(email, userId, emailUtils.getName(email), email, ...quotaBindings),
 				]);
 				const id = result[1].results?.[0]?.account_id;
-				if (!id) throw new BizError(t('accountUnavailable'));
+				if (!id) await unavailable();
 				accountRow = await this.selectById(c, id);
 			} else {
-				accountRow = await orm(c).insert(account).values({ email, userId, name: emailUtils.getName(email) }).returning().get();
+				const created = await c.env.db.prepare(`INSERT INTO account(email, user_id, name) SELECT ?, ?, ? WHERE ${quotaSql} RETURNING account_id`)
+					.bind(email, userId, emailUtils.getName(email), ...quotaBindings).first();
+				if (!created) await unavailable();
+				accountRow = await this.selectById(c, created.account_id);
 			}
 		} catch (error) {
 			if (/UNIQUE constraint failed|SQLITE_CONSTRAINT_UNIQUE/i.test(error.message || '')) throw new BizError(t('accountUnavailable'));

@@ -3,13 +3,15 @@ import oauthBindingService from '../service/oauth-binding-service';
 import securityRateLimit from '../service/security-rate-limit-service';
 import emailUtils from '../utils/email-utils';
 import {emailConst} from "../const/entity-const";
+import { isSecureSecret } from '../utils/secret-policy';
+import starSchemaService from '../service/star-schema-service';
 
 const dbInit = {
 	async init(c) {
 
 		const secret = c.req.param('secret');
 
-		if (secret !== c.env.jwt_secret) {
+		if (!isSecureSecret(c.env.init_secret) || secret !== c.env.init_secret) {
 			return c.notFound();
 		}
 
@@ -48,6 +50,7 @@ const dbInit = {
 		await securityRateLimit.ensure(c);
 		await this.v4_4DB(c);
 		await this.v4_5DB(c);
+		await starSchemaService.ensure(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},

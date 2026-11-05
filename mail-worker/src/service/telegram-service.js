@@ -1,13 +1,10 @@
-import orm from '../entity/orm';
-import email from '../entity/email';
 import settingService from './setting-service';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
-import { eq } from 'drizzle-orm';
-import jwtUtils from '../utils/jwt-utils';
+import mailLinkService from './mail-link-service';
 import emailMsgTemplate from '../template/email-msg';
 import emailTextTemplate from '../template/email-text';
 import emailHtmlTemplate from '../template/email-html';
@@ -20,13 +17,7 @@ const telegramService = {
 
 		const { token } = params
 
-		const result = await jwtUtils.verifyToken(c, token);
-
-		if (!result) {
-			return emailTextTemplate('Access denied')
-		}
-
-		const emailRow = await orm(c).select().from(email).where(eq(email.emailId, result.emailId)).get();
+		const emailRow = await mailLinkService.read(c, token);
 
 		if (emailRow) {
 
@@ -38,7 +29,7 @@ const telegramService = {
 			}
 
 		} else {
-			return emailTextTemplate('The email does not exist')
+			return emailTextTemplate('Access denied')
 		}
 
 	},
@@ -49,9 +40,9 @@ const telegramService = {
 
 		const tgChatIds = tgChatId.split(',');
 
-		const jwtToken = await jwtUtils.generateToken(c, { emailId: email.emailId })
+		const viewToken = customDomain ? await mailLinkService.issue(c, email) : null;
 
-		const webAppUrl = customDomain ? `${domainUtils.toOssDomain(customDomain)}/api/telegram/getEmail/${jwtToken}` : 'https://www.cloudflare.com/404'
+		const webAppUrl = customDomain && viewToken ? `${domainUtils.toOssDomain(customDomain)}/api/telegram/getEmail/${viewToken}` : 'https://www.cloudflare.com/404'
 
 		await Promise.all(tgChatIds.map(async chatId => {
 			try {

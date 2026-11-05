@@ -1,4 +1,6 @@
 const zh = {
+    userBatchActions: '批量操作',
+    userStatusShort: '状态',
     inbox: '收件箱',
     drafts: '草稿箱',
     sent: '已发送',

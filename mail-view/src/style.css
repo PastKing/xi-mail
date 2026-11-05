@@ -274,3 +274,29 @@ html[data-theme-to="light"]::view-transition-old(root) {
   from { clip-path: circle(var(--vt-end-radius, 0px) at var(--vt-x) var(--vt-y)); }
   to   { clip-path: circle(0px at var(--vt-x) var(--vt-y)); }
 }
+
+.xi-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.xi-icon-button:hover, .xi-icon-button:focus-visible {
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+}
+.xi-icon-button:focus-visible { outline: 2px solid var(--el-color-primary-light-5); outline-offset: 1px; }
+.xi-icon-button.is-active { color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
+.mail-filter-popover { max-width: calc(100vw - 24px); box-sizing: border-box; }
+@media (max-width: 767px), (pointer: coarse) {
+  .xi-icon-button { width: 36px; height: 36px; }
+}

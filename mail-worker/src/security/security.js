@@ -118,7 +118,7 @@ app.use('*', async (c, next) => {
 	}
 
 	const { userId, token } = result;
-	const authInfo = await sessionService.get(c, userId);
+	const authInfo = await sessionService.get(c, userId, token);
 
 	if (!authInfo) {
 		throw new BizError(t('authExpired'), 401);

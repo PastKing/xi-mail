@@ -26,6 +26,7 @@ import subWorkerService from './sub-worker-service';
 import queenSmtpService from './queen-smtp-service';
 import domainUtils from '../utils/domain-uitls';
 import { mailFilterConditions } from './mail-filter-service';
+import starSchemaService from './star-schema-service';
 
 // QueenSMTP 的消息 id 存在 resend_email_id 字段，加前缀区分来源，避免和 Resend 的状态回调混淆
 const QUEEN_ID_PREFIX = 'queensmtp:';
@@ -68,6 +69,7 @@ const emailService = {
 			await subWorkerService.syncAll(c);
 		}
 
+		await starSchemaService.ensure(c);
 		const query = orm(c)
 			.select({
 				...emailBriefColumns,
@@ -218,12 +220,16 @@ const emailService = {
 		const setting = await settingService.query(c);
 		const { r2Domain, send, domainList } = setting;
 
-		let { imageDataList, html } = await attService.toImageUrlHtml(c, content);
-
 		//判断是否关闭发件功能
 		if (send === settingConst.send.CLOSE) {
 			throw new BizError(t('disabledSend'), 403);
 		}
+		const accountRow = await accountService.selectOwnedById(c, accountId, userId);
+		if (!accountRow) throw new BizError(t('senderAccountNotExist'));
+		const domain = emailUtils.getDomain(accountRow.email);
+		if (!domainList.includes('@' + domain)) throw new BizError(t('noDomainPermSend'), 403);
+
+		let { imageDataList, html } = await attService.toImageUrlHtml(c, content);
 
 		//数量校验必须在发件之前，否则邮件已经发出去了才报错
 		if (imageDataList.length > 10) {
@@ -272,12 +278,6 @@ const emailService = {
 
 		}
 
-		const accountRow = await accountService.selectOwnedById(c, accountId, userId);
-
-		if (!accountRow) {
-			throw new BizError(t('senderAccountNotExist'));
-		}
-
 		if (c.env.admin !== userRow.email) {
 			//用户没有这个域名的使用权限
 			if(!roleService.hasAvailDomainPerm(roleRow.availDomain, accountRow.email)) {
@@ -286,7 +286,6 @@ const emailService = {
 
 		}
 
-		const domain = emailUtils.getDomain(accountRow.email);
 		const provider = allInternal ? null : this.resolveSendProvider(setting, domain, attachments?.length > 0);
 
 		//如果接收方存在站外邮箱，又没有可用的发件服务
@@ -295,6 +294,7 @@ const emailService = {
 		}
 
 		//没有发件人名字自动截取
+		name = typeof name === 'string' ? name.replace(/[\x00-\x1f\x7f]/g, ' ').trim() : '';
 		if (!name) {
 			name = emailUtils.getName(accountRow.email);
 		}
@@ -345,7 +345,7 @@ const emailService = {
 			const resend = new Resend(provider.token);
 
 			const sendForm = {
-				from: `${name} <${accountRow.email}>`,
+				from: `"${name.replace(/["\\]/g, '\\$&')}" <${accountRow.email}>`,
 				to: [...receiveEmail],
 				subject: subject,
 				text: text,
@@ -629,7 +629,7 @@ const emailService = {
 		return {
 			emailId: emailRow.emailId,
 			content: emailRow.content,
-			text: emailRow.text
+			text: emailRow.text,
 		};
 	},
 

@@ -19,6 +19,7 @@
 
     >
       <template #first>
+<div class="mail-search-fields">
         <el-input
             v-model="searchValue"
             :placeholder="$t('searchByContent')"
@@ -54,13 +55,16 @@
           <el-option key="4" :label="$t('selectDeleted')" value="delete"/>
           <el-option key="4" :label="$t('noRecipientTitle')" value="noone"/>
         </el-select>
-        <el-tooltip :content="$t('searchAction')" placement="top">
+        </div>
+</template>
+<template #tools>
+<el-tooltip :content="$t('searchAction')" placement="top">
           <button type="button" class="mail-tool-button" :aria-label="$t('searchAction')" @click="search"><Icon icon="mingcute:search-line" width="18" height="18" /></button>
         </el-tooltip>
         <el-tooltip :content="$t('sortByTime')" placement="top">
           <button type="button" class="mail-tool-button" :aria-label="$t('sortByTime')" @click="changeTimeSort"><Icon :icon="params.timeSort === 0 ? 'mingcute:sort-descending-line' : 'mingcute:sort-ascending-line'" width="18" height="18" /></button>
         </el-tooltip>
-        <el-popover v-model:visible="showFilters" trigger="click" placement="bottom-end" :width="330">
+        <el-popover v-model:visible="showFilters" trigger="click" placement="bottom-end" :width="330" popper-class="mail-filter-popover">
           <template #reference><button type="button" class="mail-tool-button" :class="{ 'is-active': activeFilterCount }" :aria-label="$t('adminMailFilters')" :aria-expanded="showFilters" @click="openFilters"><Icon icon="mingcute:filter-line" width="18" height="18" /><span v-if="activeFilterCount" class="filter-count">{{ activeFilterCount }}</span></button></template>
           <div class="mail-filters">
             <strong>{{ $t('adminMailFilters') }}</strong>
@@ -75,9 +79,10 @@
           </div>
         </el-popover>
         <el-tooltip :content="$t('batchDelete')" placement="top">
-          <button type="button" class="mail-tool-button" :aria-label="$t('batchDelete')" @click="openBathDelete"><Icon icon="mingcute:broom-line" width="18" height="18" /></button>
+          <button type="button" class="mail-tool-button desktop-mail-action" :aria-label="$t('batchDelete')" @click="openBathDelete"><Icon icon="mingcute:broom-line" width="18" height="18" /></button>
         </el-tooltip>
       </template>
+<template #more-actions><el-dropdown-item @click="openBathDelete"><Icon icon="mingcute:broom-line" width="18" height="18" />{{ $t('batchDelete') }}</el-dropdown-item></template>
     </emailScroll>
     <el-dialog v-model="showBathDelete" :title="$t('clearEmail')" width="335"
                @closed="closedClear">
@@ -490,11 +495,34 @@ async function latest() {
     overflow: visible;
   }
 
+  .header-tools { gap: 6px; }
+
   .header-right { margin-left: auto; }
 
   .icon {
     flex-shrink: 0;
   }
+}
+
+.mail-search-fields { display: flex; align-items: center; flex: 1 1 240px; gap: 8px; min-width: 0; }
+@media (max-width: 767px) {
+  :deep(.admin-mail-toolbar) {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: 8px 4px;
+    padding: 12px;
+    > .el-checkbox { grid-row: 2; grid-column: 1; margin: 0; justify-content: center; }
+    .header-left { display: contents; }
+    .header-tools { grid-row: 2; grid-column: 2; gap: 4px; }
+    .header-right { grid-row: 2; grid-column: 3; margin-left: 0; }
+    .email-count { font-size: 12px; }
+    .desktop-mail-action { display: none; }
+  }
+  .mail-search-fields { grid-row: 1; grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 8px; }
+  .mail-search-fields .search-input { width: 100%; min-width: 0; max-width: none; }
+  .mail-search-fields .status-select { width: 100%; }
+  .mail-search-fields :deep(.el-input__wrapper), .mail-search-fields :deep(.el-select__wrapper) { min-height: 36px; height: 36px; }
+  .mail-tool-button { min-width: 36px; min-height: 36px; }
 }
 
 .search-input {

@@ -10,6 +10,7 @@ import userService from './user-service';
 import accountService from './account-service';
 import aiService from './ai-service';
 import telegramService from './telegram-service';
+import { managedSender, authenticatedSender, managedDomainList } from '../utils/sender-auth';
 
 const SYNC_CURSOR = 'sub-sync-sw:';
 const SYNC_LOCK = 'sub-sync-lock:';
@@ -86,6 +87,7 @@ const subWorkerService = {
 	async resolveTarget(c, row, settings) {
 		const { noRecipient, senderFilterMode, senderDomainBlacklist, senderDomainWhitelist, domainMapping } = settings;
 		const fromAddress = row.send_email || '';
+		if (managedSender(fromAddress, managedDomainList(settings, c.env)) && !authenticatedSender(fromAddress, row.auth_result)) return null;
 
 		if (senderFilterMode === 1) {
 			if (senderDomainWhitelist?.length > 0 && !matchDomainList(senderDomainWhitelist, fromAddress)) return null;

@@ -2,7 +2,17 @@
 
 [返回 README](../README-zh-TW.md) · [简体中文](INTEGRATIONS.md) · [English](INTEGRATIONS-en.md)
 
-## 第三方登入
+## 部署與郵件驗證
+
+登入簽章密鑰 `jwt_secret` 與資料庫初始化密鑰 `init_secret` 必須是不同的高強度隨機值，透過 Cloudflare Secrets 設定。初始化使用 `/api/init/<INIT_SECRET>`，不要將正式環境密鑰存入設定檔或儲存庫；輪換簽章密鑰後使用者需要重新登入。
+
+Telegram 郵件檢視連結使用獨立的隨機憑證，24 小時後失效，刪除郵件或信箱、停用帳號後也無法讀取。不再相容舊版 JWT 檢視連結。
+
+外部網域可正常向本站投遞郵件，不必屬於本站後綴。透過本站寄信時，只能使用目前使用者擁有且後綴仍啟用的信箱，並遵守角色寄信權限。
+
+受管網域應依實際寄件服務設定 SPF 與 DKIM，確認驗證及網域對齊後再設定 DMARC 拒絕策略。Worker 僅信任 Cloudflare MX 注入的首筆驗證結果，拒收未通過驗證卻聲稱來自受管網域的郵件；子 Worker 應升級至 1.2.1 以上。DNS 記錄須在權威 DNS 服務商設定，並使用寄件服務商提供的實際值。
+
+## 第三方登入設定
 
 在「系統設定 → OAuth 整合」中選擇提供者，填寫 Client ID、Client Secret 並啟用。
 

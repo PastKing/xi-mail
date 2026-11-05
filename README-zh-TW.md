@@ -8,7 +8,7 @@
 
 衍生自 [cloud-mail](https://github.com/eoao/cloud-mail)，重新設計介面並持續擴充功能
 
-[![Version](https://img.shields.io/badge/Version-v3.6.1-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.2-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -87,12 +87,16 @@ npx wrangler r2 bucket create xi-mail
 # 填寫設定
 cp wrangler.example.toml wrangler.toml
 
+# 分別輸入兩個獨立隨機密鑰，至少 32 位
+npx wrangler secret put jwt_secret
+npx wrangler secret put init_secret
+
 # 建置前端並部署
 cd ../mail-view && npm install && npm run build
 cd ../mail-worker && npx wrangler deploy
 ```
 
-部署後造訪 `https://your-worker.workers.dev/api/init/<JWT_SECRET>`，初始化或遷移資料表。
+部署後造訪 `https://your-worker.workers.dev/api/init/<INIT_SECRET>`，初始化或遷移資料表。登入簽章與初始化使用獨立的 Cloudflare Secret，請勿沿用範例密鑰。
 
 `wrangler.toml` 主要欄位：
 
@@ -100,7 +104,6 @@ cd ../mail-worker && npx wrangler deploy
 [vars]
 domain      = ["mail.example.com"]   # 改用系統設定管理網域後可留空
 admin       = "admin@example.com"    # 管理員信箱，初始化後無法變更
-jwt_secret  = "your-secret"          # JWT 密鑰，至少 32 位隨機字元
 ```
 
 ### 獨立部署前端
@@ -121,7 +124,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 更新摘要 |
 |---|---|
-| **v3.6.1** | 修復潛在安全風險；完善後台篩選，新增繁體中文文件 |
+| **v3.6.2** | 修復潛在安全風險，改善行動裝置操作 |
 | **v3.6.x** | 登入範本與品牌圖示更新；第三方登入、帳號綁定與授權狀態頁 |
 | **v3.5.x** | 瀏覽器擴充功能、QueenSMTP 寄信、子 Worker、登入工作階段與驗證碼擷取 |
 | **v3.4.x** | 浮島導覽與多套登入範本 |

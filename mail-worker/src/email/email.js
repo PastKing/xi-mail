@@ -11,6 +11,7 @@ import roleService from '../service/role-service';
 import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
+import { managedSender, authenticatedSender, managedDomainList } from '../utils/sender-auth';
 
 function matchDomainList(list, address) {
 	if (!address) return false;
@@ -44,7 +45,8 @@ export async function email(message, env, ctx) {
 			senderDomainWhitelist,
 			aiCode,
 			aiCodeFilter,
-			aiModel
+			aiModel,
+			domainList
 		} = await settingService.query({ env });
 
 		if (receive === settingConst.receive.CLOSE) {
@@ -86,6 +88,11 @@ export async function email(message, env, ctx) {
 		}
 
 		const email = await PostalMime.parse(content);
+		if (managedSender(email.from?.address, managedDomainList({ domainList, domainMapping }, env))
+			&& !authenticatedSender(email.from?.address, message.headers?.get('Authentication-Results'))) {
+			message.setReject('Sender authentication failed');
+			return;
+		}
 
 		if (isWhitelistMode) {
 			// Whitelist mode: only authorized sender domains may deliver.

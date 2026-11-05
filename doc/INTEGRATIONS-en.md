@@ -2,7 +2,17 @@
 
 [Back to README](../README-en.md) · [简体中文](INTEGRATIONS.md) · [繁體中文](INTEGRATIONS-zh-TW.md)
 
-## Provider sign-in
+## Deployment and mail authentication
+
+Configure independent, strong random `jwt_secret` and `init_secret` values using Cloudflare Secrets. Initialize through `/api/init/<INIT_SECRET>`. Keep production secrets out of configuration files and source control. Rotating the signing key requires users to sign in again.
+
+Telegram mail links use separate random capabilities that expire after 24 hours. Deleted mail/mailboxes and disabled accounts cannot be accessed. Legacy JWT mail links are no longer supported.
+
+External domains can deliver mail to this site without being hosted here. Outgoing mail through this site must use an active mailbox owned by the current user, with a currently enabled domain and the required role permissions.
+
+Configure SPF and DKIM for the actual sending provider, then enable DMARC rejection after validating alignment. The Worker trusts only the first authentication result injected by Cloudflare MX and rejects unauthenticated mail claiming a managed sender domain. Upgrade sub Workers to 1.2.1 or later. Publish DNS records at the authoritative DNS provider using the sending provider's actual values.
+
+## Provider configuration
 
 Select a provider in **System Settings → OAuth Integration**, enter its Client ID and Client Secret, and enable sign-in.
 

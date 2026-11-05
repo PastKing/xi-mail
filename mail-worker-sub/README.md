@@ -1,5 +1,9 @@
 # Xi-Mail Sub Worker
 
+1.2.1 增加 Cloudflare 发件人认证结果的校验和同步。升级后 `/init` 会迁移 `auth_result` 字段，首次收信或同步也会自动迁移。主 Worker 会拒绝缺少有效认证结果、却声称来自受管域的邮件；旧子 Worker 应同步升级。域名还应按实际发件服务配置 SPF、DKIM 和 DMARC。
+
+外部域可正常来信；认证结果仅用于受管发件域的防冒用校验。
+
 轻量子 Worker —— 只负责接收邮件和提供查询 API，无用户系统、无登录页面。
 
 子 Worker 收到的邮件由主 Worker 在服务端拉取，API Token 不会暴露给浏览器。子 Worker 可以和主 Worker 部署在同一个 Cloudflare 账号，也可以部署在另一个账号。

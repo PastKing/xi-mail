@@ -8,7 +8,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.1-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.2-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -87,12 +87,16 @@ npx wrangler r2 bucket create xi-mail
 # Fill in the configuration
 cp wrangler.example.toml wrangler.toml
 
+# Enter two independent random secrets, at least 32 characters each
+npx wrangler secret put jwt_secret
+npx wrangler secret put init_secret
+
 # Build the frontend and deploy
 cd ../mail-view && npm install && npm run build
 cd ../mail-worker && npx wrangler deploy
 ```
 
-After deploying, visit `https://your-worker.workers.dev/api/init/<JWT_SECRET>` to initialize or migrate the database schema.
+After deploying, visit `https://your-worker.workers.dev/api/init/<INIT_SECRET>` to initialize or migrate the database schema. Use separate Cloudflare Secrets for login signing and initialization; never reuse example keys.
 
 Key `wrangler.toml` fields:
 
@@ -100,7 +104,6 @@ Key `wrangler.toml` fields:
 [vars]
 domain      = ["mail.example.com"]   # Domain list; may be left empty once domains are managed in system settings
 admin       = "admin@example.com"    # Admin address, immutable after initialization
-jwt_secret  = "your-secret"          # JWT secret, at least 32 random characters
 ```
 
 ### Standalone frontend
@@ -121,7 +124,7 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
-| **v3.6.1** | Fixed potential security risks; improved admin filters and added Traditional Chinese documentation |
+| **v3.6.2** | Security fixes and improved mobile controls |
 | **v3.6.x** | Refreshed login templates and brand icons, provider sign-in, account connections and authorization status pages |
 | **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |
 | **v3.4.x** | Floating Island navigation and login templates |

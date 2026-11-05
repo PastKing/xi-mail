@@ -51,23 +51,20 @@
             />
           </div>
           <div class="row-actions" @click.stop>
-            <Icon
-              icon="mingcute:copy-2-line"
-              width="15" height="15"
-              class="action-icon"
-              @click.stop="copyAccount(item.email)"
-            />
+            <el-tooltip :content="$t('copy')" placement="top">
+              <button type="button" class="xi-icon-button" :aria-label="$t('copy')" @click.stop="copyAccount(item.email)">
+                <Icon icon="mingcute:copy-2-line" width="18" height="18" />
+              </button>
+            </el-tooltip>
             <el-dropdown trigger="click" placement="bottom-end">
-              <Icon
-                icon="mingcute:more-1-fill"
-                width="16" height="16"
-                class="action-icon"
-              />
+              <button type="button" class="xi-icon-button" :aria-label="$t('moreNavigation')">
+                <Icon icon="mingcute:more-1-line" width="18" height="18" />
+              </button>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">
                     <div class="row-menu-item">
-                      <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
+                      <Icon icon="mingcute:edit-2-line" width="18" height="18"/>
                       <span>{{ $t('rename') }}</span>
                     </div>
                   </el-dropdown-item>
@@ -646,17 +643,14 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
     opacity: 0;
     transition: opacity 0.15s;
 
-    .action-icon {
-      cursor: pointer;
-      padding: 3px;
-      border-radius: 4px;
-      color: var(--el-text-color-secondary);
-      transition: all 0.15s;
-      &:hover {
-        background: var(--el-fill-color);
-        color: var(--el-text-color-primary);
-      }
-    }
+    &:focus-within { opacity: 1; }
+  }
+
+  &:focus-within .row-actions { opacity: 1; }
+
+  @media (pointer: coarse) {
+    min-height: 42px;
+    .row-actions { opacity: 1; }
   }
 }
 
@@ -674,9 +668,9 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
   line-height: 1;
 
   svg {
-    flex: 0 0 16px;
-    width: 16px;
-    height: 16px;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
   }
 }
 

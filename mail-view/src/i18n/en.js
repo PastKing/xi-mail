@@ -1,4 +1,6 @@
 const en = {
+    userBatchActions: 'Bulk actions',
+    userStatusShort: 'Status',
     inbox: 'Inbox',
     drafts: 'Drafts',
     sent: 'Sent',

@@ -1,6 +1,7 @@
 import s3Service from './s3-service';
 import settingService from './setting-service';
 import kvObjService from './kv-obj-service';
+import { safeObjectMetadata, safeObjectHeaders } from '../utils/object-policy';
 
 const r2Service = {
 
@@ -21,6 +22,8 @@ const r2Service = {
 	},
 
 	async putObj(c, key, content, metadata) {
+		// Persist safe types/dispositions even when objects are accessed through a storage domain.
+		metadata = safeObjectMetadata(content, key, metadata);
 
 		const storageType = await this.storageType(c);
 
@@ -80,15 +83,8 @@ const r2Service = {
 			return new Response('Not Found', { status: 404 });
 		}
 
-		const headers = { 'Content-Type': obj.contentType || 'application/octet-stream' };
-
-		if (obj.contentDisposition) {
-			headers['Content-Disposition'] = obj.contentDisposition;
-		}
-
-		if (obj.cacheControl) {
-			headers['Cache-Control'] = obj.cacheControl;
-		}
+		// Recheck on every read: historical objects still contain sender-controlled metadata.
+		const headers = safeObjectHeaders(obj.buff, key, obj);
 
 		return new Response(obj.buff, { headers });
 	},

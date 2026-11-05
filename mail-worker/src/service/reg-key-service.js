@@ -12,6 +12,7 @@ const regKeyService = {
 	async add(c, params, userId) {
 
 		let {code,roleId,count,expireTime} = params;
+		code = typeof code === 'string' ? code.trim() : '';
 
 		if (!code) {
 			throw new BizError(t('emptyRegKey'));
@@ -61,7 +62,9 @@ const regKeyService = {
 	},
 
 	selectByCode(c, code) {
-		return orm(c).select().from(regKey).where(eq(regKey.code, code)).get();
+		if (typeof code !== 'string') return null;
+		// Public demo invitations are intentional; configured role, quota and expiry still apply.
+		return orm(c).select().from(regKey).where(eq(regKey.code, code.trim())).get();
 	},
 
 	async list(c, params) {

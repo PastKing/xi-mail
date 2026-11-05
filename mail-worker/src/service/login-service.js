@@ -33,6 +33,7 @@ const loginService = {
 		if (register === settingConst.register.CLOSE) {
 			throw new BizError(t('regDisabled'));
 		}
+		await securityRateLimit.consume(c, 'register-ip', c.req?.header('CF-Connecting-IP') || 'unknown', 20, 300);
 
 		if (!verifyUtils.isEmail(email)) {
 			throw new BizError(t('notEmail'));

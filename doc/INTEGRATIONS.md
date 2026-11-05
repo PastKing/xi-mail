@@ -2,7 +2,17 @@
 
 [返回 README](../README.md) · [繁體中文](INTEGRATIONS-zh-TW.md) · [English](INTEGRATIONS-en.md)
 
-## 第三方登录
+## 部署与邮件认证
+
+登录签名密钥 `jwt_secret` 和数据库初始化密钥 `init_secret` 必须是不同的高强度随机值，通过 Cloudflare Secrets 配置。初始化使用 `/api/init/<INIT_SECRET>`，不要在配置文件或仓库中保存生产密钥；轮换签名密钥后用户需要重新登录。
+
+Telegram 邮件查看链接是独立的随机凭证，24 小时后失效，删除邮件或邮箱、停用账号后也无法读取。旧版 JWT 查看链接不再兼容。
+
+外部域名可正常向本站投递邮件，不要求其属于本站后缀。通过本站发信时，只能使用当前用户拥有且后缀仍启用的邮箱，并遵守角色发信权限。
+
+受管域应按实际发件服务配置 SPF 和 DKIM，并在确认发件认证与域名对齐后设置 DMARC 拒绝策略。Worker 会验证 Cloudflare MX 注入的首条认证结果，拒收未通过认证却声称来自受管域的邮件；子 Worker 应升级到 1.2.1 或以上。DNS 记录需要在域名的权威 DNS 服务商处配置，不能用任意 DKIM 公钥或统一 SPF 记录替代发件服务商提供的值。
+
+## 第三方登录配置
 
 在「系统设置 → OAuth 集成」中选择提供商，填写 Client ID、Client Secret 并启用。
 

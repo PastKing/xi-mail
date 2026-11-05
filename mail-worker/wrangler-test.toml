@@ -34,7 +34,7 @@ crons = ["0 16 * * *"]	#定时任务每天晚上12点执行
 orm_log = false
 domain = ["example.com"]				#邮件域名可可配置多个 示例: ["example1.com","example2.com"]
 admin = "admin@example.com"				#管理员的邮箱	示例: admin@example.com
-jwt_secret = "b7f29a1d-18e2-4d3b-941f-f6b2c97c02fd"			#jwt令牌的密钥,随便填一串字符串
+# Set jwt_secret and init_secret using Cloudflare Secrets (local development: .dev.vars).
 
 [build]
 command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"

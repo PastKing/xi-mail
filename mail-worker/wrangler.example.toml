@@ -36,7 +36,9 @@ crons = ["0 16 * * *", "* * * * *"]
 orm_log = false
 domain = ["example.com", "mail.example.com"]
 admin = "admin@example.com"
-jwt_secret = "<YOUR_JWT_SECRET_MIN_32_CHARS>"
+# Configure two different random secrets (at least 32 characters each):
+# npx wrangler secret put jwt_secret
+# npx wrangler secret put init_secret
 
 # Resend webhook signature verification is required. Configure Signing Secret in
 # System Settings → Service Integration, or use the secret below (comma-separated values supported).

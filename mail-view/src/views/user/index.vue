@@ -1,64 +1,127 @@
 <template>
   <div class="user-box">
     <div class="header-actions">
-      <el-tooltip :content="$t('addUser')" placement="top">
-        <Icon class="icon" icon="mingcute:add-line" width="18" height="18" @click="openAdd"/>
-      </el-tooltip>
-      <div class="search">
-        <el-input
-            v-model="params.email"
-            class="search-input"
-            :placeholder="$t('searchByEmail')"
-            @keyup.enter="search"
-        >
-        </el-input>
+      <div class="user-filters">
+        <div class="search">
+          <el-input v-model="params.email" class="search-input" :placeholder="$t('searchByEmail')" @keyup.enter="search" >
+          </el-input>
+        </div>
+        <el-select v-model="params.status" :aria-label="$t('adminStatusFilter')" class="status-select" @change="search">
+          <template #prefix>
+            <span class="status-label-full">{{ $t('adminStatusFilter') }}</span>
+            <span class="status-label-short">{{ $t('userStatusShort') }}</span>
+          </template>
+          <el-option :key="-1" :label="$t('all')" :value="-1"/>
+          <el-option :key="0" :label="$t('active')" :value="0"/>
+          <el-option :key="1" :label="$t('banned')" :value="1"/>
+          <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
+        </el-select>
+        <el-select v-model="params.roleId" :aria-label="$t('adminRoleFilter')" :placeholder="$t('adminAllRoles')" class="role-filter" @change="search" filterable>
+          <el-option :label="$t('adminAllRoles')" value="" />
+          <el-option :label="$t('admin')" :value="0" />
+          <el-option v-for="role in roleList" :key="role.roleId" :label="role.name" :value="role.roleId" />
+        </el-select>
+        <el-select v-model="params.provider" :aria-label="$t('adminProviderFilter')" :placeholder="$t('adminAllProviders')" class="provider-filter" @change="search">
+          <el-option :label="$t('adminAllProviders')" value="" />
+          <el-option :label="$t('adminHasBindings')" value="bound" />
+          <el-option :label="$t('adminNoBindings')" value="unbound" />
+          <el-option v-for="provider in OAUTH_PROVIDERS" :key="provider.id" :label="provider.name" :value="provider.id" />
+        </el-select>
       </div>
-      <el-select v-model="params.status" :aria-label="$t('adminStatusFilter')" class="status-select" @change="search">
-        <template #prefix>{{ $t('adminStatusFilter') }}</template>
-        <el-option :key="-1" :label="$t('all')" :value="-1"/>
-        <el-option :key="0" :label="$t('active')" :value="0"/>
-        <el-option :key="1" :label="$t('banned')" :value="1"/>
-        <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
-      </el-select>
-      <el-select v-model="params.roleId" :aria-label="$t('adminRoleFilter')" class="role-filter" @change="search" filterable>
-        <el-option :label="$t('adminAllRoles')" value="" />
-        <el-option :label="$t('admin')" :value="0" />
-        <el-option v-for="role in roleList" :key="role.roleId" :label="role.name" :value="role.roleId" />
-      </el-select>
-      <el-select v-model="params.provider" :aria-label="$t('adminProviderFilter')" class="provider-filter" @change="search">
-        <el-option :label="$t('adminAllProviders')" value="" />
-        <el-option :label="$t('adminHasBindings')" value="bound" />
-        <el-option :label="$t('adminNoBindings')" value="unbound" />
-        <el-option v-for="provider in OAUTH_PROVIDERS" :key="provider.id" :label="provider.name" :value="provider.id" />
-      </el-select>
-      <el-tooltip :content="$t('searchAction')" placement="top">
-        <Icon class="icon" icon="mingcute:search-line" @click="search" width="18" height="18"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('sortByTime')" placement="top">
-        <Icon class="icon" @click="changeTimeSort" icon="mingcute:sort-descending-line"
-              v-if="params.timeSort === 1" width="18" height="18"/>
-        <Icon class="icon" @click="changeTimeSort" icon="mingcute:sort-ascending-line" v-else width="18"
-              height="18"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('sortByLogin')" placement="top">
-        <Icon class="icon" @click="changeLoginSort" icon="mingcute:time-line" width="18" height="18"
-              :style="params.loginSort ? 'color: var(--el-color-primary)' : ''" />
-      </el-tooltip>
-      <el-tooltip :content="$t('refresh')" placement="top">
-        <Icon class="icon" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('batchBan')" placement="top">
-        <Icon class="icon" icon="mingcute:forbid-circle-line" width="18" height="18" @click="batchBan"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('batchEnable')" placement="top">
-        <Icon class="icon" icon="mingcute:check-circle-line" width="18" height="18" @click="batchEnable"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('batchRestore')" placement="top">
-        <Icon class="icon" icon="mingcute:restore-line" width="18" height="18" @click="batchRestoreUsers"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('delete')" placement="top">
-        <Icon class="icon" icon="mingcute:delete-2-line" width="18" height="18" @click="delUser"/>
-      </el-tooltip>
+      <div class="user-tools">
+        <el-tooltip :content="$t('addUser')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('addUser')" @click="openAdd" >
+            <Icon icon="mingcute:add-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('searchAction')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('searchAction')" @click="search" >
+            <Icon icon="mingcute:search-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('sortByTime')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('sortByTime')" @click="changeTimeSort" >
+            <Icon :icon="params.timeSort === 1 ? 'mingcute:sort-descending-line' : 'mingcute:sort-ascending-line'" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('sortByLogin')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('sortByLogin')" @click="changeLoginSort" :class="{ 'is-active': params.loginSort }">
+            <Icon icon="mingcute:time-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('refresh')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('refresh')" @click="refresh" >
+            <Icon icon="mingcute:refresh-2-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <div class="user-batch-tools">
+          <el-tooltip :content="$t('batchBan')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('batchBan')" @click="batchBan" >
+              <Icon icon="mingcute:forbid-circle-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="$t('batchEnable')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('batchEnable')" @click="batchEnable" >
+              <Icon icon="mingcute:check-circle-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="$t('batchRestore')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('batchRestore')" @click="batchRestoreUsers" >
+              <Icon icon="mingcute:restore-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="$t('delete')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('delete')" @click="delUser" >
+              <Icon icon="mingcute:delete-2-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+        </div>
+        <el-dropdown class="user-batch-menu" trigger="click" placement="bottom-end">
+          <button type="button" class="user-batch-trigger" :aria-label="$t('userBatchActions')">
+            <Icon icon="mingcute:more-1-line" width="18" height="18" />
+            <span>
+              {{ $t('userBatchActions') }}
+            </span>
+            <Icon icon="mingcute:down-small-line" width="16" height="16" />
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="batchBan">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:forbid-circle-line" width="18" height="18" />
+                  <span>
+                    {{ $t('batchBan') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item @click="batchEnable">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:check-circle-line" width="18" height="18" />
+                  <span>
+                    {{ $t('batchEnable') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item @click="batchRestoreUsers">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:restore-line" width="18" height="18" />
+                  <span>
+                    {{ $t('batchRestore') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item @click="delUser">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:delete-2-line" width="18" height="18" />
+                  <span>
+                    {{ $t('delete') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </div>
     <el-scrollbar ref="scrollbarRef" class="scrollbar">
       <div>
@@ -1243,7 +1306,7 @@ function adjustWidth() {
 .header-actions {
   padding: 10px 16px;
   display: flex;
-  gap: 12px;
+  gap: 8px 16px;
   flex-wrap: wrap;
   align-items: center;
   border-bottom: 1px solid var(--el-border-color-lighter);
@@ -1269,6 +1332,33 @@ function adjustWidth() {
     transition: color 0.15s;
     &:hover { color: var(--el-text-color-primary); }
   }
+}
+
+.user-filters, .user-tools, .user-batch-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.user-tools { gap: 4px; }
+.user-batch-tools { gap: 4px; padding-left: 8px; margin-left: 4px; border-left: 1px solid var(--el-border-color-lighter); }
+.user-batch-menu { display: none; }
+.status-label-short { display: none; }
+.user-menu-item { display: flex; align-items: center; gap: 8px; }
+.user-batch-trigger { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border: 1px solid var(--el-border-color); border-radius: 6px; background: var(--el-bg-color); color: var(--el-text-color-regular); font: inherit; font-size: 13px; cursor: pointer; }
+.user-batch-trigger:focus-visible { outline: 2px solid var(--el-color-primary-light-5); outline-offset: 1px; }
+@media (max-width: 767px) {
+  .status-label-full { display: none; }
+  .status-label-short { display: inline; }
+  .header-actions { display: flex; flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+  .user-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .user-filters .search { grid-column: 1 / -1; }
+  .header-actions .search-input, .user-filters .status-select, .user-filters .role-filter, .user-filters .provider-filter { width: 100%; }
+  .user-filters .provider-filter { grid-column: 1 / -1; }
+  .header-actions .search :deep(.el-input__wrapper), .user-filters :deep(.el-select__wrapper) { min-height: 36px; }
+  .user-tools { flex-wrap: nowrap; gap: 4px; padding-top: 8px; border-top: 1px solid var(--el-border-color-lighter); }
+  .user-batch-tools { display: none; }
+  .user-batch-menu { display: inline-flex; margin-left: auto; }
+}
+@media (max-width: 359px) {
+  .user-tools { gap: 2px; }
+  .user-batch-trigger { padding: 0; width: 36px; justify-content: center; }
+  .user-batch-trigger span, .user-batch-trigger > svg:last-child { display: none; }
 }
 
 .container {

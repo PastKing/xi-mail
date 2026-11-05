@@ -5,6 +5,9 @@ try { ({ DatabaseSync } = await import('node:sqlite')); } catch {}
 import worker from '../../src/index';
 import accountService from '../../src/service/account-service';
 import emailService from '../../src/service/email-service';
+import attService from '../../src/service/att-service';
+import queenSmtpService from '../../src/service/queen-smtp-service';
+import { Resend } from 'resend';
 import loginService from '../../src/service/login-service';
 import userService from '../../src/service/user-service';
 import roleService from '../../src/service/role-service';
@@ -81,7 +84,98 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); sql.close(); });
 
+describe.skipIf(!DatabaseSync)('Outbound sender identity', () => {
+  let render, deliver;
+  const params = () => ({ accountId: 1, name: 'Sender', receiveEmail: ['recipient@external.example'],
+    text: 'test', content: '<p>test</p>', subject: 'test', attachments: [],
+    from: 'forged@outside.invalid', sendEmail: 'forged@outside.invalid' });
+  beforeEach(() => {
+    settings.send = 0;
+    settings.domainList = ['@allowed.example'];
+    settings.queenTokens = { 'allowed.example': 'local-test-token' };
+    settings.resendTokens = {};
+    role.sendType = 'count'; role.sendCount = 0; currentUser.sendCount = 0;
+    c.req.url = 'https://local.example/api/email/send';
+    render = vi.spyOn(attService, 'toImageUrlHtml').mockResolvedValue({ imageDataList: [], html: '<p>test</p>' });
+    vi.spyOn(attService, 'selectByEmailIds').mockResolvedValue([]);
+    deliver = vi.spyOn(queenSmtpService, 'send').mockResolvedValue({ ids: ['local-test'], failed: [] });
+  });
+  it.each(['foreign', 'missing', 'deleted', 'removed-domain'])('rejects %s sender before processing or delivery', async kind => {
+    role.availDomain = '';
+    if (kind !== 'missing') mailbox(1, kind === 'foreign' ? 20 : 10,
+      kind === 'removed-domain' ? 'sender@removed.example' : 'sender@allowed.example', kind === 'deleted' ? 1 : 0);
+    await expect(emailService.send(c, params(), 10)).rejects.toMatchObject({ name: 'BizError' });
+    expect(render).not.toHaveBeenCalled(); expect(deliver).not.toHaveBeenCalled();
+    expect(sql.prepare('SELECT COUNT(*) AS count FROM email').get().count).toBe(0);
+  });
+  it('still enforces the role domain permission', async () => {
+    mailbox(1, 10, 'sender@allowed.example'); role.availDomain = 'different.example';
+    await expect(emailService.send(c, params(), 10)).rejects.toMatchObject({ code: 403 });
+    expect(deliver).not.toHaveBeenCalled();
+  });
+  it('ignores supplied From addresses and strips display-name control characters', async () => {
+    mailbox(1, 10, 'sender@allowed.example');
+    await emailService.send(c, { ...params(), name: 'Sender\r\nBcc: other\u0000' }, 10);
+    expect(deliver).toHaveBeenCalledWith('local-test-token', expect.objectContaining({
+      from: 'sender@allowed.example', fromName: 'Sender  Bcc: other',
+    }));
+    expect(sql.prepare('SELECT send_email FROM email').get().send_email).toBe('sender@allowed.example');
+  });
+  it('quotes and escapes Resend display names while retaining the owned sender', async () => {
+    mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};
+    settings.resendTokens = { 'allowed.example': 're_local_test' };
+    const send = vi.spyOn(Resend.prototype, 'post').mockResolvedValue({ data: { id: 'local-test' }, error: null });
+    await emailService.send(c, { ...params(), name: 'Example "Team" \\ <forged@outside.invalid>\r\n' }, 10);
+    expect(send).toHaveBeenCalledWith('/emails', expect.objectContaining({
+      from: '"Example \\"Team\\" \\\\ <forged@outside.invalid>" <sender@allowed.example>',
+    }), expect.anything());
+    expect(deliver).not.toHaveBeenCalled();
+    expect(sql.prepare('SELECT send_email FROM email').get().send_email).toBe('sender@allowed.example');
+  });
+});
+
 describe.skipIf(!DatabaseSync)('Mailbox ownership and availability', () => {
+  it.each(['new', 'restore', 'reclaim', 'mixed'])('atomically enforces the last quota slot for concurrent %s writes', async mode => {
+    for (let id = 1; id <= 9; id++) mailbox(id, 10, `existing${id}@allowed.example`);
+    const candidates = Array.from({ length: 6 }, (_, index) => {
+      const kind = mode === 'mixed' ? ['new', 'restore', 'reclaim'][index % 3] : mode;
+      const address = `quota${index}@allowed.example`;
+      if (kind !== 'new') mailbox(100 + index, kind === 'restore' ? 10 : 20, address, 1);
+      return { email: address };
+    });
+    // Force every request past the old COUNT check before ANY request can write.
+    // This deterministically reproduces the TOCTOU interleaving from the report.
+    const lookup = accountService.selectByEmailIncludeDel.bind(accountService);
+    let entered = 0, release;
+    const barrier = new Promise(resolve => { release = resolve; });
+    vi.spyOn(accountService, 'selectByEmailIncludeDel').mockImplementation(async (...args) => {
+      const row = await lookup(...args);
+      if (++entered === candidates.length) release();
+      await barrier;
+      return row;
+    });
+    const results = await Promise.allSettled(candidates.map(params => accountService.add(c, params, 10)));
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter(result => result.status === 'rejected');
+    expect(rejected).toHaveLength(5);
+    for (const result of rejected) expect(result.reason.code).toBe(403);
+    expect(await accountService.countUserAccount(c, 10)).toBe(10);
+    // A denied reclaim must leave the old owner's deleted address untouched.
+    for (let index = 0; index < results.length; index++) {
+      if (results[index].status === 'rejected') {
+        const old = sql.prepare('SELECT email, is_del FROM account WHERE account_id = ?').get(100 + index);
+        if (old) expect(old).toEqual({ email: candidates[index].email, is_del: 1 });
+      }
+    }
+  });
+  it.each(['admin', 'unlimited'])('retains %s quota exemptions in atomic writes', async mode => {
+    role.accountCount = mode === 'unlimited' ? 0 : 1;
+    if (mode === 'admin') currentUser.email = c.env.admin;
+    mailbox(1, 10, 'existing@allowed.example');
+    const results = await Promise.all([2, 3, 4].map(id => accountService.add(c, { email: `unlimited${id}@allowed.example` }, 10)));
+    expect(results).toHaveLength(3);
+    expect(await accountService.countUserAccount(c, 10)).toBe(4);
+  });
   it('creates an independent mailbox when another user reclaims a deleted address, preserving old mail and attachments', async () => {
     mailbox(1, 20, 'reused@allowed.example', 1); mail(1, 1, 20); mail(2, 1, 20, 1);
     sql.prepare('INSERT INTO attachments VALUES (1, 1, 20)').run();
