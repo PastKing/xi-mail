@@ -26,7 +26,7 @@ const loginService = {
 
 	async register(c, params) {
 
-		const { email, password, token, code } = params;
+		const { email, password, token, code } = params || {};
 
 		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter, emailKeywordBlacklist } = await settingService.query(c)
 
@@ -35,9 +35,19 @@ const loginService = {
 		}
 		await securityRateLimit.consume(c, 'register-ip', c.req?.header('CF-Connecting-IP') || 'unknown', 20, 300);
 
-		if (!verifyUtils.isEmail(email)) {
+		if (typeof email !== 'string' || email.length > 320 || !verifyUtils.isEmail(email)) {
 			throw new BizError(t('notEmail'));
 		}
+		if (typeof password !== 'string' || password.length < 6) throw new BizError(t('pwdMinLength'));
+		if (password.length > 30) throw new BizError(t('pwdLengthLimit'));
+
+		// Registration is anonymous: claiming the admin address must not bypass CAPTCHA.
+		// Verify before policy, invitation or address lookups to avoid unverified probing.
+		let regVerifyOpen = registerVerify === settingConst.registerVerify.OPEN;
+		if (registerVerify === settingConst.registerVerify.COUNT) {
+			regVerifyOpen = await verifyRecordService.isOpenRegVerify(c, regVerifyCount);
+		}
+		if (regVerifyOpen) await turnstileService.verify(c, token);
 
 		if (emailUtils.getName(email).length < minEmailPrefix) {
 			throw new BizError(t('minEmailPrefix', { msg: minEmailPrefix } ));
@@ -53,14 +63,6 @@ const loginService = {
 
 		if (emailUtils.getName(email).length > 64) {
 			throw new BizError(t('emailLengthLimit'));
-		}
-
-		if (password.length > 30) {
-			throw new BizError(t('pwdLengthLimit'));
-		}
-
-		if (password.length < 6) {
-			throw new BizError(t('pwdMinLength'));
 		}
 
 		const isAdmin = email === c.env.admin;
@@ -114,22 +116,6 @@ const loginService = {
 				throw new BizError(t('noDomainPermReg'),403)
 			}
 
-		}
-
-		let regVerifyOpen = false
-
-		if (!isAdmin) {
-			if (registerVerify === settingConst.registerVerify.OPEN) {
-				regVerifyOpen = true
-				await turnstileService.verify(c, token)
-			}
-
-			if (registerVerify === settingConst.registerVerify.COUNT) {
-				regVerifyOpen = await verifyRecordService.isOpenRegVerify(c, regVerifyCount);
-				if (regVerifyOpen) {
-					await turnstileService.verify(c, token)
-				}
-			}
 		}
 
 		const { salt, hash } = await saltHashUtils.hashPassword(password);

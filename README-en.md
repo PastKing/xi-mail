@@ -8,7 +8,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.2-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.3-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -124,6 +124,7 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
+| **v3.6.3** | Fix registration verification order and mail list alignment |
 | **v3.6.2** | Security fixes and improved mobile controls |
 | **v3.6.x** | Refreshed login templates and brand icons, provider sign-in, account connections and authorization status pages |
 | **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |

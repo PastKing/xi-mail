@@ -8,7 +8,7 @@
 
 衍生自 [cloud-mail](https://github.com/eoao/cloud-mail)，重新設計介面並持續擴充功能
 
-[![Version](https://img.shields.io/badge/Version-v3.6.2-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.3-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -124,6 +124,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 更新摘要 |
 |---|---|
+| **v3.6.3** | 修復註冊驗證順序與郵件清單對齊 |
 | **v3.6.2** | 修復潛在安全風險，改善行動裝置操作 |
 | **v3.6.x** | 登入範本與品牌圖示更新；第三方登入、帳號綁定與授權狀態頁 |
 | **v3.5.x** | 瀏覽器擴充功能、QueenSMTP 寄信、子 Worker、登入工作階段與驗證碼擷取 |

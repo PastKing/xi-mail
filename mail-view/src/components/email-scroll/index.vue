@@ -1021,6 +1021,15 @@ function loadData() {
     padding: 10px 0;
     align-items: flex-start;
 
+    .email-sender {
+      align-self: start;
+      align-items: start;
+
+      .name {
+        min-width: 0;
+      }
+    }
+
     /* 在中间宽度（开发者工具打开 / 非全屏），保持双列但让左列缩小，不要切换为单列 */
     .title, .title.title-column {
       @media (max-width: 1366px) and (min-width: 701px) {
