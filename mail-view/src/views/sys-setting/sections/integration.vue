@@ -10,7 +10,7 @@
         </label>
         <div class="webhook-secret-actions">
           <el-tag :type="setting.hasResendWebhookSecret ? 'success' : 'warning'" size="small">{{ $t(setting.hasResendWebhookSecret ? 'resendWebhookConfigured' : 'resendWebhookUnconfigured') }}</el-tag>
-          <el-button type="primary" size="small" :loading="settingLoading" @click="saveWebhookSecret">{{ $t('save') }}</el-button>
+          <el-button type="primary" :loading="settingLoading" @click="saveWebhookSecret">{{ $t('save') }}</el-button>
         </div>
       </div>
     </div>
@@ -39,7 +39,7 @@
             </el-tooltip>
           </div>
           <div class="forward">
-            <el-select
+            <el-select popper-class="sys-setting-popper"
                 v-model="setting.aiModel"
                 @change="change"
                 :disabled="!setting.hasAi"
@@ -63,7 +63,7 @@
             </el-tooltip>
           </div>
           <div class="forward" style="display: flex; gap: 8px; align-items: center;">
-            <el-button class="opt-button" size="small" type="primary" @click="aiCodeFilterShow = true">
+            <el-button class="opt-button" type="primary" @click="aiCodeFilterShow = true">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
             <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
@@ -85,7 +85,7 @@
           </div>
           <div class="r2domain">
             <span>{{ setting.r2Domain || '' }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="r2DomainShow = true">
+            <el-button class="opt-button" type="primary" @click="r2DomainShow = true">
               <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
             </el-button>
           </div>
@@ -93,7 +93,7 @@
         <div class="setting-item">
           <div><span>{{ $t('s3Configuration') }}</span></div>
           <div class="r2domain">
-            <el-button class="opt-button" size="small" type="primary" @click="addS3Show = true">
+            <el-button class="opt-button" type="primary" @click="addS3Show = true">
               <Icon icon="mingcute:settings-3-line" width="16" height="16"/>
             </el-button>
           </div>
@@ -116,7 +116,7 @@
           <div><span>{{ $t('tgBot') }}</span></div>
           <div class="forward">
             <span>{{ setting.tgBotStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="openTgSetting">
+            <el-button class="opt-button" type="primary" @click="openTgSetting">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -125,7 +125,7 @@
           <div><span>{{ $t('otherEmail') }}</span></div>
           <div class="forward">
             <span>{{ setting.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="openThirdEmailSetting">
+            <el-button class="opt-button" type="primary" @click="openThirdEmailSetting">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -134,7 +134,7 @@
           <div><span>{{ $t('forwardingRules') }}</span></div>
           <div class="forward">
             <span>{{ setting.ruleType === 0 ? $t('forwardAll') : $t('rules') }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="openForwardRules">
+            <el-button class="opt-button" type="primary" @click="openForwardRules">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -148,10 +148,10 @@
         <div class="setting-item">
           <div><span>{{ $t('signUpVerification') }}</span></div>
           <div>
-            <el-button class="opt-button" size="small" type="primary" @click="openRegVerifyCount">
+            <el-button class="opt-button" type="primary" @click="openRegVerifyCount">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
-            <el-select
+            <el-select popper-class="sys-setting-popper"
                 @change="change"
                 :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                 v-model="setting.registerVerify"
@@ -167,10 +167,10 @@
         <div class="setting-item">
           <div><span>{{ $t('addEmailVerification') }}</span></div>
           <div>
-            <el-button class="opt-button" size="small" type="primary" @click="openAddVerifyCount">
+            <el-button class="opt-button" type="primary" @click="openAddVerifyCount">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
-            <el-select
+            <el-select popper-class="sys-setting-popper"
                 @change="change"
                 :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                 v-model="setting.addEmailVerify"
@@ -187,7 +187,7 @@
           <div><span>Site Key</span></div>
           <div class="bot-verify">
             <span>{{ setting.siteKey }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="turnstileShow = true">
+            <el-button class="opt-button" type="primary" @click="turnstileShow = true">
               <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
             </el-button>
           </div>
@@ -196,7 +196,7 @@
           <div><span>Secret Key</span></div>
           <div class="bot-verify">
             <span>{{ setting.secretKey }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="turnstileShow = true">
+            <el-button class="opt-button" type="primary" @click="turnstileShow = true">
               <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
             </el-button>
           </div>
@@ -211,7 +211,7 @@
           <div><span>{{ $t('noticePopup') }}</span></div>
           <div class="forward">
             <span>{{ setting.notice === 0 ? $t('enabled') : $t('disabled') }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="noticePopupShow = true">
+            <el-button class="opt-button" type="primary" @click="noticePopupShow = true">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -219,7 +219,7 @@
         <div class="setting-item">
           <div><span>{{ $t('popUp') }}</span></div>
           <div class="forward">
-            <el-button class="opt-button" size="small" type="primary" @click="uiStore.showNotice()">
+            <el-button class="opt-button" type="primary" @click="uiStore.showNotice()">
               <Icon icon="mingcute:hand-finger-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -301,19 +301,19 @@
         <el-input tag-type="warning" :placeholder="$t('customDomainDesc')" v-model="customDomain"/>
         <div class="tg-msg-label">
           <span>{{ $t('from') }}</span>
-          <el-select v-model="tgMsgFrom">
+          <el-select popper-class="sys-setting-popper" v-model="tgMsgFrom">
             <el-option v-for="item in tgMsgFromOption" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </div>
         <div class="tg-msg-label">
           <span>{{ $t('recipient') }}</span>
-          <el-select v-model="tgMsgTo">
+          <el-select popper-class="sys-setting-popper" v-model="tgMsgTo">
             <el-option v-for="item in showHideOption" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </div>
         <div class="tg-msg-label">
           <span>{{ $t('emailText') }}</span>
-          <el-select v-model="tgMsgText">
+          <el-select popper-class="sys-setting-popper" v-model="tgMsgText">
             <el-option v-for="item in showHideOption" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </div>
@@ -808,7 +808,7 @@ function saveNoticePopup() {
   margin-bottom: 12px;
 
   .notice-form-label {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--el-text-color-secondary);
     white-space: nowrap;
     min-width: 48px;
@@ -877,7 +877,7 @@ function saveNoticePopup() {
 }
 
 .ai-code-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--el-text-color-secondary);
   margin: 0 0 12px;
   line-height: 1.6;
@@ -901,7 +901,7 @@ function saveNoticePopup() {
   gap: 10px;
 
   .tag-editor-hint {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--el-text-color-secondary);
   }
 

@@ -132,6 +132,15 @@ describe.skipIf(!DatabaseSync)('Outbound sender identity', () => {
     expect(deliver).not.toHaveBeenCalled();
     expect(sql.prepare('SELECT send_email FROM email').get().send_email).toBe('sender@allowed.example');
   });
+  it('uses SendFlare with the owned sender and persists a provider-specific delivery ID', async () => {
+    mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};
+    settings.sendflareTokens = { 'allowed.example': 'local-flare-token' };
+    const request = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ success: true, data: { emilId: 'flare-one' } }));
+    await emailService.send(c, params(), 10);
+    expect(JSON.parse(request.mock.calls[0][1].body).from).toBe('sender@allowed.example');
+    expect(sql.prepare('SELECT send_email,resend_email_id FROM email').get()).toEqual({send_email:'sender@allowed.example',resend_email_id:'sendflare:flare-one'});
+    expect(deliver).not.toHaveBeenCalled();
+  });
 });
 
 describe.skipIf(!DatabaseSync)('Mailbox ownership and availability', () => {

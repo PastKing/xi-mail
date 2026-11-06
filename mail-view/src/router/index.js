@@ -7,6 +7,7 @@ import {cvtR2Url} from "@/utils/convert.js";
 import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 
 const routes = [
+    { path: '/share', name: 'mail-share', component: () => import('@/views/mail-share/index.vue') },
     {
         path: '/',
         name: 'layout',
@@ -50,16 +51,6 @@ const routes = [
                 meta: {
                     title: 'starred',
                     name: 'star',
-                    menu: true
-                }
-            },
-            {
-                path: '/transfer',
-                name: 'transfer',
-                component: () => import('@/views/transfer/index.vue'),
-                meta: {
-                    title: 'transferPending',
-                    name: 'transfer',
                     menu: true
                 }
             },
@@ -139,7 +130,7 @@ router.beforeEach((to, from, next) => {
 
     const token = serverStore.getToken()
 
-    if (!token && !['login', 'setup', 'oauth-provider-callback'].includes(to.name)) {
+    if (!token && !['login', 'setup', 'oauth-provider-callback', 'mail-share'].includes(to.name)) {
         return next({name: 'login'})
     }
 

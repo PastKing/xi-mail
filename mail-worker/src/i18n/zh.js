@@ -1,4 +1,6 @@
 const zh = {
+    shareUnavailable: '分享链接不可用', shareHoursInvalid: '有效期须为 1～168 的整数小时', shareLimit: '最多同时保留 10 个有效链接，请先撤销已有链接',
+    transferUnavailable: '转移不可用，请检查双方权限、邮箱状态和接收方配额',
 	invalidCredentials: '邮箱或密码错误',
 	tooManyAttempts: '尝试过于频繁，请稍后重试',
 	accountUnavailable: '该邮箱暂不可用',
@@ -100,6 +102,9 @@ const zh = {
 	transferAlreadyPending: '该邮箱已有待处理的转移请求',
 	transferNotFound: '转移请求不存在或已处理',
 	perms: {
+        '邮箱分享':'邮箱分享', '分享接码':'分享收件箱', '分享收件箱':'分享收件箱',
+        '邮箱转移':'邮箱转移','转移记录查看':'转移记录查看','发起邮箱转移':'发起邮箱转移','接收邮箱转移':'接收邮箱转移',
+        '关联登录账号':'关联登录账号',
 		"邮件": "邮件",
 		"邮件发送": "邮件发送",
 		"邮件删除": "邮件删除",

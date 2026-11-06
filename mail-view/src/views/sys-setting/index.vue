@@ -1,4 +1,5 @@
 <template>
+  <el-config-provider size="default">
   <div class="sys-setting">
     <div class="loading" :class="firstLoading ? 'loading-show' : 'loading-hide'">
       <loading/>
@@ -28,6 +29,7 @@
 
     </div>
   </div>
+  </el-config-provider>
 </template>
 
 <script setup>

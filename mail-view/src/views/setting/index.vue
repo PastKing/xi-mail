@@ -48,7 +48,7 @@
         </div>
       </div>
     </div>
-    <div class="container oauth-connections">
+    <div class="container oauth-connections" v-if="hasPerm('oauth:manage')">
       <div class="title"><Icon icon="mingcute:key-2-line" width="18" height="18" />{{ $t('oauthAccounts') }}</div>
       <p class="oauth-description">{{ $t('oauthAccountsNote') }}</p>
       <div v-if="oauthLoading" class="oauth-description">{{ $t('oauthLoadingText') }}</div>
@@ -90,6 +90,7 @@ import {useServerStore} from "@/store/server.js";
 import {oauthBindings, oauthUnbind} from '@/request/ouath.js';
 import {startOAuth} from '@/utils/oauth.js';
 import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
+import {hasPerm} from '@/perm/perm.js';
 
 const { t } = useI18n()
 const accountStore = useAccountStore()
@@ -108,7 +109,7 @@ async function loadOAuth() {
   catch { oauthLoadFailed.value = true }
   finally { oauthLoading.value = false }
 }
-onMounted(loadOAuth)
+onMounted(() => { if (hasPerm('oauth:manage')) loadOAuth() })
 async function bindProvider(provider) {
   oauthBusy.value = provider.provider
   try { await startOAuth(provider.provider, 'bind') }

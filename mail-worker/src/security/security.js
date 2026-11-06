@@ -10,6 +10,9 @@ import { t } from '../i18n/i18n'
 import app from '../hono/hono';
 
 const publicExact = [
+	'/mail-share/read',
+	'/mail-share/content',
+	'/mail-share/attachment',
 	'/login',
 	'/register',
 	'/setting/websiteConfig',
@@ -19,6 +22,8 @@ const publicExact = [
 const publicTrees = ['/oss/', '/init/', '/telegram/', '/oauth/', '/admin/'];
 
 const requirePerms = [
+	'/mail-share/',
+	'/transfer/', '/my/oauth',
 	'/email/send',
 	'/email/delete',
 	'/account/list',
@@ -63,6 +68,11 @@ const requirePerms = [
 ];
 
 const premKey = {
+	'account:share': ['/mail-share/list', '/mail-share/create', '/mail-share/revoke'],
+	'transfer:query': ['/transfer/pending', '/transfer/sent', '/transfer/received-history'],
+	'transfer:send': ['/transfer/create'],
+	'transfer:receive': ['/transfer/accept', '/transfer/reject'],
+	'oauth:manage': ['/my/oauth', '/my/oauth/'],
 	'email:delete': ['/email/delete'],
 	'email:send': ['/email/send'],
 	'account:add': ['/account/add'],
@@ -139,7 +149,7 @@ app.use('*', async (c, next) => {
 		const userPaths = permKeyToPaths(permKeys);
 
 		const userPermIndex = userPaths.findIndex(item => {
-			return path.startsWith(item);
+			return item.endsWith('/') ? path.startsWith(item) : path === item;
 		});
 
 		if (userPermIndex === -1 && authInfo.user.email !== c.env.admin) {

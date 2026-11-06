@@ -163,7 +163,7 @@ const accountService = {
 
 	// 判断邮箱能否给站外发件：域名配置了发件服务，且用户等级允许对外发件和使用该域名
 	async sendableChecker(c, userId) {
-		const [{ resendTokens = {}, queenTokens = {} }, userRow] = await Promise.all([
+		const [{ resendTokens = {}, queenTokens = {}, sendflareTokens = {}, domainList = [] }, userRow] = await Promise.all([
 			settingService.query(c),
 			userService.selectById(c, userId),
 		]);
@@ -176,7 +176,7 @@ const accountService = {
 
 		return email => {
 			const domain = emailUtils.getDomain(email || '');
-			if (!resendTokens[domain] && !queenTokens[domain]) return false;
+			if (!domainList.includes('@' + domain) || (!resendTokens[domain] && !queenTokens[domain] && !sendflareTokens[domain])) return false;
 			return isAdmin || roleService.hasAvailDomainPerm(roleRow.availDomain || '', email);
 		};
 	},

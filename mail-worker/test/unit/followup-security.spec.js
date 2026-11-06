@@ -62,6 +62,11 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); db.close(); });
 
 describe('Telegram mail capabilities', () => {
+  const unassigned = { emailId: 3, userId: 0, accountId: 0, type: 0, status: 7, name: 'Sender', sendEmail: 'sender@example.test', toEmail: 'catchall@example.test', subject: 'Notification', text: 'Unassigned mail' };
+  function seedUnassigned() {
+    db.exec(`INSERT INTO email(email_id,user_id,account_id,content,text,is_del,status,type,unread,recipient,create_time)
+      VALUES(3,0,0,'<p>Unassigned mail</p>','Unassigned mail',0,7,0,0,'[]',CURRENT_TIMESTAMP);`);
+  }
   it('rejects a valid login JWT and all legacy emailId JWTs before accessing mail', async () => {
     const token = await jwtUtils.generateToken(c, { userId: 10, token: 'known-session-id' });
     const prepare = vi.spyOn(c.env.db, 'prepare');
@@ -95,6 +100,51 @@ describe('Telegram mail capabilities', () => {
     if (failure === 'deleted-user') db.exec('UPDATE user SET is_del=1 WHERE user_id=10');
     if (failure === 'banned-user') db.exec('UPDATE user SET status=1 WHERE user_id=10');
     expect(await mailLinkService.read(c, token)).toBeNull();
+  });
+  it('issues a separate single-mail capability for catch-all mail without a registered mailbox', async () => {
+    seedUnassigned();
+    const token = await mailLinkService.issue(c, unassigned);
+    expect(token).toMatch(/^[a-f0-9]{64}$/);
+    expect([...records.values()][0]).toMatchObject({ purpose: 'telegram-unassigned-mail', emailId: 3, userId: 0, accountId: 0 });
+    expect(await mailLinkService.read(c, token)).toMatchObject({ text: 'Unassigned mail' });
+    vi.spyOn(settingService, 'query').mockResolvedValue({ r2Domain: '' });
+    expect(await telegramService.getEmailContent(c, { token })).toContain('Unassigned mail');
+    expect(c.env.kv.put.mock.calls[0][2].expirationTtl).toBe(MAIL_LINK_TTL);
+  });
+  it.each(['expired','deleted','assigned','changed-status','sent','owned-id','wrong-scope','legacy-zero'])('does not widen catch-all capabilities for %s mail', async failure => {
+    seedUnassigned();
+    const token = await mailLinkService.issue(c, unassigned), record = [...records.values()][0];
+    if (failure === 'expired') record.expiresAt = Date.now() - 1;
+    if (failure === 'deleted') db.exec('UPDATE email SET is_del=1 WHERE email_id=3');
+    if (failure === 'assigned') db.exec('UPDATE email SET user_id=10,account_id=1 WHERE email_id=3');
+    if (failure === 'changed-status') db.exec('UPDATE email SET status=0 WHERE email_id=3');
+    if (failure === 'sent') db.exec('UPDATE email SET type=1 WHERE email_id=3');
+    if (failure === 'owned-id') record.emailId = 1;
+    if (failure === 'wrong-scope') record.userId = 10;
+    if (failure === 'legacy-zero') record.purpose = 'telegram-mail';
+    expect(await mailLinkService.read(c, token)).toBeNull();
+  });
+  it.each([{type:1},{status:0},{userId:10},{accountId:1},{emailId:0}])('does not issue catch-all links with mismatched scope: %s', async changes => {
+    expect(await mailLinkService.issue(c, {...unassigned,...changes})).toBeNull();
+  });
+  it('generates a working Telegram viewer button for unassigned mail, using mocked delivery only', async () => {
+    seedUnassigned();
+    vi.spyOn(settingService, 'query').mockResolvedValue({ customDomain: 'https://mail.example.test/', tgChatId: 'local-chat', tgBotToken: 'local-token', tgMsgTo: 0, tgMsgFrom: 0, tgMsgText: 0 });
+    const remote = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ok:true}));
+    await telegramService.sendEmailToBot(c, unassigned);
+    const payload = JSON.parse(remote.mock.calls[0][1].body);
+    const url = new URL(payload.reply_markup.inline_keyboard[0][0].web_app.url);
+    expect(url.origin).toBe('https://mail.example.test');
+    expect(url.pathname).toMatch(/^\/api\/telegram\/getEmail\/[a-f0-9]{64}$/);
+    expect(await mailLinkService.read(c,url.pathname.split('/').pop())).toMatchObject({text:'Unassigned mail'});
+    expect(JSON.stringify(payload)).not.toContain('cloudflare.com/404');
+  });
+  it.each(['','http://mail.example.test','not a valid domain','https://user:pass@mail.example.test'])('omits the viewer button for invalid configuration: %s', async customDomain => {
+    vi.spyOn(settingService, 'query').mockResolvedValue({customDomain,tgChatId:'local-chat',tgBotToken:'local-token'});
+    const remote=vi.spyOn(globalThis,'fetch').mockResolvedValue(Response.json({ok:true}));
+    await telegramService.sendEmailToBot(c,unassigned);
+    expect(JSON.parse(remote.mock.calls[0][1].body)).not.toHaveProperty('reply_markup');
+    expect(c.env.kv.put).not.toHaveBeenCalled();
   });
 });
 

@@ -20,7 +20,7 @@
         <div class="setting-item">
           <div><span>{{ $t('regKey') }}</span></div>
           <div>
-            <el-select
+            <el-select popper-class="sys-setting-popper"
                 @change="change"
                 :style="`width: ${ locale === 'en' ?  100 : 80 }px;`"
                 v-model="setting.regKey"
@@ -109,7 +109,7 @@
           <div class="title-item"><span>{{ $t('websiteTitle') }}</span></div>
           <div class="email-title">
             <span>{{ setting.title }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="editTitleShow = true">
+            <el-button class="opt-button" type="primary" @click="editTitleShow = true">
               <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
             </el-button>
           </div>

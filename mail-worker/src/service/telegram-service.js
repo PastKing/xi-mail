@@ -40,9 +40,13 @@ const telegramService = {
 
 		const tgChatIds = tgChatId.split(',');
 
-		const viewToken = customDomain ? await mailLinkService.issue(c, email) : null;
-
-		const webAppUrl = customDomain && viewToken ? `${domainUtils.toOssDomain(customDomain)}/api/telegram/getEmail/${viewToken}` : 'https://www.cloudflare.com/404'
+		let viewOrigin = null;
+		try {
+			const url = new URL(domainUtils.toOssDomain(customDomain?.trim()));
+			if (url.protocol === 'https:' && !url.username && !url.password) viewOrigin = url.origin;
+		} catch { /* Missing/invalid viewer configuration must not create a broken button. */ }
+		const viewToken = viewOrigin ? await mailLinkService.issue(c, email) : null;
+		const webAppUrl = viewToken ? `${viewOrigin}/api/telegram/getEmail/${viewToken}` : null;
 
 		await Promise.all(tgChatIds.map(async chatId => {
 			try {
@@ -55,7 +59,7 @@ const telegramService = {
 						chat_id: chatId,
 						parse_mode: 'HTML',
 						text: emailMsgTemplate(email, tgMsgTo, tgMsgFrom, tgMsgText),
-						reply_markup: {
+						...(webAppUrl ? { reply_markup: {
 							inline_keyboard: [
 								[
 									{
@@ -64,7 +68,7 @@ const telegramService = {
 									}
 								]
 							]
-						}
+						} } : {})
 					})
 				});
 				if (!res.ok) {

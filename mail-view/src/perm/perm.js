@@ -52,13 +52,15 @@ const sysSettingSections = [
 ]
 
 const routers = {
+    'transfer:query': [{ path: '/transfer', name: 'transfer', component: () => import('@/views/transfer/index.vue'),
+        meta: { title: 'transferPending', name: 'transfer', menu: true } }],
     'email:send': [
         {
             path: '/sent',
             name: 'send',
-            component: () => import('@/views/send/index.vue'),
+            component: () => import('@/views/outbox/index.vue'),
             meta: {
-                title: 'sent',
+                title: 'outbox',
                 name: 'send',
                 menu: true
             }
@@ -66,7 +68,7 @@ const routers = {
         {
             path: '/drafts',
             name: 'draft',
-            component: () => import('@/views/draft/index.vue'),
+            redirect: { path: '/sent', query: { view: 'drafts' } },
             meta: {
                 title: 'drafts',
                 name: 'draft',

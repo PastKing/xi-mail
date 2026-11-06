@@ -14,8 +14,9 @@ import { normalizeLoginTemplate } from '../const/login-templates';
 import oauthConfigService from './oauth-config-service';
 import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import webhookConfig from './resend-webhook-config-service';
+import sendflareService from './sendflare-service';
 
-const SEND_PROVIDERS = ['resend', 'queensmtp'];
+const SEND_PROVIDERS = ['resend', 'queensmtp', 'sendflare'];
 
 function generateToken(len = 32) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -130,6 +131,7 @@ const settingService = {
 		}
 		settingRow.domainList = domainList;
 
+		settingRow.sendflareTokens = await sendflareService.tokens(c);
 		const oauthConfigs = await Promise.all(OAUTH_PROVIDERS.map(provider => oauthConfigService.get(c, provider.id)));
 		settingRow.hasResendWebhookSecret = (await webhookConfig.get(c)).length > 0;
 		OAUTH_PROVIDERS.forEach((provider, index) => {
@@ -176,6 +178,7 @@ const settingService = {
 		Object.keys(settingRow.queenTokens).forEach(key => {
 			settingRow.queenTokens[key] = `${settingRow.queenTokens[key].slice(0, 12)}******`;
 		});
+		settingRow.sendflareTokens = Object.fromEntries(Object.keys(settingRow.sendflareTokens || {}).map(domain => [domain, '******']));
 
 		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
@@ -226,6 +229,8 @@ const settingService = {
 		}
 
 		const settingData = await this.query(c);
+		const sendflareInput = params.sendflareTokens;
+		delete params.sendflareTokens;
 		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
 		Object.keys(resendTokens).forEach(domain => {
 			if (!resendTokens[domain]) delete resendTokens[domain];
@@ -272,6 +277,7 @@ const settingService = {
 		params.queenTokens = JSON.stringify(queenTokens);
 		params.sendProviders = JSON.stringify(sendProviders);
 		await orm(c).update(setting).set({ ...params }).returning().get();
+		if (sendflareInput !== undefined) await sendflareService.saveTokens(c, sendflareInput);
 		await this.refresh(c);
 	},
 

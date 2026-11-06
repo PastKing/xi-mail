@@ -24,6 +24,7 @@ import telegramService from './telegram-service';
 import permService from './perm-service';
 import subWorkerService from './sub-worker-service';
 import queenSmtpService from './queen-smtp-service';
+import sendflareService from './sendflare-service';
 import domainUtils from '../utils/domain-uitls';
 import { mailFilterConditions } from './mail-filter-service';
 import starSchemaService from './star-schema-service';
@@ -186,12 +187,14 @@ const emailService = {
 	resolveSendProvider(setting, domain, hasAttachments) {
 		const resendToken = setting.resendTokens?.[domain];
 		const queenToken = setting.queenTokens?.[domain];
+		const flareToken = setting.sendflareTokens?.[domain];
 		const preferred = setting.sendProviders?.[domain];
 
 		const resend = resendToken ? { type: 'resend', token: resendToken } : null;
 		const queen = queenToken ? { type: 'queensmtp', token: queenToken } : null;
+		const flare = flareToken ? { type: 'sendflare', token: flareToken } : null;
 
-		let provider = preferred === 'queensmtp' ? (queen || resend) : (resend || queen);
+		let provider = ({ resend, queensmtp: queen, sendflare: flare })[preferred] || resend || queen || flare;
 
 		//QueenSMTP 不支持附件，有附件时换用 Resend
 		if (provider?.type === 'queensmtp' && hasAttachments) {
@@ -340,6 +343,13 @@ const emailService = {
 				providerMessage = 'QueenSMTP: ' + failed.map(item => `${item.to} ${item.error}`).join('; ');
 			}
 
+		} else if (!allInternal && provider.type === 'sendflare') {
+			const id = await sendflareService.send(provider.token, {
+				from: accountRow.email, to: receiveEmail, subject, html, text,
+				attachments: [...imageDataList, ...attachments],
+				inReplyTo: sendType === 'reply' ? emailRow.messageId : null,
+			});
+			resendResult = { data: { id: 'sendflare:' + id } };
 		} else if (!allInternal) {
 
 			const resend = new Resend(provider.token);

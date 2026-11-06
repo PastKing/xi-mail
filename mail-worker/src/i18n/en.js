@@ -1,4 +1,6 @@
 const en = {
+    shareUnavailable: 'Inbox sharing link unavailable', shareHoursInvalid: 'Validity must be an integer from 1 to 168 hours', shareLimit: 'Up to 10 active links are allowed. Revoke an existing link first.',
+    transferUnavailable: 'Transfer unavailable; check permissions, mailbox status and recipient quota',
 	invalidCredentials: 'Incorrect email or password',
 	tooManyAttempts: 'Too many attempts. Please try again later.',
 	accountUnavailable: 'This email address is unavailable',
@@ -100,6 +102,9 @@ const en = {
 	transferAlreadyPending: 'This mailbox already has a pending transfer request',
 	transferNotFound: 'Transfer request not found or already processed',
 	perms: {
+        '邮箱分享':'Mailbox sharing', '分享接码':'Share inbox', '分享收件箱':'Share inbox',
+        '邮箱转移':'Mailbox transfers','转移记录查看':'View transfers','发起邮箱转移':'Send transfers','接收邮箱转移':'Receive transfers',
+        '关联登录账号':'Manage linked sign-in accounts',
 		"邮件": "Emails",
 		"邮件发送": "Send Email",
 		"邮件删除": "Delete Email",

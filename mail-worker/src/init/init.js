@@ -5,6 +5,8 @@ import emailUtils from '../utils/email-utils';
 import {emailConst} from "../const/entity-const";
 import { isSecureSecret } from '../utils/secret-policy';
 import starSchemaService from '../service/star-schema-service';
+import { ensureFeaturePermissions } from '../service/feature-permission-service';
+import mailShare from '../service/mail-share-service';
 
 const dbInit = {
 	async init(c) {
@@ -51,6 +53,8 @@ const dbInit = {
 		await this.v4_4DB(c);
 		await this.v4_5DB(c);
 		await starSchemaService.ensure(c);
+		await ensureFeaturePermissions(c);
+		await mailShare.ensure(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},

@@ -62,6 +62,9 @@
               </button>
               <template #dropdown>
                 <el-dropdown-menu>
+                  <el-dropdown-item v-if="hasPerm('account:share')" @click="shareAccount = item; shareShow = true">
+                    <div class="row-menu-item"><Icon icon="mingcute:link-line" width="18" height="18"/><span>{{ $t('shareTitle') }}</span></div>
+                  </el-dropdown-item>
                   <el-dropdown-item v-if="hasPerm('email:send')" @click="openSetName(item)">
                     <div class="row-menu-item">
                       <Icon icon="mingcute:edit-2-line" width="18" height="18"/>
@@ -78,7 +81,7 @@
                     </div>
                   </el-dropdown-item>
                   <el-dropdown-item
-                    v-if="item.accountId !== userStore.user.account?.accountId
+                    v-if="hasPerm('transfer:send') && item.accountId !== userStore.user.account?.accountId
                       && item.email?.toLowerCase() !== userStore.user.email?.toLowerCase()"
                     @click="openTransfer(item)"
                   >
@@ -145,6 +148,7 @@
       </div>
     </el-scrollbar>
 
+    <MailShareDialog v-model="shareShow" :account="shareAccount" />
     <!-- Add dialog -->
     <el-dialog v-model="showAdd" :title="$t('addAccount')">
       <div class="add-form">
@@ -222,6 +226,7 @@
 
 <script setup>
 import { Icon } from "@iconify/vue";
+import MailShareDialog from '@/components/MailShareDialog.vue';
 import { nextTick, reactive, ref, computed, watch } from "vue";
 import {
   accountList,
@@ -250,6 +255,7 @@ const settingStore = useSettingStore();
 const emailStore = useEmailStore();
 
 const showAdd = ref(false);
+const shareShow = ref(false), shareAccount = ref(null);
 const addLoading = ref(false);
 const domainList = settingStore.domainList;
 const accounts = reactive([]);

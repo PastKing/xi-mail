@@ -56,12 +56,12 @@
               <span class="domain-name">{{ item.domain }}</span>
               <div class="domain-actions">
                 <el-tooltip :content="$t('moveUp')" placement="top" :show-after="300">
-                  <el-button size="small" text :disabled="idx === 0" @click="moveDomain(idx, -1)">
+                  <el-button text :disabled="idx === 0" @click="moveDomain(idx, -1)">
                     <Icon icon="mingcute:up-line" width="16" height="16"/>
                   </el-button>
                 </el-tooltip>
                 <el-tooltip :content="$t('moveDown')" placement="top" :show-after="300">
-                  <el-button size="small" text :disabled="idx === managedDomainsData.length - 1" @click="moveDomain(idx, 1)">
+                  <el-button text :disabled="idx === managedDomainsData.length - 1" @click="moveDomain(idx, 1)">
                     <Icon icon="mingcute:down-line" width="16" height="16"/>
                   </el-button>
                 </el-tooltip>
@@ -69,9 +69,8 @@
                   v-model="item.enabled"
                   :active-value="true"
                   :inactive-value="false"
-                  size="small"
                 />
-                <el-button size="small" type="danger" text @click="managedDomainsData.splice(idx, 1)">
+                <el-button type="danger" text @click="managedDomainsData.splice(idx, 1)">
                   <Icon icon="mingcute:delete-2-line" width="16" height="16"/>
                 </el-button>
               </div>
@@ -98,7 +97,7 @@
           </div>
           <div class="forward">
             <span class="domain-count">{{ Object.keys(domainMappingData).length }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="domainMappingShow = true">
+            <el-button class="opt-button" type="primary" @click="domainMappingShow = true">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -111,14 +110,13 @@
         <div v-for="(val, key) in domainMappingData" :key="key" class="mapping-row">
           <el-tag size="small" type="info" class="mapping-source">{{ key }}</el-tag>
           <Icon icon="mingcute:arrow-right-line" width="14" height="14" style="flex-shrink: 0; color: var(--el-text-color-secondary);" />
-          <el-input size="small" v-model="domainMappingData[key]" :placeholder="$t('displayDomain')" style="flex: 1;" />
-          <el-button size="small" type="danger" link @click="delete domainMappingData[key]">
+          <el-input v-model="domainMappingData[key]" :placeholder="$t('displayDomain')" style="flex: 1;" />
+          <el-button type="danger" link @click="delete domainMappingData[key]">
             <Icon icon="mingcute:delete-2-line" width="16" height="16"/>
           </el-button>
         </div>
         <div class="mapping-row">
-          <el-select
-              size="small"
+          <el-select popper-class="sys-setting-popper"
               v-model="newMappingSource"
               filterable
               allow-create
@@ -135,8 +133,8 @@
             />
           </el-select>
           <Icon icon="mingcute:arrow-right-line" width="14" height="14" style="flex-shrink: 0; color: var(--el-text-color-secondary);" />
-          <el-input size="small" v-model="newMappingDisplay" :placeholder="$t('displayDomain')" style="flex: 1;" />
-          <el-button size="small" type="primary" link @click="addDomainMapping">
+          <el-input v-model="newMappingDisplay" :placeholder="$t('displayDomain')" style="flex: 1;" />
+          <el-button type="primary" link @click="addDomainMapping">
             <Icon icon="mingcute:add-line" width="16" height="16"/>
           </el-button>
         </div>
@@ -356,14 +354,14 @@ function saveDomainMapping() {
     flex-shrink: 0;
     width: 20px;
     text-align: center;
-    font-size: 11.5px;
+    font-size: 12px;
     font-family: 'SF Mono', 'Fira Code', monospace;
     color: var(--el-text-color-placeholder);
   }
 }
 
 .domain-name {
-  font-size: 13px;
+  font-size: 14px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -394,11 +392,11 @@ function saveDomainMapping() {
   text-align: center;
   color: var(--el-text-color-secondary);
   padding: 20px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .domain-count {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--el-text-color-secondary);
 }
 

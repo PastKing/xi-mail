@@ -34,7 +34,7 @@
             </el-tooltip>
           </div>
           <div class="forward">
-            <el-button class="opt-button" size="small" type="primary" @click="keywordBlacklistShow = true">
+            <el-button class="opt-button" type="primary" @click="keywordBlacklistShow = true">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -47,11 +47,11 @@
             </el-tooltip>
           </div>
           <div class="forward" style="display: flex; gap: 8px; align-items: center;">
-            <el-select v-model="setting.senderFilterMode" style="width: 110px" @change="change">
+            <el-select popper-class="sys-setting-popper" v-model="setting.senderFilterMode" style="width: 110px" @change="change">
               <el-option :label="$t('senderFilterBlacklist')" :value="0"/>
               <el-option :label="$t('senderFilterWhitelist')" :value="1"/>
             </el-select>
-            <el-button class="opt-button" size="small" type="primary"
+            <el-button class="opt-button" type="primary"
               @click="setting.senderFilterMode === 1 ? senderDomainWhitelistShow = true : senderDomainBlacklistShow = true">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
@@ -84,7 +84,7 @@
           <div class="auto-ban-right">
             <el-input-number v-model="setting.autoCleanDays" @change="change" :min="0" :max="3650" :step="1" style="width: 110px;" />
             <span class="ban-unit">{{ $t('day') }}</span>
-            <el-button class="opt-button" size="small" type="primary" @click="autoCleanExcludeShow = true">
+            <el-button class="opt-button" type="primary" @click="autoCleanExcludeShow = true">
               <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
             </el-button>
           </div>
@@ -123,16 +123,16 @@
             </div>
             <div class="gt-actions">
               <el-tooltip :content="globalTokenVisible ? $t('hide') : $t('show')">
-                <el-button size="small" circle plain @click="globalTokenVisible = !globalTokenVisible">
+                <el-button circle plain @click="globalTokenVisible = !globalTokenVisible">
                   <Icon :icon="globalTokenVisible ? 'mingcute:eye-close-line' : 'mingcute:eye-2-line'" width="14" height="14"/>
                 </el-button>
               </el-tooltip>
               <el-tooltip :content="$t('copy')" v-if="globalToken">
-                <el-button size="small" circle plain @click="copyGlobalToken">
+                <el-button circle plain @click="copyGlobalToken">
                   <Icon icon="mingcute:copy-2-line" width="14" height="14"/>
                 </el-button>
               </el-tooltip>
-              <el-button size="small" type="primary" @click="onGenerateGlobalToken" :loading="globalTokenGenerating">
+              <el-button type="primary" @click="onGenerateGlobalToken" :loading="globalTokenGenerating">
                 <Icon :icon="globalToken ? 'mingcute:refresh-2-line' : 'mingcute:add-line'" width="14" height="14" style="margin-right:4px"/>
                 {{ globalToken ? $t('regenerate') : $t('generate') }}
               </el-button>
@@ -332,7 +332,7 @@ function copyGlobalToken() {
 }
 
 .global-token-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--el-text-color-secondary);
   margin: 0 0 16px;
   line-height: 1.6;
@@ -366,7 +366,7 @@ function copyGlobalToken() {
   .gt-token-text {
     flex: 1;
     font-family: 'SF Mono', 'Consolas', monospace;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--el-text-color-primary);
     word-break: break-all;
     line-height: 1.5;
@@ -462,7 +462,7 @@ function copyGlobalToken() {
   gap: 10px;
 
   .tag-editor-hint {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--el-text-color-secondary);
   }
 

@@ -8,7 +8,7 @@ import {useUserStore} from "@/store/user.js";
 import i18n from "@/i18n/index.js";
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
 
-export const SYS_SETTING_VERSION = 'v3.6.3'
+export const SYS_SETTING_VERSION = 'v3.6.4'
 
 let context = null
 
@@ -69,6 +69,7 @@ function createContext() {
     delete settingForm.s3SecretKey
     delete settingForm.resendTokens
     delete settingForm.queenTokens
+    delete settingForm.sendflareTokens
     delete settingForm.sendProviders
     delete settingForm.hasR2
     delete settingForm.hasAi

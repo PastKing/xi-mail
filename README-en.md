@@ -8,7 +8,7 @@
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.3-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.4-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -39,9 +39,9 @@ Try it at [mail.azx.us](https://mail.azx.us) using invite code `viewUser` (limit
 
 ## ✨ Highlights
 
-- **Mail**: multiple mailboxes, compose and reply, verification-code extraction and new mail notifications.
+- **Mail**: multiple mailboxes, compose and reply, code extraction; Resend, QueenSMTP and SendFlare sending.
 - **Domains and filtering**: manage domains in the dashboard, with sender allowlists, blocklists and keyword filters.
-- **Users and permissions**: tiered roles, invitation codes, mailbox transfers and login session management.
+- **Users and permissions**: tiered roles, invitation codes, mailbox transfers, expiring inbox-sharing links and session management.
 - **Provider sign-in**: connect NodeLoc, Telegram or LinuxDo to an existing mailbox.
 - **Appearance**: six login templates, six color themes and four navigation layouts, with mobile support and English/Chinese UI.
 - **Flexible deployment**: deploy together or with a standalone frontend; connect multiple Workers and receiving sub-workers.
@@ -124,8 +124,7 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
-| **v3.6.3** | Fix registration verification order and mail list alignment |
-| **v3.6.2** | Security fixes and improved mobile controls |
+| **v3.6.4** | SendFlare, expiring inbox-sharing links and management improvements |
 | **v3.6.x** | Refreshed login templates and brand icons, provider sign-in, account connections and authorization status pages |
 | **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |
 | **v3.4.x** | Floating Island navigation and login templates |

@@ -99,10 +99,10 @@
 
     @media (max-width: 680px) {
       flex-shrink: 0;
-      height: 32px;
+      height: 36px;
       padding: 0 14px;
       border-radius: 16px;
-      font-size: 13px;
+      font-size: 14px;
       white-space: nowrap;
       gap: 6px;
     }
@@ -144,7 +144,7 @@
   }
 
   .card-title {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     padding: 20px 24px 8px;
     border-bottom: none;
@@ -235,14 +235,33 @@
   }
 
   .opt-button {
-    width: fit-content !important;
+    width: var(--settings-control-height, 32px) !important;
+    min-width: var(--settings-control-height, 32px);
+    padding: 0;
   }
 }
 
 /* Element Plus control sizing, applied both to the page body and to every
    settings dialog (dialogs are teleported out of the page subtree). */
+.sys-setting,
+.sys-setting-dialog,
+.sys-setting-popper {
+  --settings-control-font-size: 14px;
+  --settings-control-height: 32px;
+  --el-font-size-base: 14px;
+  --el-component-size: var(--settings-control-height);
+  --el-component-size-small: var(--settings-control-height);
+  --el-component-size-large: var(--settings-control-height);
+  font-size: var(--settings-control-font-size);
+
+  @media (max-width: 680px), (pointer: coarse) {
+    --settings-control-height: 36px;
+  }
+}
+
 .sys-setting-section,
-.sys-setting-dialog {
+.sys-setting-dialog,
+.sys-setting-popper {
   .warning {
     color: var(--el-text-color-placeholder);
     cursor: help;
@@ -255,21 +274,95 @@
   }
 
   .el-switch {
-    height: 28px;
+    height: var(--settings-control-height);
+  }
+
+  .el-button {
+    height: var(--settings-control-height);
+    font-size: var(--settings-control-font-size);
+    padding: 0 14px;
+  }
+
+  .el-button.is-circle,
+  .el-button.opt-button {
+    width: var(--settings-control-height);
+    padding: 0;
+  }
+
+  .el-button.is-link {
+    height: auto;
+    padding: 0;
   }
 
   .el-button--small {
-    margin-top: 2px !important;
-    margin-bottom: 2px !important;
-    height: 24px;
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
-  .el-select__wrapper {
-    min-height: 28px;
+  .el-input,
+  .el-input-number,
+  .el-select,
+  .el-input-tag,
+  .el-textarea {
+    --el-input-height: var(--settings-control-height);
+    font-size: var(--settings-control-font-size);
+  }
+
+  .el-input__wrapper,
+  .el-select__wrapper,
+  .el-input-tag {
+    min-height: var(--settings-control-height);
+    box-sizing: border-box;
+  }
+
+  .el-input__inner,
+  .el-input-tag__input,
+  .el-select__input,
+  .el-select__selected-item,
+  .el-textarea__inner,
+  .el-form-item__label,
+  .el-radio__label,
+  .el-radio-button__inner,
+  .el-checkbox__label,
+  .el-select-dropdown__item,
+  .el-dropdown-menu__item {
+    font-size: var(--settings-control-font-size);
+  }
+
+  .el-input-number {
+    height: var(--settings-control-height);
+    line-height: calc(var(--settings-control-height) - 2px);
+  }
+
+  .el-input-number__increase,
+  .el-input-number__decrease {
+    width: calc(var(--settings-control-height) - 2px);
+  }
+
+  .el-textarea__inner {
+    line-height: 1.6;
+  }
+
+  .el-select .el-tag,
+  .el-input-tag .el-tag {
+    font-size: var(--settings-control-font-size);
   }
 }
 
+.sys-setting-popper {
+  max-width: calc(100vw - 24px);
+}
+
+.sys-setting .server-mgr {
+  .server-name, .server-add-title, .server-empty { font-size: 14px; }
+  .server-url, .server-badge { font-size: 12px; }
+}
+
 .sys-setting-dialog {
+  .provider-form-actions .el-button {
+    margin-top: 0;
+    width: auto;
+  }
   form .el-button {
     margin-top: 10px;
     width: 100%;
@@ -296,6 +389,10 @@
       border-color: var(--el-color-primary);
     }
   }
+}
+
+.sending-services-dialog.el-dialog {
+  width: min(740px, calc(100% - 32px));
 }
 
 .notice-popup.el-dialog {

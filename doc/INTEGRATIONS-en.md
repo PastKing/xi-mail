@@ -2,11 +2,33 @@
 
 [Back to README](../README-en.md) · [简体中文](INTEGRATIONS.md) · [繁體中文](INTEGRATIONS-zh-TW.md)
 
-## Deployment and mail authentication
+
+## SendFlare and role controls
+
+Configure Resend, QueenSMTP and SendFlare together under System Settings → Mail Settings → Sending Service → Manage. Select the service and domain when adding a token; click a configured service to replace or remove its token, and choose the default service per domain. SendFlare single and batch delivery, attachments and inline images follow the [official API](https://docs.sendflare.com/docs/api/integration/). Senders must still be active mailboxes owned by the user.
+
+The Outbox combines Sent and Drafts; `/drafts` opens its draft tab. Roles control viewing, sending and receiving mailbox transfers and managing linked sign-in accounts. New permissions are disabled for ordinary roles until granted by an administrator. Transfers also enforce recipient domain permissions and mailbox quota. Existing provider sign-in bindings continue to work.
+
+
+
+
+
+
+Integration design references [OmniMail](https://github.com/mibgb65-cloud/OmniMail).
+
+## Expiring inbox-sharing links
+
+Grant “Share inbox” under Roles → Mailbox sharing. From a mailbox’s Inbox menu, choose “Share inbox”, set 1–168 hours and copy the link. Visitors need no login and can read all messages received after creation, open sign-in links and download attachments. Extracted codes can still be copied. The page refreshes every 15 seconds and loads 20 messages at a time, with further pages available. Sending and mailbox management are unavailable.
+
+Each user may have up to 10 active links and revoke them in the same dialog. The complete link is shown only once. Anyone holding it can read new mail, so keep it private. Deleting or transferring a mailbox, or disabling its owner, permanently invalidates existing links, even after restoration. Removing the sharing permission also prevents access. Body and attachment requests recheck expiry and mailbox ownership; HTML uses the existing sanitizer and sandbox.
+
+## Mail deployment and authentication
 
 Configure independent, strong random `jwt_secret` and `init_secret` values using Cloudflare Secrets. Initialize through `/api/init/<INIT_SECRET>`. Keep production secrets out of configuration files and source control. Rotating the signing key requires users to sign in again.
 
 Telegram mail links use separate random capabilities that expire after 24 hours. Deleted mail/mailboxes and disabled accounts cannot be accessed. Legacy JWT mail links are no longer supported.
+
+Incoming mail without a registered mailbox, shown under All Mail, can also be viewed through the configured Telegram forwarding integration. These links authorize only one unassigned message and stop working if it is deleted or assigned to an owner. Notifications omit the viewer button when no valid HTTPS viewer domain is configured.
 
 External domains can deliver mail to this site without being hosted here. Outgoing mail through this site must use an active mailbox owned by the current user, with a currently enabled domain and the required role permissions.
 
