@@ -918,6 +918,8 @@ function close() {
           flex-basis: 100%;
           max-width: none;
         }
+      }
+
       .sender-internal-tag {
         flex-shrink: 0;
         font-size: 12px;
