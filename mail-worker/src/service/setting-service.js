@@ -17,7 +17,7 @@ import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import webhookConfig from './resend-webhook-config-service';
 import sendflareService from './sendflare-service';
 
-const SEND_PROVIDERS = ['resend', 'queensmtp', 'sendflare'];
+const SEND_PROVIDERS = ['cloudflare', 'resend', 'queensmtp', 'sendflare'];
 
 function generateToken(len = 32) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -47,11 +47,29 @@ const settingService = {
 		}
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
 		settingRow.queenTokens = JSON.parse(settingRow.queenTokens || '{}');
-		settingRow.sendProviders = JSON.parse(settingRow.sendProviders || '{}');
+		settingRow.sendProviders = await this.migrateSendChannels(
+			c,
+			JSON.parse(settingRow.sendProviders || '{}'),
+		);
 		settingRow.subWorkerDomains = await subWorkerService.domains(c, true);
 		settingRow.loginTemplate = normalizeLoginTemplate(settingRow.loginTemplate);
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+	},
+
+	async migrateSendChannels(c, sendProviders) {
+		const legacyChannels = await sendChannelService.query(c);
+		const entries = Object.entries(legacyChannels)
+			.filter(([, channel]) => channel === 'cloudflare' || channel === 'resend');
+		if (!entries.length) return sendProviders;
+
+		const migrated = { ...sendProviders };
+		for (const [domain, channel] of entries) {
+			if (channel === 'cloudflare') migrated[domain] = 'cloudflare';
+		}
+		await c.env.db.prepare('UPDATE setting SET send_providers = ?').bind(JSON.stringify(migrated)).run();
+		await c.env.kv.delete(KvConst.SEND_CHANNELS);
+		return migrated;
 	},
 
 	async query(c) {
@@ -94,6 +112,11 @@ const settingService = {
 			} catch (e) {}
 			settingRow.queenTokens = settingRow.queenTokens || {};
 			settingRow.sendProviders = settingRow.sendProviders || {};
+		}
+		const migratedSendProviders = await this.migrateSendChannels(c, settingRow.sendProviders);
+		if (migratedSendProviders !== settingRow.sendProviders) {
+			settingRow.sendProviders = migratedSendProviders;
+			await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 		}
 
 		// Parse managed domains (web-configured), fall back to env domain
@@ -186,7 +209,6 @@ const settingService = {
 		settingRow.hasR2 = !!c.env.r2
 		settingRow.hasAi = !!c.env.ai
 		settingRow.hasCloudflareEmail = typeof c.env.EMAIL?.send === 'function';
-		settingRow.sendChannels = await sendChannelService.query(c);
 		settingRow.aiModel = resolveAiModel(settingRow.aiModel, c.env.ai_model)
 		settingRow.aiModels = AI_CODE_MODELS
 
@@ -233,10 +255,6 @@ const settingService = {
 		}
 
 		const settingData = await this.query(c);
-		const sendChannels = params.sendChannels === undefined ? undefined : sendChannelService.validate(
-			params.sendChannels, settingData.domainList, typeof c.env.EMAIL?.send === 'function'
-		);
-		delete params.sendChannels;
 		const sendflareInput = params.sendflareTokens;
 		delete params.sendflareTokens;
 		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
@@ -251,10 +269,17 @@ const settingService = {
 			if (!queenTokens[domain]) delete queenTokens[domain];
 		});
 
-		// 每个域名选用的发件服务：resend / queensmtp，空值表示自动（优先 Resend）
+		// 每个域名选用的发件服务：cloudflare / resend / queensmtp / sendflare
 		let sendProviders = { ...settingData.sendProviders, ...params.sendProviders };
+		const validDomains = new Set(settingData.domainList.map(domain => domain.replace(/^@/, '')));
 		Object.keys(sendProviders).forEach(domain => {
-			if (!SEND_PROVIDERS.includes(sendProviders[domain])) delete sendProviders[domain];
+			if (!validDomains.has(domain) || !SEND_PROVIDERS.includes(sendProviders[domain])) {
+				if (Object.hasOwn(params.sendProviders || {}, domain)) throw new BizError(t('invalidSendChannel'));
+				delete sendProviders[domain];
+			}
+			if (sendProviders[domain] === 'cloudflare' && typeof c.env.EMAIL?.send !== 'function') {
+				throw new BizError(t('cloudflareEmailNotBound'));
+			}
 		});
 
 		if (Array.isArray(params.emailPrefixFilter)) {
@@ -285,9 +310,6 @@ const settingService = {
 		params.queenTokens = JSON.stringify(queenTokens);
 		params.sendProviders = JSON.stringify(sendProviders);
 		await orm(c).update(setting).set({ ...params }).returning().get();
-		if (sendChannels !== undefined) {
-			await c.env.kv.put(KvConst.SEND_CHANNELS, JSON.stringify(sendChannels));
-		}
 		if (sendflareInput !== undefined) await sendflareService.saveTokens(c, sendflareInput);
 		await this.refresh(c);
 	},

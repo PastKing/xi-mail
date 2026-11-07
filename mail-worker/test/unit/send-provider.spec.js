@@ -13,6 +13,11 @@ describe('resolveSendProvider', () => {
 		expect(emailService.resolveSendProvider(setting({}, { 'a.com': 'qs_1' }), 'a.com', false)).toEqual({ type: 'queensmtp', token: 'qs_1' });
 	});
 
+	it('统一字段可以直接选择 Cloudflare', () => {
+		expect(emailService.resolveSendProvider(setting({ 'a.com': 're_1' }, {}, { 'a.com': 'cloudflare' }), 'a.com', false))
+			.toEqual({ type: 'cloudflare', token: null });
+	});
+
 	it('两个都配置时默认 Resend，指定后用 QueenSMTP', () => {
 		const both = { 'a.com': 're_1' };
 		const queen = { 'a.com': 'qs_1' };

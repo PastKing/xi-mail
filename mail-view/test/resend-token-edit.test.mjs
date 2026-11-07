@@ -21,8 +21,10 @@ test('provider rows include configured domains without provider tokens', () => {
   const end = source.indexOf('const configurationCount', start);
   const script = source.slice(start, end);
   const setting = ref({
-    sendChannels: { 'cloudflare.example': 'cloudflare' },
-    sendProviders: { 'other.example': 'queensmtp' },
+    sendProviders: {
+      'cloudflare.example': 'cloudflare',
+      'other.example': 'queensmtp',
+    },
     resendTokens: { 'first.example': 'masked-resend' },
     queenTokens: { 'other.example': 'masked-queen' },
     sendflareTokens: {},
@@ -44,45 +46,36 @@ test('provider rows include configured domains without provider tokens', () => {
   assert.deepEqual(providerDomains.value, [
     {
       domain: 'first.example',
-      channel: 'resend',
       providers: [{ id: 'resend', field: 'resendTokens' }],
       value: '',
     },
     {
       domain: 'cloudflare.example',
-      channel: 'cloudflare',
       providers: [],
-      value: '',
+      value: 'cloudflare',
     },
     {
       domain: 'other.example',
-      channel: 'resend',
       providers: [{ id: 'queensmtp', field: 'queenTokens' }],
       value: 'queensmtp',
     },
   ]);
 });
 
-test('channel changes preserve other domain choices', async () => {
-  const start = source.indexOf('function saveSendChannel');
-  const end = source.indexOf('const authRefreshOptions', start);
-  const script = source.slice(start, end);
-  const setting = ref({ sendChannels: { 'first.example': 'resend' } });
+test('provider changes use the unified sendProviders mapping', async () => {
+  const setting = ref({ sendProviders: { 'first.example': 'resend' } });
   const updates = [];
-  const saveSendChannel = new Function(
+  const saveProvider = new Function(
     'editSetting',
     'setting',
-    `${script}; return saveSendChannel;`,
+    'return (domain, provider) => editSetting({ sendProviders: { [domain]: provider } });',
   )(payload => {
     updates.push(payload);
     return Promise.resolve(true);
   }, setting);
 
-  await saveSendChannel('cloudflare.example', 'cloudflare');
+  await saveProvider('cloudflare.example', 'cloudflare');
   assert.deepEqual(updates, [{
-    sendChannels: {
-      'first.example': 'resend',
-      'cloudflare.example': 'cloudflare',
-    },
+    sendProviders: { 'cloudflare.example': 'cloudflare' },
   }]);
 });

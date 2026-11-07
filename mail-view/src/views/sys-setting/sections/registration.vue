@@ -200,21 +200,8 @@
         >
           <div class="provider-domain-info">
             <strong>{{ row.domain }}</strong>
-            <label class="provider-channel">
-              <span>{{ t('sendChannel') }}</span>
-              <el-select
-                :model-value="row.channel"
-                :aria-label="t('sendChannel') + ' ' + row.domain"
-                :disabled="settingLoading"
-                popper-class="sys-setting-popper"
-                @change="saveSendChannel(row.domain, $event)"
-              >
-                <el-option label="Resend" value="resend" />
-                <el-option label="Cloudflare" value="cloudflare" :disabled="!setting.hasCloudflareEmail" />
-              </el-select>
-            </label>
             <div class="provider-credentials">
-              <span v-if="!row.providers.length" class="provider-empty">{{ t(row.channel === 'cloudflare' ? 'sendTokenNotRequired' : 'sendTokenMissing') }}</span>
+              <span v-if="!row.providers.length" class="provider-empty">{{ t(row.value === 'cloudflare' ? 'sendTokenNotRequired' : 'sendTokenMissing') }}</span>
               <el-button
                 v-for="provider in row.providers"
                 :key="provider.id"
@@ -225,18 +212,22 @@
             </div>
           </div>
           <label class="provider-routing"
-            ><span>{{ t('sendingDefault') }}</span
+            ><span>{{ t('sendingService') }}</span
             ><el-select
               :model-value="row.value"
               :empty-values="[null, undefined]"
               :aria-label="t('sendingDefault') + ' ' + row.domain"
-              :disabled="settingLoading || row.channel === 'cloudflare'"
+              :disabled="settingLoading"
               popper-class="sys-setting-popper"
               @change="
                 (value) =>
                   editSetting({ sendProviders: { [row.domain]: value } })
               "
               ><el-option :label="t('sendProviderAuto')" value="" /><el-option
+                label="Cloudflare"
+                value="cloudflare"
+                :disabled="!setting.hasCloudflareEmail"
+              /><el-option
                 v-for="provider in row.providers"
                 :key="provider.id"
                 :label="provider.name"
@@ -337,12 +328,6 @@ const emailPrefixShow = ref(false);
 const minEmailPrefix = ref(0);
 const emailPrefixFilter = ref([]);
 
-function saveSendChannel(domain, channel) {
-  return editSetting({
-    sendChannels: { ...setting.value.sendChannels, [domain]: channel },
-  });
-}
-
 const authRefreshOptions = computed(() => [
   { label: t('disable'), value: 0 },
   ...[3, 5, 10, 15, 20].map((value) => ({
@@ -368,11 +353,10 @@ const providerDomains = computed(() => {
   const domains = new Set([
     ...(settingStore.domainList || []).map((domain) => domain.replace(/^@/, '')),
     ...providers.flatMap((provider) => Object.keys(setting.value[provider.field] || {})),
-    ...Object.keys(setting.value.sendChannels || {}),
+    ...Object.keys(setting.value.sendProviders || {}),
   ]);
   return [...domains].filter(Boolean).map((domain) => ({
     domain,
-    channel: setting.value.sendChannels?.[domain] || 'resend',
     providers: providers.filter(
       (provider) => !!setting.value[provider.field]?.[domain],
     ),

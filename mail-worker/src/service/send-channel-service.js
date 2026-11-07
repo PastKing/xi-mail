@@ -21,34 +21,14 @@ const sendChannelService = {
 		return await c.env.kv.get(KvConst.SEND_CHANNELS, { type: 'json' }) || {};
 	},
 
-	validate(channels, domainList, hasBinding) {
-		if (!channels || typeof channels !== 'object' || Array.isArray(channels)) {
-			throw new BizError(t('invalidSendChannel'));
-		}
-		const domains = domainList.map(domain => domain.replace(/^@/, ''));
-		const normalized = {};
-		for (const [domain, channel] of Object.entries(channels)) {
-			if (!domains.includes(domain) || !['resend', 'cloudflare'].includes(channel)) {
-				throw new BizError(t('invalidSendChannel'));
-			}
-			if (channel === 'cloudflare' && !hasBinding) {
-				throw new BizError(t('cloudflareEmailNotBound'));
-			}
-			normalized[domain] = channel;
-		}
-		return normalized;
-	},
-
-	async send(c, domain, token, form, sender) {
-		const channels = await this.query(c);
-		const channel = Object.hasOwn(channels, domain) ? channels[domain] : 'resend';
-		if (channel === 'resend') {
-			if (!token) throw new BizError(t('noResendToken'));
-			const { data, error } = await new Resend(token).emails.send(form);
+	async send(c, provider, form, sender) {
+		if (provider?.type === 'resend') {
+			if (!provider.token) throw new BizError(t('noResendToken'));
+			const { data, error } = await new Resend(provider.token).emails.send(form);
 			if (error) throw new BizError(error.message);
 			return data?.id;
 		}
-		if (channel !== 'cloudflare') throw new BizError(t('invalidSendChannel'));
+		if (provider?.type !== 'cloudflare') throw new BizError(t('invalidSendChannel'));
 		if (!c.env.EMAIL?.send) throw new BizError(t('cloudflareEmailNotBound'));
 		if (form.to.length + (form.cc?.length || 0) > 50) throw new BizError(t('cloudflareRecipientLimit'));
 		const message = {

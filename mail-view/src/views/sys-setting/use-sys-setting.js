@@ -75,7 +75,6 @@ function createContext() {
     delete settingForm.hasAi
     delete settingForm.aiModels
     delete settingForm.hasCloudflareEmail
-    delete settingForm.sendChannels
     delete settingForm.domainList
     delete settingForm.hasResendWebhookSecret
     // OAuth settings are saved only by the provider form, never by unrelated switches.

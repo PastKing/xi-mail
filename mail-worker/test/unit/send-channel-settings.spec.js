@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 
-const state = vi.hoisted(() => ({set: vi.fn(), permissions: [], authenticated: false, channels: {}}));
+const state = vi.hoisted(() => ({set: vi.fn(), permissions: [], authenticated: false}));
 vi.mock('../../src/entity/orm', () => ({default: () => ({update: () => ({set: data => {
   state.set(data); return {returning: () => ({get: async () => ({})})};
 }})})}));
@@ -23,7 +23,7 @@ import KvConst from '../../src/const/kv-const';
 
 let env;
 beforeEach(() => {
-  vi.restoreAllMocks(); state.set.mockClear(); state.permissions = []; state.authenticated = true; state.channels = {};
+  vi.restoreAllMocks(); state.set.mockClear(); state.permissions = []; state.authenticated = true;
   vi.spyOn(settingService, 'query').mockResolvedValue({
     domainList: ['@first.example'],
     resendTokens: {'first.example': 'fake-saved-token'},
@@ -34,22 +34,44 @@ beforeEach(() => {
   });
   vi.spyOn(settingService, 'refresh').mockResolvedValue();
   env = {admin: 'owner@example.net', EMAIL: {send: vi.fn()}, kv: {
-    get: vi.fn(async key => key === KvConst.SEND_CHANNELS ? state.channels : null),
-    put: vi.fn(async (key, value) => {if (key === KvConst.SEND_CHANNELS) state.channels = JSON.parse(value);}),
+    get: vi.fn(async () => null),
+    put: vi.fn(),
   }};
 });
 
 const save = data => app.request('/setting/set', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)}, env);
 
-it('requires login and setting:set, validates before writes, and persists channel selection without changing tokens', async () => {
-  const data = {sendChannels: {'first.example': 'cloudflare'}, hasCloudflareEmail: true};
+it('migrates legacy Cloudflare selection without overriding a newer provider choice', async () => {
+  const run = vi.fn();
+  const bind = vi.fn(() => ({run}));
+  const c = {env: {
+    db: {prepare: vi.fn(() => ({bind}))},
+    kv: {
+      get: vi.fn().mockResolvedValue({'first.example': 'cloudflare', 'other.example': 'resend'}),
+      delete: vi.fn(),
+    },
+  }};
+
+  await expect(settingService.migrateSendChannels(c, {'other.example': 'queensmtp'}))
+    .resolves.toEqual({'first.example': 'cloudflare', 'other.example': 'queensmtp'});
+  expect(c.env.db.prepare).toHaveBeenCalledWith('UPDATE setting SET send_providers = ?');
+  expect(JSON.parse(bind.mock.calls[0][0])).toEqual({
+    'first.example': 'cloudflare',
+    'other.example': 'queensmtp',
+  });
+  expect(run).toHaveBeenCalled();
+  expect(c.env.kv.delete).toHaveBeenCalledWith(KvConst.SEND_CHANNELS);
+});
+
+it('requires login and setting:set, validates before writes, and persists the unified provider selection', async () => {
+  const data = {sendProviders: {'first.example': 'cloudflare'}, hasCloudflareEmail: true};
   state.authenticated = false;
   expect((await (await save(data)).json()).code).toBe(401);
   state.authenticated = true; state.permissions = ['setting:query'];
   expect((await (await save(data)).json()).code).toBe(403);
   expect(state.set).not.toHaveBeenCalled(); expect(env.kv.put).not.toHaveBeenCalled();
   state.permissions = ['setting:set'];
-  expect((await (await save({sendChannels: {'unknown.example': 'cloudflare'}})).json()).code).not.toBe(200);
+  expect((await (await save({sendProviders: {'unknown.example': 'cloudflare'}})).json()).code).not.toBe(200);
   expect(state.set).not.toHaveBeenCalled();
   delete env.EMAIL;
   expect((await (await save(data)).json()).message).toBe('cloudflareEmailNotBound');
@@ -59,21 +81,25 @@ it('requires login and setting:set, validates before writes, and persists channe
   expect(state.set).toHaveBeenCalledWith({
     resendTokens: JSON.stringify({'first.example': 'fake-saved-token'}),
     queenTokens: '{}',
-    sendProviders: '{}',
+    sendProviders: JSON.stringify({'first.example': 'cloudflare'}),
   });
-  expect(state.channels).toEqual({'first.example': 'cloudflare'});
   await save({send: 0});
-  expect(state.channels).toEqual({'first.example': 'cloudflare'});
-  expect(env.kv.put).toHaveBeenCalledTimes(1);
+  expect(env.kv.put).not.toHaveBeenCalled();
 });
 
-it('returns binding availability and selections to authorized settings readers but excludes them from public configuration', async () => {
-  state.channels = {'first.example': 'cloudflare'}; state.permissions = ['setting:query'];
+it('returns binding availability and unified selections to authorized settings readers but excludes them from public configuration', async () => {
+  state.permissions = ['setting:query'];
+  settingService.get = vi.fn().mockResolvedValue({
+    sendProviders: {'first.example': 'cloudflare'},
+    hasCloudflareEmail: true,
+    resendTokens: {'first.example': 'token******'},
+  });
   const response = await app.request('/setting/query', {}, env);
   const body = await response.json();
-  expect(body.data).toMatchObject({sendChannels: state.channels, hasCloudflareEmail: true});
+  expect(body.data).toMatchObject({sendProviders: {'first.example': 'cloudflare'}, hasCloudflareEmail: true});
   expect(body.data.resendTokens['first.example']).toContain('******');
   state.authenticated = false;
+  settingService.websiteConfig = vi.fn().mockResolvedValue({});
   const website = (await (await app.request('/setting/websiteConfig', {}, env)).json()).data;
-  expect(website).not.toHaveProperty('sendChannels'); expect(website).not.toHaveProperty('hasCloudflareEmail'); expect(website).not.toHaveProperty('resendTokens');
+  expect(website).not.toHaveProperty('sendProviders'); expect(website).not.toHaveProperty('hasCloudflareEmail'); expect(website).not.toHaveProperty('resendTokens');
 });

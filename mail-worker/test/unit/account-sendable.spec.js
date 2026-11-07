@@ -11,7 +11,8 @@ function mock({ user, role }) {
 		resendTokens: { 'a.com': 're_1' },
 		queenTokens: { 'q.com': 'qs_1' },
 		sendflareTokens: { 'sf.com': 'sf_1' },
-		domainList: ['@a.com', '@q.com', '@sf.com'],
+		sendProviders: { 'cf.com': 'cloudflare' },
+		domainList: ['@a.com', '@q.com', '@sf.com', '@cf.com'],
 	});
 	vi.spyOn(userService, 'selectById').mockResolvedValue(user);
 	vi.spyOn(roleService, 'selectById').mockResolvedValue(role);
@@ -20,12 +21,13 @@ function mock({ user, role }) {
 describe('accountService.sendableChecker', () => {
 	afterEach(() => vi.restoreAllMocks());
 
-	it('管理员：只要域名配置了 Resend 或 QueenSMTP 就能发', async () => {
+	it('管理员：只要域名配置了统一发件服务就能发', async () => {
 		mock({ user: { email: 'admin@a.com', type: 0 } });
 		const can = await accountService.sendableChecker(c, 1);
 		expect(can('x@a.com')).toBe(true);
 		expect(can('x@q.com')).toBe(true);
 		expect(can('x@sf.com')).toBe(true);
+		expect(can('x@cf.com')).toBe(true);
 		expect(can('x@none.com')).toBe(false);
 	});
 

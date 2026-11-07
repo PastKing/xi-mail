@@ -191,10 +191,9 @@ const emailService = {
 		const queenToken = setting.queenTokens?.[domain];
 		const flareToken = setting.sendflareTokens?.[domain];
 		const preferred = setting.sendProviders?.[domain];
-		const channel = setting.sendChannels?.[domain];
 
 		const resend = resendToken ? { type: 'resend', token: resendToken } : null;
-		const cloudflare = channel === 'cloudflare' ? { type: 'cloudflare', token: null } : null;
+		const cloudflare = preferred === 'cloudflare' ? { type: 'cloudflare', token: null } : null;
 		const queen = queenToken ? { type: 'queensmtp', token: queenToken } : null;
 		const flare = flareToken ? { type: 'sendflare', token: flareToken } : null;
 
@@ -319,9 +318,8 @@ const emailService = {
 
 		}
 
-		const sendChannels = await sendChannelService.query(c);
 		const provider = allInternal ? null : this.resolveSendProvider(
-			{ ...setting, sendChannels },
+			setting,
 			domain,
 			attachments?.length > 0,
 		);
@@ -407,7 +405,7 @@ const emailService = {
 				};
 			}
 
-			resendResult = await sendChannelService.send(c, domain, provider.token, sendForm, {
+			resendResult = await sendChannelService.send(c, provider, sendForm, {
 				email: accountRow.email, name
 			}).then(id => ({ data: { id } }));
 
