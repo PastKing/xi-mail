@@ -176,7 +176,7 @@ const accountService = {
 
 		return email => {
 			const domain = emailUtils.getDomain(email || '');
-			if (!domainList.includes('@' + domain) || (!sendProviders[domain] && !resendTokens[domain] && !queenTokens[domain] && !sendflareTokens[domain])) return false;
+			if (!domainList.includes('@' + domain) || (sendProviders[domain] !== 'cloudflare' && !resendTokens[domain] && !queenTokens[domain] && !sendflareTokens[domain])) return false;
 			return isAdmin || roleService.hasAvailDomainPerm(roleRow.availDomain || '', email);
 		};
 	},
