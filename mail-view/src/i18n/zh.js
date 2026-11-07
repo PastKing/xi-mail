@@ -45,7 +45,7 @@ const zh = {
     shareCopyCode: '复制验证码', shareCopyManual: '自动复制失败，请选择文字手动复制。',
     sendingConfigCount: '{domains} 个域名 · {tokens} 项配置',
     sendingManage: '管理', sendingAdd: '添加配置', sendingEdit: '编辑配置', sendingService: '发件服务', sendingDefault: '默认发件服务',
-    sendingServicesHint: '统一管理各域名的 API Token。点击服务名称编辑，同一域名可配置多个服务。',
+    sendingServicesHint: '在同一窗口管理发信渠道、各域名的 API Token 和默认发件服务。Cloudflare 渠道会优先使用 Cloudflare 发信。',
     sendingReplaceToken: '填写新 Token 以替换已有配置', sendingTokenPlaceholder: '粘贴服务商提供的 API Token',
     sendingDeleteConfirm: '移除 {domain} 的 {service} Token？',
     outbox: '发件箱',

@@ -45,7 +45,7 @@ const en = {
     shareCopyCode: 'Copy code', shareCopyManual: 'Could not copy automatically. Select the text and copy it manually.',
     sendingConfigCount: '{domains} domains · {tokens} configurations',
     sendingManage: 'Manage', sendingAdd: 'Add configuration', sendingEdit: 'Edit configuration', sendingService: 'Sending service', sendingDefault: 'Default sending service',
-    sendingServicesHint: 'Manage API tokens by domain. Click a service to edit it. A domain can use multiple services.',
+    sendingServicesHint: 'Manage the sending channel, API tokens, and default service for each domain in one place. Cloudflare takes priority when selected.',
     sendingReplaceToken: 'Enter a new token to replace this configuration', sendingTokenPlaceholder: 'Paste the API token from your provider',
     sendingDeleteConfirm: 'Remove the {service} token for {domain}?',
     outbox: 'Outbox',

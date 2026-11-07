@@ -1,66 +1,88 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { reactive, ref } from 'vue';
+import { computed, ref } from 'vue';
 
-test('Resend edit loads the original token and submits only the selected domain', async () => {
-  const source = readFileSync(new URL('../src/views/sys-setting/sections/registration.vue', import.meta.url), 'utf8');
-  const handlers = source.slice(source.indexOf('async function openResendTokenForm('), source.indexOf('</script>'));
-  const form = reactive({ domain: '', token: '' });
-  const editing = ref(false);
-  const visible = ref(false);
-  const listVisible = ref(true);
-  const loading = ref('');
-  const userStore = {user: {type: 0}};
+const source = readFileSync(
+  new URL('../src/views/sys-setting/sections/registration.vue', import.meta.url),
+  'utf8',
+);
+
+test('sending services is the single entry for channels and provider settings', () => {
+  assert.equal(
+    (source.match(/class="sys-setting-dialog sending-services-dialog"/g) || []).length,
+    1,
+  );
+  assert.doesNotMatch(source, /send-config-dialog|showResendList|resendTokenFormShow/);
+});
+
+test('provider rows include configured domains without provider tokens', () => {
+  const start = source.indexOf('const providerDomains = computed');
+  const end = source.indexOf('const configurationCount', start);
+  const script = source.slice(start, end);
+  const setting = ref({
+    sendChannels: { 'cloudflare.example': 'cloudflare' },
+    sendProviders: { 'other.example': 'queensmtp' },
+    resendTokens: { 'first.example': 'masked-resend' },
+    queenTokens: { 'other.example': 'masked-queen' },
+    sendflareTokens: {},
+  });
+  const settingStore = { domainList: ['@first.example', '@cloudflare.example'] };
+  const providers = [
+    { id: 'resend', field: 'resendTokens' },
+    { id: 'queensmtp', field: 'queenTokens' },
+    { id: 'sendflare', field: 'sendflareTokens' },
+  ];
+  const providerDomains = new Function(
+    'computed',
+    'setting',
+    'settingStore',
+    'providers',
+    `${script}; return providerDomains;`,
+  )(computed, setting, settingStore, providers);
+
+  assert.deepEqual(providerDomains.value, [
+    {
+      domain: 'first.example',
+      channel: 'resend',
+      providers: [{ id: 'resend', field: 'resendTokens' }],
+      value: '',
+    },
+    {
+      domain: 'cloudflare.example',
+      channel: 'cloudflare',
+      providers: [],
+      value: '',
+    },
+    {
+      domain: 'other.example',
+      channel: 'resend',
+      providers: [{ id: 'queensmtp', field: 'queenTokens' }],
+      value: 'queensmtp',
+    },
+  ]);
+});
+
+test('channel changes preserve other domain choices', async () => {
+  const start = source.indexOf('function saveSendChannel');
+  const end = source.indexOf('const authRefreshOptions', start);
+  const script = source.slice(start, end);
+  const setting = ref({ sendChannels: { 'first.example': 'resend' } });
   const updates = [];
-  let succeeds = true;
-  const {openResendTokenForm, resetResendTokenForm, saveResendToken} = new Function(
-    'resendTokenForm', 'editingResendToken', 'resendTokenFormShow', 'settingStore', 'editSetting',
-    'settingLoading', 'resendTokenLoading', 'showResendList', 'getResendToken',
-    'userStore',
-    `${handlers}; return {openResendTokenForm, resetResendTokenForm, saveResendToken};`
-  )(form, editing, visible, { domainList: ['@first.example'] }, async data => {
-    updates.push(data);
-    return succeeds;
-  }, ref(false), loading, listVisible, async domain => {
-    assert.equal(domain, 'second.example');
-    return {token: 'fake-test-original-token'};
-  }, userStore);
+  const saveSendChannel = new Function(
+    'editSetting',
+    'setting',
+    `${script}; return saveSendChannel;`,
+  )(payload => {
+    updates.push(payload);
+    return Promise.resolve(true);
+  }, setting);
 
-  await openResendTokenForm({key: 'second.example', value: 'masked******'});
-  assert.equal(form.domain, '@second.example');
-  assert.equal(form.token, 'fake-test-original-token');
-  assert.ok(editing.value && visible.value);
-  form.token = '   ';
-  await saveResendToken();
-  assert.equal(updates.length, 0, 'blank edit must keep the existing token');
-  assert.equal(visible.value, true);
-  form.token = ' fake-test-replacement ';
-  await saveResendToken();
-  assert.deepEqual(updates, [{resendTokens: {'second.example': 'fake-test-replacement'}}]);
-  assert.equal(visible.value, false);
-
-  resetResendTokenForm();
-  assert.deepEqual({...form}, {domain: '', token: ''});
-  assert.equal(editing.value, false);
-  await openResendTokenForm({key: 'second.example', value: 'masked******'});
-  succeeds = false;
-  form.token = 'fake-test-failed-save';
-  await saveResendToken();
-  assert.equal(visible.value, true, 'failed save must leave the dialog open');
-  await openResendTokenForm();
-  assert.equal(form.domain, '@first.example');
-  assert.equal(form.token, '');
-  assert.equal(editing.value, false);
-  listVisible.value = false;
-  visible.value = false;
-  await openResendTokenForm({key: 'second.example', value: 'masked******'});
-  assert.equal(visible.value, false, 'closed list must not open an edit dialog after the fetch');
-  assert.equal(form.token, '', 'closed list must not retain the fetched token');
-  assert.equal(loading.value, '');
-  userStore.user.type = 2;
-  listVisible.value = true;
-  await openResendTokenForm({key: 'second.example', value: 'masked******'});
-  assert.equal(form.token, '', 'non-admin editors must not fetch or receive the saved token');
-  assert.equal(visible.value, true);
+  await saveSendChannel('cloudflare.example', 'cloudflare');
+  assert.deepEqual(updates, [{
+    sendChannels: {
+      'first.example': 'resend',
+      'cloudflare.example': 'cloudflare',
+    },
+  }]);
 });
