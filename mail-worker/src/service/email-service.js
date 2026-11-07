@@ -1,6 +1,6 @@
 import orm from '../entity/orm';
 import email from '../entity/email';
-import { emailBriefColumns } from '../lib/email-list-columns';
+import { emailBriefColumns, applyMailPreviews } from '../lib/email-list-columns';
 import { attConst, emailConst, isDel, settingConst } from '../const/entity-const';
 import { and, desc, eq, gt, inArray, notInArray, lt, count, asc, sql, ne, or, like, lte, gte } from 'drizzle-orm';
 import { star } from '../entity/star';
@@ -28,7 +28,8 @@ import subWorkerService from './sub-worker-service';
 import queenSmtpService from './queen-smtp-service';
 import sendflareService from './sendflare-service';
 import domainUtils from '../utils/domain-uitls';
-import { mailFilterConditions } from './mail-filter-service';
+import { mailFilterConditions, personalMailConditions } from './mail-filter-service';
+import { ensureMailIndexes } from './mail-index-service';
 import starSchemaService from './star-schema-service';
 
 	// QueenSMTP 的消息 id 存在 resend_email_id 字段，加前缀区分来源，避免和 Resend 的状态回调混淆
@@ -37,10 +38,11 @@ const QUEEN_ID_PREFIX = 'queensmtp:';
 const emailService = {
 
 	async list(c, params, userId) {
+		await ensureMailIndexes(c);
 
 		let { emailId, type, accountId, size, timeSort, allReceive } = params;
 
-		size = Number(size);
+		size = Math.min(50, Math.max(1, Math.floor(Number(size) || 20)));
 		emailId = Number(emailId);
 		timeSort = Number(timeSort);
 		accountId = Number(accountId);
@@ -73,6 +75,8 @@ const emailService = {
 		}
 
 		await starSchemaService.ensure(c);
+		const filters = personalMailConditions(c, { ...params, type, accountId, allReceive }, userId);
+		const skipStats = emailId !== 9999999999 && !firstPage && (params.skipStats === '1' || params.skipStats === true);
 		const query = orm(c)
 			.select({
 				...emailBriefColumns,
@@ -91,11 +95,8 @@ const emailService = {
 			)
 			.where(
 				and(
-					allReceive ? eq(1,1) : eq(email.accountId, accountId),
-					eq(email.userId, userId),
+					...filters,
 					timeSort ? gt(email.emailId, emailId) : lt(email.emailId, emailId),
-					eq(email.type, type),
-					eq(email.isDel, isDel.NORMAL),
 					eq(account.isDel, isDel.NORMAL)
 				)
 			);
@@ -108,31 +109,25 @@ const emailService = {
 
 		const listQuery = query.limit(size).all();
 
-		const totalQuery = orm(c).select({ total: count() }).from(email)
+		const totalQuery = skipStats ? Promise.resolve(null) : orm(c).select({ total: count() }).from(email)
 			.innerJoin(
 				account,
 				eq(account.accountId, email.accountId)
 			)
 			.where(
 				and(
-					allReceive ? eq(1,1) : eq(email.accountId, accountId),
-					eq(email.userId, userId),
-					eq(email.type, type),
-					eq(email.isDel, isDel.NORMAL),
+					...filters,
 					eq(account.isDel, isDel.NORMAL)
 				)
 		).get();
 
-		const latestEmailQuery = orm(c).select({
+		const latestEmailQuery = skipStats ? Promise.resolve(null) : orm(c).select({
 			emailId: email.emailId,
 			accountId: email.accountId,
 			userId: email.userId
-		}).from(email).where(
+		}).from(email).innerJoin(account, eq(account.accountId,email.accountId)).where(
 			and(
-				allReceive ? eq(1,1) : eq(email.accountId, accountId),
-				eq(email.userId, userId),
-				eq(email.type, type),
-				eq(email.isDel, isDel.NORMAL)
+				...filters, eq(account.isDel,0)
 			))
 			.orderBy(desc(email.emailId)).limit(1).get();
 
@@ -146,7 +141,7 @@ const emailService = {
 
 		await this.emailAddAtt(c, list);
 
-		if (!latestEmail) {
+		if (!latestEmail && !skipStats) {
 			latestEmail = {
 				emailId: 0,
 				accountId: accountId,
@@ -154,7 +149,7 @@ const emailService = {
 			}
 		}
 
-		return { list, total: totalRow.total, latestEmail };
+		return { list, total: totalRow?.total ?? null, latestEmail };
 	},
 
 	async delete(c, params, userId) {
@@ -680,6 +675,7 @@ const emailService = {
 	},
 
 	async latest(c, params, userId) {
+		await ensureMailIndexes(c);
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
 		const accountRow = await accountService.selectOwnedById(c, accountId, userId);
@@ -690,6 +686,7 @@ const emailService = {
 		}
 
 		await subWorkerService.syncAll(c);
+		const filters = personalMailConditions(c, { ...params, accountId, allReceive, type: 0 }, userId);
 
 		let list = await orm(c).select({...emailBriefColumns}).from(email)
 			.innerJoin(
@@ -699,11 +696,8 @@ const emailService = {
 			.where(
 				and(
 					gt(email.emailId, emailId),
-					eq(email.userId, userId),
-					eq(email.isDel, isDel.NORMAL),
+					...filters,
 					eq(account.isDel, isDel.NORMAL),
-					allReceive ? eq(1,1) : eq(email.accountId, accountId),
-					eq(email.type, emailConst.type.RECEIVE)
 				))
 			.orderBy(desc(email.emailId))
 			.limit(20);
@@ -752,10 +746,11 @@ const emailService = {
 	},
 
 	async allList(c, params) {
+		await ensureMailIndexes(c);
 
 		let { emailId, size, name, subject, accountEmail, userEmail, type, timeSort } = params;
 
-		size = Number(size);
+		size = Math.min(50, Math.max(1, Math.floor(Number(size) || 20)));
 
 		emailId = Number(emailId);
 		timeSort = Number(timeSort);
@@ -764,6 +759,7 @@ const emailService = {
 			size = 50;
 		}
 
+		const skipStats = !!emailId && (params.skipStats === '1' || params.skipStats === true);
 		if (!emailId) {
 
 			await subWorkerService.syncAll(c);
@@ -807,9 +803,9 @@ const emailService = {
 			query.orderBy(desc(email.emailId));
 		}
 
-		const listQuery = await query.limit(size).all();
-		const totalQuery = await queryCount.get();
-		const latestEmailQuery = await orm(c).select({
+		const listQuery = query.limit(size).all();
+		const totalQuery = skipStats ? Promise.resolve(null) : queryCount.get();
+		const latestEmailQuery = skipStats ? Promise.resolve(null) : orm(c).select({
 			emailId: email.emailId,
 			accountId: email.accountId,
 			userId: email.userId
@@ -824,7 +820,7 @@ const emailService = {
 
 		await this.emailAddAtt(c, list);
 
-		if (!latestEmail) {
+		if (!latestEmail && !skipStats) {
 			latestEmail = {
 				emailId: 0,
 				accountId: 0,
@@ -832,10 +828,11 @@ const emailService = {
 			}
 		}
 
-		return { list: list, total: totalRow.total, latestEmail };
+		return { list, total: totalRow?.total ?? null, latestEmail };
 	},
 
 	async allEmailLatest(c, params) {
+		await ensureMailIndexes(c);
 
 		const { emailId } = params;
 		const conditions = mailFilterConditions(c, { ...params, type: 'receive' });
@@ -858,6 +855,7 @@ const emailService = {
 	},
 
 	async emailAddAtt(c, list) {
+		applyMailPreviews(list);
 
 		const emailIds = list.map(item => item.emailId);
 
@@ -865,10 +863,12 @@ const emailService = {
 
 			const attList = await attService.selectByEmailIds(c, emailIds);
 
-			list.forEach(emailRow => {
-				const atts = attList.filter(attRow => attRow.emailId === emailRow.emailId);
-				emailRow.attList = atts;
-			});
+			const grouped = new Map();
+			for (const attachment of attList) {
+				if (!grouped.has(attachment.emailId)) grouped.set(attachment.emailId, []);
+				grouped.get(attachment.emailId).push(attachment);
+			}
+			for (const message of list) message.attList = grouped.get(message.emailId) || [];
 		}
 	},
 
@@ -884,6 +884,7 @@ const emailService = {
 	},
 
 	async completeReceiveAll(c) {
+		await ensureMailIndexes(c);
 		await c.env.db.prepare(`UPDATE email as e SET status = ${emailConst.status.RECEIVE} WHERE status = ${emailConst.status.SAVING} AND EXISTS (SELECT 1 FROM account WHERE account_id = e.account_id)`).run();
 		await c.env.db.prepare(`UPDATE email as e SET status = ${emailConst.status.NOONE} WHERE status = ${emailConst.status.SAVING} AND NOT EXISTS (SELECT 1 FROM account WHERE account_id = e.account_id)`).run();
 	},

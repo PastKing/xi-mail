@@ -479,6 +479,8 @@ async function latest() {
 .search-type {
   display: flex;
   color: var(--el-text-color-regular);
+  flex-shrink: 0;
+  .setting-icon { flex: 0 0 20px; }
 }
 
 :deep(.header-actions) {
@@ -520,7 +522,8 @@ async function latest() {
   }
   .mail-search-fields { grid-row: 1; grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 8px; }
   .mail-search-fields .search-input { width: 100%; min-width: 0; max-width: none; }
-  .mail-search-fields .status-select { width: 100%; }
+  .mail-search-fields .status-select { width: 100%; min-width: 104px; }
+  .mail-search-fields .status-select :deep(.el-select__wrapper) { height: 36px; min-height: 36px; }
   .mail-search-fields :deep(.el-input__wrapper), .mail-search-fields :deep(.el-select__wrapper) { min-height: 36px; height: 36px; }
   .mail-tool-button { min-width: 36px; min-height: 36px; }
 }
@@ -565,12 +568,15 @@ async function latest() {
 .status-select {
   flex-shrink: 0;
   width: 92px;
+  min-width: 92px;
+
+  :deep(.el-select__suffix), :deep(.el-select__caret) { flex-shrink: 0; }
 
   :deep(.el-select__wrapper) {
     height: 28px;
     box-sizing: border-box;
     padding: 0 6px;
-    min-height: unset;
+    min-height: 28px;
   }
 }
 

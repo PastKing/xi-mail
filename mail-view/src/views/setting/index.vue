@@ -1,5 +1,5 @@
 <template>
-  <div class="box">
+  <div class="box" :class="{ 'has-oauth': showOAuthAccounts }">
     <div class="container">
       <div class="title"><Icon icon="mingcute:idcard-line" width="18" height="18" />{{$t('profile')}}</div>
       <div class="item">
@@ -47,15 +47,15 @@
         </div>
       </div>
     </div>
-    <div class="container oauth-connections" v-if="hasPerm('oauth:manage')">
+    <div class="container oauth-connections" v-if="showOAuthAccounts">
       <div class="title"><Icon icon="mingcute:key-2-line" width="18" height="18" />{{ $t('oauthAccounts') }}</div>
       <p class="oauth-description">{{ $t('oauthAccountsNote') }}</p>
       <div v-if="oauthLoading" class="oauth-description">{{ $t('oauthLoadingText') }}</div>
-      <div v-for="provider in oauthProviders" :key="provider.provider" class="oauth-connection-row">
+      <div v-for="provider in enabledOAuthProviders" :key="provider.provider" class="oauth-connection-row">
         <span class="oauth-logo"><img v-if="providerLogo(provider.provider)" :src="providerLogo(provider.provider)" :alt="provider.name" width="28" height="28" /><Icon v-else icon="mingcute:key-2-line" width="22" height="22" /></span>
         <div><strong>{{ provider.name }}</strong><small>{{ provider.binding ? provider.binding.displayName || $t('oauthBound') : $t('oauthUnbound') }}</small></div>
         <el-button v-if="provider.binding" size="small" :loading="oauthBusy === provider.provider" @click="unbindProvider(provider)">{{ $t('oauthUnbind') }}</el-button>
-        <el-button v-else size="small" type="primary" plain :disabled="!provider.enabled" :loading="oauthBusy === provider.provider" @click="bindProvider(provider)">{{ provider.enabled ? $t('oauthBind') : $t('oauthUnavailable') }}</el-button>
+        <el-button v-else size="small" type="primary" plain :loading="oauthBusy === provider.provider" @click="bindProvider(provider)">{{ $t('oauthBind') }}</el-button>
       </div>
       <el-button v-if="oauthLoadFailed" size="small" @click="loadOAuth">{{ $t('oauthRetry') }}</el-button>
     </div>
@@ -77,7 +77,7 @@
   </div>
 </template>
 <script setup>
-import {reactive, ref, defineOptions, onMounted} from 'vue'
+import {computed, reactive, ref, defineOptions, onMounted} from 'vue'
 import {Icon} from "@iconify/vue";
 import {resetPassword, userDelete} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
@@ -103,6 +103,8 @@ const oauthProviders = ref([])
 const oauthLoading = ref(false)
 const oauthBusy = ref('')
 const oauthLoadFailed = ref(false)
+const enabledOAuthProviders = computed(() => oauthProviders.value.filter(provider => provider.enabled))
+const showOAuthAccounts = computed(() => hasPerm('oauth:manage') && (oauthLoading.value || oauthLoadFailed.value || enabledOAuthProviders.value.length > 0))
 async function loadOAuth() {
   oauthLoading.value = true; oauthLoadFailed.value = false
   try { oauthProviders.value = await oauthBindings() }
@@ -266,11 +268,16 @@ function submitPwd() {
 }
 
 .box {
-  width: 100%; max-width: 1280px; margin: 0 auto; padding: 32px;
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-content: start;
+  width: 100%; max-width: 1280px; margin: 0 auto; padding: 20px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; align-items: start;
+  &.has-oauth {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr;
+    .oauth-connections { grid-column: 2; grid-row: 1 / span 2; }
+    .del-email { grid-column: 1; grid-row: 2; }
+  }
   .title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
   .title > svg { color: var(--el-text-color-secondary); }
-  .container { min-width: 0; padding: 26px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); font-size: 13px; display: grid; align-content: start; gap: 24px; }
+  .container { min-width: 0; padding: 18px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); font-size: 13px; display: grid; align-content: start; gap: 14px; }
   .container .item { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 18px; min-height: 28px;
     > div:first-child { color: var(--el-text-color-secondary); font-size: 12px; }
     > div:last-child { min-width: 0; }
@@ -375,19 +382,25 @@ function submitPwd() {
     padding-top: 24px;
     border-top: 1px solid var(--el-border-color-lighter);
   }
-  .oauth-description { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.8; margin: -6px 0 0; }
-  .oauth-connection-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 9px; }
+  .container.oauth-connections { gap: 8px; }
+  .oauth-description { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.8; margin: 0; }
+  .oauth-connection-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 10px; border: 1px solid var(--el-border-color-lighter); border-radius: 9px; }
   .oauth-connection-row > div { flex: 1; min-width: 0; }
-  .oauth-connection-row strong { font-size: 13px; font-weight: 500; }
-  .oauth-connection-row small { display: block; font-size: 11px; margin-top: 4px; color: var(--el-text-color-secondary); overflow-wrap: anywhere; }
-  .oauth-logo { display: grid; place-items: center; width: 36px; height: 36px; background: var(--el-fill-color-light); border-radius: 9px; flex-shrink: 0; }
-  .oauth-logo img { width: 28px; height: 28px; object-fit: contain; }
-  .del-email { grid-column: 1 / -1; padding: 24px 26px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--el-bg-color); }
-  .delete-copy p { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.8; margin: 10px 0 0; }
+  .oauth-connection-row strong { display: block; font-size: 13px; line-height: 18px; font-weight: 500; }
+  .oauth-connection-row small { display: block; font-size: 11px; line-height: 16px; color: var(--el-text-color-secondary); overflow-wrap: anywhere; }
+  .oauth-logo { display: grid; place-items: center; width: 32px; height: 32px; background: var(--el-fill-color-light); border-radius: 8px; flex-shrink: 0; }
+  .oauth-logo img { width: 24px; height: 24px; object-fit: contain; }
+  .del-email { min-width: 0; padding: 16px 18px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--el-bg-color); }
+  .del-email > .el-button { flex-shrink: 0; }
+  .delete-copy p { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.6; margin: 6px 0 0; }
 }
 .update-pwd { display: flex; flex-direction: column; gap: 15px; }
-@media (max-width: 1023px) { .box { grid-template-columns: 1fr; padding: 24px; } }
+@media (max-width: 1023px) {
+  .box, .box.has-oauth { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; padding: 16px;
+    .oauth-connections, .del-email { grid-column: auto; grid-row: auto; }
+  }
+}
 @media (max-width: 600px) {
-  .box { padding: 18px; gap: 18px; .container { padding: 20px; } .container .item { grid-template-columns: 66px minmax(0, 1fr); gap: 12px; } .del-email { padding: 20px; flex-direction: column; align-items: flex-start; gap: 18px; } }
+  .box, .box.has-oauth { padding: 12px; gap: 12px; .container { padding: 14px; } .container .item { grid-template-columns: 66px minmax(0, 1fr); gap: 12px; } .del-email { padding: 14px; flex-direction: column; align-items: flex-start; gap: 12px; } }
 }
 </style>

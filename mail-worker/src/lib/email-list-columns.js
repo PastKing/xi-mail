@@ -1,7 +1,16 @@
 import { getTableColumns, sql } from 'drizzle-orm';
 import email from '../entity/email';
+import emailUtils from '../utils/email-utils';
 
 export const EMAIL_LIST_TEXT_LEN = 300;
+
+// List responses carry plain summaries; full HTML is fetched only when a message is opened.
+export function applyMailPreviews(list) {
+	for (const item of list) {
+		item.text = (emailUtils.formatText(item.text) || emailUtils.htmlToText(item.content)).replace(/\s+/g, ' ').trim().slice(0, EMAIL_LIST_TEXT_LEN);
+		item.content = null;
+	}
+}
 
 /** 去掉换行/回车/制表符，并压缩连续空格、标签间空白 */
 function sqlStripWhitespace(column) {

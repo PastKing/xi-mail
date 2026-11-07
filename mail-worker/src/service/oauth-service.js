@@ -8,6 +8,7 @@ import oauthConfigService, { requireProvider } from './oauth-config-service';
 import oauthBindingService from './oauth-binding-service';
 import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import { verifyTelegramIdentity } from './telegram-identity-service';
+import { verifyGoogleIdentity } from './google-identity-service';
 
 const stateKey = (provider, state) => `oauth:${provider}:state:${state}`;
 const validNonce = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -23,7 +24,7 @@ const oauthService = {
     if (intent === 'bind' && !userId) throw new BizError('请先使用邮箱登录，再绑定第三方账号', 401);
     const state = nonce();
     const verifier = provider.pkce ? nonce() : undefined;
-    const oidcNonce = provider.pkce ? nonce() : undefined;
+    const oidcNonce = provider.oidc || providerId === 'telegram' ? nonce() : undefined;
     await c.env.kv.put(stateKey(providerId, state), JSON.stringify({ provider: providerId, clientId: config.clientId, callbackUrl: config.callbackUrl,
       intent, userId, verifier, nonce: oidcNonce, session: intent === 'bind' ? c.get('token') : null }), { expirationTtl: 600 });
     const url = new URL(provider.authorizeUrl);
@@ -35,8 +36,8 @@ const oauthService = {
       const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       url.searchParams.set('code_challenge', challenge);
       url.searchParams.set('code_challenge_method', 'S256');
-      url.searchParams.set('nonce', oidcNonce);
     }
+    if (oidcNonce) url.searchParams.set('nonce', oidcNonce);
     return { state, authorizationUrl: url.href };
   },
 
@@ -65,21 +66,25 @@ const oauthService = {
     const token = await tokenRes.json();
     let info;
     if (providerId === 'telegram') info = await verifyTelegramIdentity(token.id_token, config.clientId, pending.nonce);
+    else if (providerId === 'google') info = await verifyGoogleIdentity(token.id_token, config.clientId, pending.nonce);
     else {
       if (typeof token.access_token !== 'string' || !token.access_token) throw new BizError(`${provider.name} 未返回有效授权`, 400);
       const userRes = await fetch(provider.userInfoUrl, {
-        headers: { Authorization: 'Bearer ' + token.access_token }, signal: AbortSignal.timeout(15000),
+        headers: { Authorization: 'Bearer ' + token.access_token,
+          ...(providerId === 'github' ? { 'User-Agent': 'Xi-Mail', Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } : {}) }, signal: AbortSignal.timeout(15000),
       });
       if (!userRes.ok) throw new BizError(`无法获取 ${provider.name} 用户信息`, 400);
       info = await userRes.json();
     }
-    if (!/^\d{1,30}$/.test(String(info.id || '')) || info.active === false || info.silenced === true)
+    const validIdentity = providerId === 'google' ? typeof info.id === 'string' && /^[A-Za-z0-9_-]{1,255}$/.test(info.id)
+      : /^\d{1,30}$/.test(String(info.id || '')) && (typeof info.id !== 'number' || Number.isSafeInteger(info.id));
+    if (!validIdentity || info.active === false || info.silenced === true)
       throw new BizError(`此 ${provider.name} 账号无法用于登录`, 403);
     if (provider.trustLevel && (Number(info.trust_level) || 0) < (config.minTrustLevel ?? 0))
       throw new BizError(`${provider.name} 信任级别未达到站点要求`, 403);
     const identity = String(info.id);
     if (intent === 'bind') {
-      await oauthBindingService.bind(c, pending.userId, providerId, identity, String(info.username || info.name || '').slice(0, 255));
+      await oauthBindingService.bind(c, pending.userId, providerId, identity, String(info.username || info.login || info.name || '').slice(0, 255));
       return { bound: true };
     }
     const binding = await oauthBindingService.findIdentity(c, providerId, identity);

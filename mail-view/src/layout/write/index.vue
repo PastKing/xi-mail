@@ -483,7 +483,7 @@ async function sendEmail() {
   // 名称由服务端读取，避免旧草稿或已打开的写信窗口覆盖最新设置。
   emailSend({...form, name: undefined}, (e) => {
     percent.value = Math.round((e.loaded * 98) / e.total)
-  }).then(emailList => {
+  }).then(async emailList => {
     const email = emailList[0]
     emailList.forEach(item => {
       emailStore.sendScroll?.addItem(item)
@@ -505,7 +505,7 @@ async function sendEmail() {
       form.content = ''
       form.receiveEmail = []
       form.cc = []
-      draftStore.setDraft = {...toRaw(form)}
+      await persistExistingDraft({...toRaw(form)}).catch(() => ElMessage.warning(t('draftCleanupFailed')))
     }
 
     show.value = false
@@ -685,7 +685,21 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
 });
 
-function close() {
+async function persistExistingDraft(snapshot) {
+  const {draftId, attachments, ...draft} = snapshot;
+  await db.value.transaction('rw', db.value.draft, db.value.att, async () => {
+    if (!draft.content && !draft.subject && !draft.receiveEmail?.length && !draft.cc?.length) {
+      await db.value.draft.delete(draftId);
+      await db.value.att.delete(draftId);
+    } else {
+      await db.value.draft.update(draftId, {...draft,createTime:dayjs().utc().format('YYYY-MM-DD HH:mm:ss')});
+      await db.value.att.put({draftId,attachments:toRaw(attachments || [])});
+    }
+  });
+  draftStore.refreshList++;
+}
+
+async function close() {
   if (senderNameLoading.value) return
 
   if (selectStatus) openSelect();
@@ -693,7 +707,8 @@ function close() {
   form.content = editor.value.getContent();
 
   if (form.draftId) {
-    draftStore.setDraft = {...toRaw(form)}
+    try { await persistExistingDraft({...toRaw(form)}) }
+    catch { ElMessage.error(t('draftSaveFailed')); return; }
     show.value = false
     resetForm()
     return;

@@ -8,7 +8,7 @@ import {useUserStore} from "@/store/user.js";
 import i18n from "@/i18n/index.js";
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
 
-export const SYS_SETTING_VERSION = 'v3.6.4'
+export const SYS_SETTING_VERSION = 'v3.6.5'
 
 let context = null
 
@@ -25,6 +25,7 @@ function createContext() {
   /* Sections register a handler to re-sync their local form state whenever
      the settings are (re)fetched from the server. */
   const loadedHandlers = new Set()
+  const dirtyChecks = new Map()
 
   let backup = '{}'
 
@@ -37,6 +38,13 @@ function createContext() {
       onUnmounted(() => loadedHandlers.delete(handler))
     }
   }
+
+  function onSettingsDirty(check, discard) {
+    dirtyChecks.set(check, discard)
+    if (getCurrentInstance()) onUnmounted(() => dirtyChecks.delete(check))
+  }
+  function hasUnsavedChanges() { return [...dirtyChecks.keys()].some(check => check()) }
+  function discardUnsavedChanges() { for (const [check,discard] of dirtyChecks) if (check()) discard?.() }
 
   function getSettings() {
     return settingQuery().then(settingData => {
@@ -119,6 +127,9 @@ function createContext() {
     beforeChange,
     backupSetting,
     onSettingsLoaded,
+    onSettingsDirty,
+    hasUnsavedChanges,
+    discardUnsavedChanges,
   }
 }
 

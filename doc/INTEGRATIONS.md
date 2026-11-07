@@ -7,7 +7,7 @@
 
 Resend、QueenSMTP、SendFlare 统一在「系统设置 → 邮件设置 → 发件服务 → 管理」中配置。添加时选择服务、域名并填写 API Token；点击已配置的服务可替换或移除 Token，并可按域名选择默认服务。SendFlare 支持单封、多个收件人、附件和内嵌图片；发件地址仍须为本人拥有且启用的邮箱。接口按 [SendFlare 官方文档](https://docs.sendflare.com/docs/api/integration/) 实现。
 
-「发件箱」内切换已发送与草稿，旧 `/drafts` 链接会打开草稿标签。「角色权限」新增转移记录查看、发起转移、接收转移和关联登录账号，新权限默认不授予普通角色，请管理员按需勾选。转移接收还须满足角色后缀和邮箱配额，已有第三方绑定仍可用于登录。
+「发件箱」在同一列表展示已发送与草稿，草稿以编辑图标和「草稿」标签区分，点击继续编辑；旧 `/drafts` 链接打开统一发件箱。「角色权限」新增转移记录查看、发起转移、接收转移和关联登录账号，新权限默认不授予普通角色，请管理员按需勾选。转移接收还须满足角色后缀和邮箱配额，已有第三方绑定仍可用于登录。
 
 
 
@@ -42,12 +42,16 @@ Telegram 邮件查看链接是独立的随机凭证，24 小时后失效，删�
 |---|---|---|
 | NodeLoc | [应用管理](https://www.nodeloc.com/oauth-provider/applications) | `/oauth/nodeloc` |
 | Telegram | [BotFather](https://t.me/BotFather) → Login Widget | `/oauth/telegram` |
+| GitHub | [Developer settings](https://github.com/settings/developers) → OAuth Apps | `/oauth/github` |
+| Google | [Google Auth Platform](https://console.cloud.google.com/auth/clients) → Web 应用客户端 | `/oauth/google` |
 | LinuxDo | [LinuxDo Connect](https://connect.linux.do/) | `/oauth/linuxdo` |
 
 页面会自动生成当前站点的完整回调地址，只读显示。将其原样登记到提供商应用，例如 `https://mail.example.com/oauth/nodeloc`。
 
 - NodeLoc 只需申请 `openid profile`，不需要邮箱权限。
 - Telegram 使用 OIDC 授权码与 PKCE，身份令牌签名由服务端验证。
+- GitHub 使用授权码与 PKCE，只获取登录身份；Google 使用 OIDC 与 PKCE，校验签名、受众和 nonce，不申请 Gmail 权限。
+- Google 应用若处于测试模式，须先将登录者加入测试用户；公开使用时应按 Google 控制台要求配置受众与发布状态。
 - NodeLoc、LinuxDo 可设置最低信任级别。
 - Client Secret 仅保存在服务端；输入留空会保留已有密钥。未保存后台配置时，可回退到 Worker 环境变量，字段见 [配置示例](../mail-worker/wrangler.example.toml)。
 

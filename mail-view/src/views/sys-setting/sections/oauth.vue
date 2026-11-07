@@ -49,22 +49,25 @@ import { useSysSetting } from '../use-sys-setting.js'
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js'
 
 const { t } = useI18n()
-const { setting, settingLoading, editSetting, onSettingsLoaded } = useSysSetting()
+const { setting, settingLoading, editSetting, onSettingsLoaded, onSettingsDirty } = useSysSetting()
 const selected = ref(OAUTH_PROVIDERS[0].id)
 const activeProvider = computed(() => OAUTH_PROVIDERS.find(provider => provider.id === selected.value))
 const callbackUrl = computed(() => window.location.origin + activeProvider.value.callbackPath)
 const drafts = reactive(Object.fromEntries(OAUTH_PROVIDERS.map(provider => [provider.id, {}])))
+const baselines = {}
 const form = computed(() => drafts[selected.value])
 let savingProvider = null
 function resetProvider(id) {
   Object.assign(drafts[id], { enabled: !!setting.value[id + 'Switch'], clientId: setting.value[id + 'ClientId'] || '',
     clientSecret: '', minTrustLevel: setting.value[id + 'MinTrustLevel'] ?? 0 })
+  baselines[id] = JSON.stringify(drafts[id])
 }
 function resetForm() { resetProvider(selected.value) }
 onSettingsLoaded(() => {
   if (savingProvider) resetProvider(savingProvider)
-  else OAUTH_PROVIDERS.forEach(provider => resetProvider(provider.id))
+  else OAUTH_PROVIDERS.forEach(provider => { if (baselines[provider.id] === undefined || JSON.stringify(drafts[provider.id]) === baselines[provider.id]) resetProvider(provider.id) })
 })
+onSettingsDirty(() => OAUTH_PROVIDERS.some(provider => baselines[provider.id] !== undefined && JSON.stringify(drafts[provider.id]) !== baselines[provider.id]), () => OAUTH_PROVIDERS.forEach(provider => resetProvider(provider.id)))
 async function saveOAuth() {
   if (settingLoading.value) return
   const id = selected.value, draft = form.value
@@ -114,5 +117,5 @@ async function copyCallback() {
 .oauth-field small { color: var(--el-text-color-secondary); font-size: 12px; }
 .oauth-field :deep(.el-input-number) { width: 100%; }
 .oauth-policy { margin: 28px 0 0; padding-top: 18px; border-top: 1px solid var(--el-border-color-lighter); }
-@media (max-width: 767px) { .oauth-form-grid { grid-template-columns: 1fr; } .oauth-title { flex-wrap: wrap; } .oauth-guide { padding: 14px; } }
+@media (max-width: 767px) { .oauth-provider-tabs { flex-wrap: wrap; gap: 4px; } .oauth-provider-tabs button { flex-basis: calc(50% - 4px); } .oauth-form-grid { grid-template-columns: 1fr; } .oauth-title { flex-wrap: wrap; } .oauth-guide { padding: 14px; } }
 </style>

@@ -71,6 +71,7 @@ const userService = {
 		user.role = roleRow;
 		user.type = userRow.type;
 		user.lang = userRow.lang || '';
+		user.domainList = (await settingService.query(c)).domainList;
 
 		if (c.env.admin === userRow.email) {
 			user.role = constant.ADMIN_ROLE

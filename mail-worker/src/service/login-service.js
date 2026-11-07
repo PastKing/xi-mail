@@ -21,12 +21,14 @@ import { t } from '../i18n/i18n.js';
 import verifyRecordService from './verify-record-service';
 import sessionService from './session-service';
 import securityRateLimit from './security-rate-limit-service';
+import { createRegistration } from './registration-service';
 
 const loginService = {
 
 	async register(c, params) {
 
-		const { email, password, token, code } = params || {};
+		const { password, token, code } = params || {};
+		const email = typeof params?.email === 'string' ? params.email.trim().toLowerCase() : params?.email;
 
 		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter, emailKeywordBlacklist } = await settingService.query(c)
 
@@ -120,15 +122,21 @@ const loginService = {
 
 		const { salt, hash } = await saltHashUtils.hashPassword(password);
 
-		const userId = await userService.insert(c, { email, regKeyId,password: hash, salt, type: type || defType });
-
-		await accountService.insert(c, { userId: userId, email, name: emailUtils.getName(email) });
+		const registration = { email, regKeyId, password: hash, salt, type: type || defType,
+			displayId: userService.generateDisplayId(), name: emailUtils.getName(email) };
+		const invitation = regKeyId ? { code, todayStart: toUtc().tz('Asia/Shanghai').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss') } : null;
+		let userId = await createRegistration(c, registration, invitation);
+		if (!userId && regKey === settingConst.regKey.OPTIONAL && invitation) {
+			const fallback = await roleService.selectDefaultRole(c);
+			if (!roleService.hasAvailDomainPerm(fallback.availDomain, email)) throw new BizError(t('noDomainPermReg'), 403);
+			userId = await createRegistration(c, { ...registration, type: fallback.roleId, regKeyId: 0 });
+		}
+		if (!userId) {
+			if (await accountService.selectByEmailIncludeDel(c, email) || await userService.selectByEmailIncludeDel(c, email)) throw new BizError(t('isRegAccount'));
+			throw new BizError(t('noRegKeyTotal'));
+		}
 
 		await userService.updateUserInfo(c, userId, true);
-
-		if (regKey !== settingConst.regKey.CLOSE && type) {
-			await regKeyService.reduceCount(c, code, 1);
-		}
 
 		if (registerVerify === settingConst.registerVerify.COUNT && !regVerifyOpen) {
 			const row = await verifyRecordService.increaseRegCount(c);

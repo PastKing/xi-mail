@@ -49,3 +49,28 @@ export function mailFilterConditions(c, params) {
   if (params.startTime && params.endTime && params.startTime >= params.endTime) throw new BizError('Invalid date range', 400);
   return conditions;
 }
+
+export function personalMailConditions(c, params, userId) {
+  const type = params.type == null ? 0 : Number(params.type);
+  if (![0, 1].includes(type)) throw new BizError('Invalid mail type', 400);
+  const conditions = [eq(email.userId, userId), eq(email.isDel, 0), eq(email.type, type), ne(email.status, emailConst.status.SAVING)];
+  if (!Number(params.allReceive)) conditions.push(eq(email.accountId, Number(params.accountId)));
+  const keyword = String(params.keyword || '').trim();
+  if (keyword.length > 512) throw new BizError('Search text too long', 400);
+  const searchType = params.searchType || 'all';
+  if (!['all','subject','sender','recipient','content'].includes(searchType)) throw new BizError('Invalid search type', 400);
+  if (keyword) {
+    const pattern = '%' + keyword.replace(/[!%_]/g, '!$&') + '%';
+    const matches = column => sql`${column} COLLATE NOCASE LIKE ${pattern} ESCAPE '!'`;
+    const fields = { subject: [email.subject], sender: [email.name,email.sendEmail], recipient: [email.toEmail,email.toName], content: [email.text,email.content] };
+    conditions.push(or(...(searchType === 'all' ? [email.subject,email.name,email.sendEmail,email.toEmail,email.text,email.content] : fields[searchType]).map(matches)));
+  }
+  for (const key of ['unread','hasCode']) {
+    const value = flag(params,key);
+    if (value !== null) conditions.push(key === 'unread' ? eq(email.unread,value) : value ? sql`trim(coalesce(${email.code},''))<>''` : sql`trim(coalesce(${email.code},''))=''`);
+  }
+  if (params.startTime) conditions.push(gte(email.createTime, date(params.startTime)));
+  if (params.endTime) conditions.push(lt(email.createTime, date(params.endTime)));
+  if (params.startTime && params.endTime && params.startTime >= params.endTime) throw new BizError('Invalid date range', 400);
+  return conditions;
+}

@@ -90,6 +90,9 @@ import {logout} from "@/request/login.js";
 import {Icon} from "@iconify/vue";
 import {useUiStore} from "@/store/ui.js";
 import {useUserStore} from "@/store/user.js";
+import {useEmailStore} from '@/store/email.js';
+import {useAccountStore} from '@/store/account.js';
+import {useWriterStore} from '@/store/writer.js';
 import {useRoute} from "vue-router";
 import {computed, ref} from "vue";
 import {useSettingStore} from "@/store/setting.js";
@@ -200,7 +203,10 @@ function clickLogout() {
   const serverStore = useServerStore()
   logout().then(() => {
     serverStore.clearToken(serverStore.activeServerId)
-    router.replace('/login')
+    useEmailStore().$reset(); useAccountStore().$reset(); useWriterStore().$reset(); userStore.$reset();
+    localStorage.removeItem('email'); localStorage.removeItem('writer');
+    sessionStorage.removeItem('xi-mail:oauth:state');
+    window.location.replace('/login');
   }).finally(() => {
     logoutLoading.value = false
   })

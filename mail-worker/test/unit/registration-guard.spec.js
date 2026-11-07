@@ -8,6 +8,7 @@ import regKeyService from '../../src/service/reg-key-service';
 import verifyRecordService from '../../src/service/verify-record-service';
 import rateLimit from '../../src/service/security-rate-limit-service';
 import cryptoUtils from '../../src/utils/crypto-utils';
+import * as registration from '../../src/service/registration-service';
 
 let settings, c, lookup, invitation, create, fetchMock;
 const input = (extra = {}) => ({ email: 'candidate@allowed.example', password: 'local-test-password', code: 'test-invitation', ...extra });
@@ -21,7 +22,7 @@ beforeEach(() => {
   invitation = vi.spyOn(loginService, 'handleOpenRegKey').mockResolvedValue({ type: 2, regKeyId: 1 });
   vi.spyOn(roleService, 'selectById').mockResolvedValue({ availDomain: 'allowed.example' });
   vi.spyOn(cryptoUtils, 'hashPassword').mockResolvedValue({ salt: 'local-salt', hash: 'local-hash' });
-  create = vi.spyOn(userService, 'insert').mockResolvedValue(10);
+  create = vi.spyOn(registration, 'createRegistration').mockResolvedValue(10);
   vi.spyOn(accountService, 'insert').mockResolvedValue(undefined);
   vi.spyOn(userService, 'updateUserInfo').mockResolvedValue(undefined);
   vi.spyOn(regKeyService, 'reduceCount').mockResolvedValue(undefined);
@@ -63,7 +64,8 @@ describe('Registration Turnstile guard', () => {
     expect(options.body.get('secret')).toBe('test-private-secret');
     expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(invitation.mock.invocationCallOrder[0]);
     expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(lookup.mock.invocationCallOrder[0]);
-    expect(create).toHaveBeenCalledOnce(); expect(regKeyService.reduceCount).toHaveBeenCalledOnce();
+    expect(create).toHaveBeenCalledOnce(); expect(regKeyService.reduceCount).not.toHaveBeenCalled();
+    expect(create.mock.calls[0][1].regKeyId).toBe(1); expect(create.mock.calls[0][2].code).toBe('test-invitation');
   });
   it('requires verification in threshold mode after the server-side threshold is reached', async () => {
     settings.registerVerify = 2;
@@ -80,5 +82,14 @@ describe('Registration Turnstile guard', () => {
     settings.registerVerify = 1;
     await expect(loginService.register(c, input())).resolves.toEqual({ regVerifyOpen: false });
     expect(fetchMock).not.toHaveBeenCalled(); expect(create).toHaveBeenCalledOnce();
+  });
+  it('falls back to the default role if an optional invitation is consumed by a competing request', async () => {
+    settings.regKey = 2;
+    vi.spyOn(loginService,'handleOpenOptional').mockResolvedValue({type:2,regKeyId:1});
+    vi.spyOn(roleService,'selectDefaultRole').mockResolvedValue({roleId:3,availDomain:'allowed.example'});
+    create.mockResolvedValueOnce(null).mockResolvedValueOnce(10);
+    await expect(loginService.register(c,input({token:'test-token'}))).resolves.toEqual({regVerifyOpen:true});
+    expect(create.mock.calls[1][1]).toMatchObject({type:3,regKeyId:0});
+    expect(create.mock.calls[1][2]).toBeUndefined();
   });
 });

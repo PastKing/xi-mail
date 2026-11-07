@@ -47,6 +47,7 @@ export async function init() {
         document.title = setting.title;
 
         if (user) {
+            settingStore.domainList = user.domainList || setting.domainList;
             accountStore.currentAccountId = user.account.accountId;
             accountStore.currentAccount = user.account;
             userStore.user = user;

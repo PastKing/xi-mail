@@ -4,7 +4,7 @@ import emailService from './email-service';
 import BizError from '../error/biz-error';
 import { and, desc, eq, lt, sql, inArray } from 'drizzle-orm';
 import email from '../entity/email';
-import { emailBriefColumns } from '../lib/email-list-columns';
+import { emailBriefColumns, applyMailPreviews } from '../lib/email-list-columns';
 import { isDel } from '../const/entity-const';
 import attService from "./att-service";
 import { t } from '../i18n/i18n'
@@ -61,6 +61,7 @@ const starService = {
 			.all();
 
 		const emailIds = list.map(item => item.emailId);
+		applyMailPreviews(list);
 
 		const attsList = await attService.selectByEmailIds(c, emailIds);
 
