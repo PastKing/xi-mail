@@ -58,6 +58,14 @@ admin = "admin@example.com"
 # nodeloc_client_id = "<YOUR_NODELOC_CLIENT_ID>"
 # nodeloc_callback_url = "https://your-frontend.example.com/oauth/nodeloc"
 # Store nodeloc_client_secret with `npx wrangler secret put nodeloc_client_secret`.
+# github_switch = "false"
+# github_client_id = "<YOUR_GITHUB_CLIENT_ID>"
+# github_callback_url = "https://your-frontend.example.com/oauth/github"
+# Store github_client_secret with `npx wrangler secret put github_client_secret`.
+# google_switch = "false"
+# google_client_id = "<YOUR_GOOGLE_CLIENT_ID>"
+# google_callback_url = "https://your-frontend.example.com/oauth/google"
+# Store google_client_secret with `npx wrangler secret put google_client_secret`.
 
 # [build]
 # command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"

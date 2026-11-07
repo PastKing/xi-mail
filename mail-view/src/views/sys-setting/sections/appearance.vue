@@ -4,7 +4,7 @@
       <div class="card-title">{{ $t('appearance') }}</div>
       <div class="card-content">
         <!-- Color themes -->
-        <div class="setting-item appearance-block">
+        <div class="appearance-block">
           <div><span>{{ $t('colorTheme') }}</span></div>
           <div class="theme-swatches">
             <button
@@ -14,6 +14,8 @@
               :style="{ background: theme.background }"
               :title="theme.label"
               :aria-label="theme.label"
+              type="button"
+              :aria-pressed="setting.colorTheme === theme.id"
               @click="applyColorTheme(theme.id)"
             >
               <Icon v-if="setting.colorTheme === theme.id" icon="mingcute:check-fill" width="14" height="14" color="#fff" />
@@ -22,13 +24,15 @@
         </div>
 
         <!-- Layout mode -->
-        <div class="setting-item appearance-block">
+        <div class="appearance-block">
           <div><span>{{ $t('layoutMode') }}</span></div>
           <div class="layout-options">
             <button
               v-for="mode in layoutModes"
               :key="mode.id"
               :class="['layout-opt', { active: setting.layoutMode === mode.id }]"
+              type="button"
+              :aria-pressed="setting.layoutMode === mode.id"
               @click="applyLayoutMode(mode.id)"
             >
               <div v-if="mode.id === 'default'" class="layout-preview lp-default">
@@ -80,13 +84,15 @@
         </div>
 
         <!-- Login templates -->
-        <div class="setting-item appearance-block">
+        <div class="appearance-block">
           <div><span>{{ $t('loginTemplate') }}</span></div>
           <div class="template-previews">
             <button
               v-for="tpl in loginTemplates"
               :key="tpl.id"
               :class="['tpl-card', { active: normalizeLoginTemplate(setting.loginTemplate) === tpl.id }]"
+              type="button"
+              :aria-pressed="normalizeLoginTemplate(setting.loginTemplate) === tpl.id"
               @click="applyLoginTemplate(tpl.id)"
             >
               <div v-if="tpl.id === 'minimal'" class="tpl-preview tpl-minimal"><div class="tpl-card-inner tpl-minimal-card"></div></div>
@@ -166,8 +172,9 @@ function applyLoginTemplate(id) {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px 0;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--el-border-color-extra-light);
 
   &:last-child {
@@ -215,16 +222,13 @@ function applyLoginTemplate(id) {
 
 .template-previews {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
+}
 
-  @media (max-width: 480px) {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
-  }
+.appearance-block button:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 4px;
 }
 
 .tpl-card {
@@ -269,14 +273,8 @@ function applyLoginTemplate(id) {
 /* layout mode selector */
 .layout-options {
   display: flex;
-  gap: 16px;
-
-  @media (max-width: 480px) {
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
-  }
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .layout-opt {

@@ -140,7 +140,7 @@
 
             <template v-if="enabledOAuthProviders.length">
               <div class="divider"><span>{{ $t('orDivider') }}</span></div>
-              <div class="social-providers" :style="{ '--provider-count': enabledOAuthProviders.length }">
+              <div class="social-providers" :style="{ '--provider-count': Math.min(enabledOAuthProviders.length, 3) }">
                 <button v-for="provider in enabledOAuthProviders" :key="provider.id" class="social-btn" :aria-label="$t('oauthSignInWith', { provider: provider.name })" :disabled="oauthLoading" @click="providerLogin(provider.id)">
                   <img :src="provider.logo" alt="" width="18" height="18" />
                   <span>{{ provider.name }}</span>
@@ -242,7 +242,7 @@
 <script setup>
 import BrandMark from '@/components/BrandMark.vue';
 import router from "@/router";
-import {computed, nextTick, onMounted, reactive, ref} from "vue";
+import {computed, nextTick, onMounted, reactive, ref, watch} from "vue";
 import {login, register} from "@/request/login.js";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useSettingStore} from "@/store/setting.js";
@@ -293,11 +293,12 @@ const form = reactive({ email: '', password: '' });
 const mySelect = ref();
 const suffix = ref('');
 const registerForm = reactive({ email: '', password: '', confirmPassword: '', code: null });
-const domainList = settingStore.domainList;
-const hasDomains = computed(() => domainList && domainList.length > 0);
+const domainList = computed(() => settingStore.domainList || []);
+const hasDomains = computed(() => domainList.value.length > 0);
 const suffixPopperClass = '';
 const registerLoading = ref(false);
-suffix.value = domainList[0];
+suffix.value = domainList.value[0] || '';
+watch(domainList, domains => { if (!domains.includes(suffix.value)) suffix.value = domains[0] || ''; });
 
 if (serverStore.isStandalone && !settingStore.settings?.title && serverStore.servers.length > 0) {
   websiteConfig().then(s => {
@@ -353,6 +354,7 @@ async function saveToken(token) {
   accountStore.currentAccountId = user.account.accountId;
   accountStore.currentAccount = user.account;
   userStore.user = user;
+  settingStore.domainList = user.domainList || settingStore.domainList;
   permsToRouter(user.permKeys).forEach(r => { router.addRoute('layout', r); });
   await router.replace({ name: 'layout' });
   uiStore.showNotice();
@@ -361,7 +363,7 @@ async function saveToken(token) {
 
 function submitRegister() {
   if (!registerForm.email) { ElMessage({ message: t('emptyEmailMsg'), type: 'error', plain: true }); return; }
-  if (registerForm.email.length < settingStore.settings.minEmailPrefix) {
+  if (registerForm.email.split('@')[0].length < settingStore.settings.minEmailPrefix) {
     ElMessage({ message: t('minEmailPrefix', { msg: settingStore.settings.minEmailPrefix }), type: 'error', plain: true }); return;
   }
   const regSuffix = hasDomains.value ? suffix.value : '';
@@ -937,8 +939,8 @@ function submitRegister() {
 }
 
 /* ── Social button ── */
-.social-providers { display: grid; grid-template-columns: repeat(var(--provider-count), minmax(0, 1fr)); gap: 8px; }
-.social-providers .social-btn { min-width: 0; padding: 0 6px; gap: 6px; font-size: 12px; }
+.social-providers { display: flex; flex-wrap: wrap; gap: 8px; }
+.social-providers .social-btn { flex: 1 1 calc(100% / var(--provider-count) - 8px); min-width: 0; padding: 0 6px; gap: 6px; font-size: 12px; }
 .social-providers .social-btn img { flex-shrink: 0; object-fit: contain; }
 .social-providers .social-btn:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 3px; }
 @media (max-width: 360px) {

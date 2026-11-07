@@ -1,4 +1,5 @@
 <template>
+ <div class="personal-mail-page">
   <emailScroll ref="scroll"
                :cancel-success="cancelStar"
                :star-success="addStar"
@@ -12,6 +13,7 @@
                actionLeft="4px"
                @jump="jumpContent"
   >
+    <template #tools><MailSearchBar v-model="searchFilters" @search="applySearch" /></template>
     <template #first>
       <el-tooltip :content="$t('sortByTime')" placement="top">
         <Icon class="icon" @click="changeTimeSort" icon="mingcute:sort-descending-line"
@@ -22,6 +24,7 @@
     </template>
 
   </emailScroll>
+ </div>
 </template>
 
 <script setup>
@@ -29,9 +32,10 @@ import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import {useSettingStore} from "@/store/setting.js";
 import emailScroll from "@/components/email-scroll/index.vue"
+import MailSearchBar from '@/components/MailSearchBar.vue';
 import {emailList, emailDelete, emailLatest, emailRead} from "@/request/email.js";
 import {starAdd, starCancel} from "@/request/star.js";
-import {defineOptions, h, onMounted, reactive, ref, watch} from "vue";
+import {defineOptions, h, onMounted, onUnmounted, reactive, ref, watch} from "vue";
 import {sleep} from "@/utils/time-utils.js";
 import {notifyNewEmail, requestNotifyPermission} from "@/utils/email-notify.js";
 import router from "@/router/index.js";
@@ -47,6 +51,10 @@ const emailStore = useEmailStore();
 const accountStore = useAccountStore();
 const settingStore = useSettingStore();
 const scroll = ref({})
+const searchFilters = ref({});
+function applySearch() { existIds.clear(); scroll.value.refreshList?.(); }
+let disposed = false;
+onUnmounted(() => { disposed = true; });
 const params = reactive({
   timeSort: 0,
 })
@@ -85,10 +93,11 @@ function notifyOpen() {
 }
 
 async function latest() {
-  while (true) {
+  while (!disposed) {
 
     let autoRefresh = settingStore.settings.autoRefresh;
     await sleep(autoRefresh > 1 ? autoRefresh * 1000 : 3000);
+    if (disposed) return;
 
     if (route.name !== 'email') {
       continue;
@@ -97,7 +106,7 @@ async function latest() {
     // 页面不可见时降频：开启新邮件通知则最长 60 秒轮询一次，否则暂停请求
     if (document.hidden) {
       let waited = 0;
-      while (document.hidden && waited < 60000) {
+      while (!disposed && document.hidden && waited < 60000) {
         await sleep(1000);
         waited += 1000;
       }
@@ -113,15 +122,16 @@ async function latest() {
         const accountId = accountStore.currentAccountId
         const allReceive = scroll.value.latestEmail?.allReceive
         const curTimeSort = params.timeSort
+        const filters = { ...searchFilters.value }, filterKey = JSON.stringify(filters);
         let list = []
 
         //确保发起请求时最后一个邮件是当前账号的,或者
         if (accountId === scroll.value.latestEmail?.reqAccountId) {
-          list = await emailLatest(latestId, accountId, allReceive);
+          list = await emailLatest(latestId, accountId, allReceive, filters);
         }
 
         //确保请求回来后，账号没有切换，时间排序没有改变，全部邮件类型没变
-        if (accountId === accountStore.currentAccountId && params.timeSort === curTimeSort && allReceive === accountStore.currentAccount?.allReceive) {
+        if (!disposed && filterKey === JSON.stringify(searchFilters.value) && accountId === accountStore.currentAccountId && params.timeSort === curTimeSort && allReceive === accountStore.currentAccount?.allReceive) {
           if (list.length > 0) {
 
             for (let email of list) {
@@ -167,9 +177,8 @@ function cancelStar(email) {
 function getEmailList(emailId, size) {
   const accountId =  accountStore.currentAccountId;
   const allReceive = accountStore.currentAccount?.allReceive;
-  return emailList(accountId, allReceive, emailId, params.timeSort, size, 0).then(data => {
-    data.latestEmail.reqAccountId = accountId;
-    data.latestEmail.allReceive = allReceive;
+  return emailList(accountId, allReceive, emailId, params.timeSort, size, 0, searchFilters.value).then(data => {
+    if (data.latestEmail) { data.latestEmail.reqAccountId = accountId; data.latestEmail.allReceive = allReceive; }
     return data;
   })
 }

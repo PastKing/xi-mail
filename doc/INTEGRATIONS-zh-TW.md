@@ -7,7 +7,7 @@
 
 Resend、QueenSMTP、SendFlare 統一在「系統設定 → 郵件設定 → 寄信服務 → 管理」中設定。新增時選擇服務、網域及 API Token；點選既有服務可更換或移除 Token，並可按網域選擇預設服務。SendFlare 支援單封、批次收件者、附件及內嵌圖片，依 [官方 API](https://docs.sendflare.com/docs/api/integration/) 實作；寄件地址仍須為本人擁有且啟用的信箱。
 
-寄件匣整合已傳送與草稿，舊 `/drafts` 網址開啟草稿標籤。角色新增轉移記錄查看、發起／接收移轉與關聯登入帳號，新權限預設不授予一般角色，由管理員勾選。接收移轉另受角色網域及信箱配額限制，既有第三方綁定仍可登入。
+寄件匣在同一清單顯示已傳送郵件與草稿，草稿以編輯圖示與「草稿」標籤區分，點擊繼續編輯；舊 `/drafts` 網址開啟統一寄件匣。角色新增轉移記錄查看、發起／接收移轉與關聯登入帳號，新權限預設不授予一般角色，由管理員勾選。接收移轉另受角色網域及信箱配額限制，既有第三方綁定仍可登入。
 
 
 
@@ -42,6 +42,8 @@ Telegram 郵件檢視連結使用獨立的隨機憑證，24 小時後失效，�
 |---|---|---|
 | NodeLoc | [應用程式管理](https://www.nodeloc.com/oauth-provider/applications) | `/oauth/nodeloc` |
 | Telegram | [BotFather](https://t.me/BotFather) → Login Widget | `/oauth/telegram` |
+| GitHub | [Developer settings](https://github.com/settings/developers) → OAuth Apps | `/oauth/github` |
+| Google | [Google Auth Platform](https://console.cloud.google.com/auth/clients) → 網頁應用程式用戶端 | `/oauth/google` |
 | LinuxDo | [LinuxDo Connect](https://connect.linux.do/) | `/oauth/linuxdo` |
 
 頁面會自動產生目前站點的完整回呼網址，僅供讀取。請原樣登記至提供者的應用程式，例如 `https://mail.example.com/oauth/nodeloc`。

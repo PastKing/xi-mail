@@ -1,6 +1,6 @@
 <template>
   <div class="sys-setting-section">
-    <div class="settings-card">
+    <div v-if="inArea('webhook')" class="settings-card">
       <div class="card-title">{{ $t('resendWebhookTitle') }}</div>
       <div class="card-content">
         <p class="ai-code-desc">{{ $t('resendWebhookDescription') }}</p>
@@ -14,7 +14,7 @@
         </div>
       </div>
     </div>
-    <div class="settings-card">
+    <div v-if="inArea('storage')" class="settings-card">
       <div class="card-title"><Icon icon="mingcute:scan-line" width="15" height="15"/>{{ $t('aiCode') }}</div>
       <div class="card-content">
         <p class="ai-code-desc">{{ $t('aiCodeDesc') }}</p>
@@ -63,17 +63,20 @@
             </el-tooltip>
           </div>
           <div class="forward" style="display: flex; gap: 8px; align-items: center;">
-            <el-button class="opt-button" type="primary" @click="aiCodeFilterShow = true">
-              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
-            </el-button>
             <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
                        v-model="setting.aiCode"/>
           </div>
         </div>
+        <div class="settings-inline-field">
+          <div class="settings-inline-heading"><span>{{ $t('aiCodeFilter') }}</span></div>
+          <p>{{ $t('aiCodeFilterHint') }}</p>
+          <el-input-tag v-model="aiCodeFilterData" :aria-label="$t('aiCodeFilter')" :placeholder="$t('aiCodeFilterPlaceholder')" />
+          <div class="settings-inline-actions"><el-button @click="resetAiCodeFilter">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="saveAiCodeFilter">{{ $t('settingsInlineSave') }}</el-button></div>
+        </div>
       </div>
     </div>
 
-    <div class="settings-card">
+    <div v-if="inArea('storage')" class="settings-card">
       <div class="card-title"><Icon icon="mingcute:folder-2-line" width="15" height="15"/>{{ $t('oss') }}</div>
       <div class="card-content">
         <div class="r2domain-item">
@@ -85,17 +88,13 @@
           </div>
           <div class="r2domain">
             <span>{{ setting.r2Domain || '' }}</span>
-            <el-button class="opt-button" type="primary" @click="r2DomainShow = true">
-              <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
-            </el-button>
+            <el-button class="settings-action" @click="r2DomainShow = true">{{ $t('change') }}</el-button>
           </div>
         </div>
         <div class="setting-item">
           <div><span>{{ $t('s3Configuration') }}</span></div>
           <div class="r2domain">
-            <el-button class="opt-button" type="primary" @click="addS3Show = true">
-              <Icon icon="mingcute:settings-3-line" width="16" height="16"/>
-            </el-button>
+            <el-button class="settings-action" @click="addS3Show = true">{{ $t('manage') }}</el-button>
           </div>
         </div>
         <div class="setting-item">
@@ -109,48 +108,39 @@
       </div>
     </div>
 
-    <div class="settings-card">
+    <div v-if="inArea('forward')" class="settings-card">
       <div class="card-title"><Icon icon="mingcute:notification-line" width="15" height="15"/>{{ $t('emailPush') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('tgBot') }}</span></div>
           <div class="forward">
             <span>{{ setting.tgBotStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-            <el-button class="opt-button" type="primary" @click="openTgSetting">
-              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
-            </el-button>
+            <el-button class="settings-action" @click="openTgSetting">{{ $t('manage') }}</el-button>
           </div>
         </div>
-        <div class="setting-item">
-          <div><span>{{ $t('otherEmail') }}</span></div>
-          <div class="forward">
-            <span>{{ setting.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
-            <el-button class="opt-button" type="primary" @click="openThirdEmailSetting">
-              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
-            </el-button>
-          </div>
+        <div class="settings-inline-field">
+          <div class="settings-inline-heading"><span>{{ $t('otherEmail') }}</span><el-switch v-model="forwardStatus" :active-value="0" :inactive-value="1" :aria-label="$t('otherEmail')" /></div>
+          <p>{{ $t('otherEmailDesc') }}</p>
+          <el-input-tag v-model="forwardEmail" :aria-label="$t('otherEmail')" :placeholder="$t('otherEmailInputDesc')" @add-tag="emailAddTag" />
+          <div class="settings-inline-actions"><el-button @click="resetForwardEmail">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="forwardEmailSave">{{ $t('settingsInlineSave') }}</el-button></div>
         </div>
-        <div class="setting-item">
-          <div><span>{{ $t('forwardingRules') }}</span></div>
-          <div class="forward">
-            <span>{{ setting.ruleType === 0 ? $t('forwardAll') : $t('rules') }}</span>
-            <el-button class="opt-button" type="primary" @click="openForwardRules">
-              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
-            </el-button>
-          </div>
+        <div class="settings-inline-field">
+          <div class="settings-inline-heading"><span>{{ $t('forwardingRules') }}</span></div>
+          <p>{{ $t('forwardingRulesDesc') }}</p>
+          <el-radio-group v-model="ruleType"><el-radio :value="0">{{ $t('forwardAll') }}</el-radio><el-radio :value="1">{{ $t('rules') }}</el-radio></el-radio-group>
+          <el-input-tag v-model="ruleEmail" :aria-label="$t('forwardingRules')" :placeholder="$t('ruleEmailsInputDesc')" @add-tag="ruleEmailAddTag" />
+          <div class="settings-inline-actions"><el-button @click="resetForwardRules">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="ruleEmailSave">{{ $t('settingsInlineSave') }}</el-button></div>
         </div>
       </div>
     </div>
 
-    <div class="settings-card">
+    <div v-if="inArea('verify')" class="settings-card">
       <div class="card-title"><Icon icon="mingcute:shield-shape-line" width="15" height="15"/>{{ $t('turnstileSetting') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('signUpVerification') }}</span></div>
           <div>
-            <el-button class="opt-button" type="primary" @click="openRegVerifyCount">
-              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
-            </el-button>
+            <el-input-number v-if="setting.registerVerify === 2" v-model="regVerifyCount" :aria-label="$t('signUpVerification')" :min="1" style="width: 110px" @change="saveRegVerifyCount" />
             <el-select popper-class="sys-setting-popper"
                 @change="change"
                 :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
@@ -164,12 +154,11 @@
             </el-select>
           </div>
         </div>
+        <p v-if="setting.registerVerify === 2" class="verify-rule-hint">{{ $t('rulesVerifyTitle', {count:regVerifyCount}) }}</p>
         <div class="setting-item">
           <div><span>{{ $t('addEmailVerification') }}</span></div>
           <div>
-            <el-button class="opt-button" type="primary" @click="openAddVerifyCount">
-              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
-            </el-button>
+            <el-input-number v-if="setting.addEmailVerify === 2" v-model="addVerifyCount" :aria-label="$t('addEmailVerification')" :min="1" style="width: 110px" @change="saveAddVerifyCount" />
             <el-select popper-class="sys-setting-popper"
                 @change="change"
                 :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
@@ -183,45 +172,38 @@
             </el-select>
           </div>
         </div>
+        <p v-if="setting.addEmailVerify === 2" class="verify-rule-hint">{{ $t('rulesVerifyTitle', {count:addVerifyCount}) }}</p>
         <div class="setting-item">
           <div><span>Site Key</span></div>
           <div class="bot-verify">
             <span>{{ setting.siteKey }}</span>
-            <el-button class="opt-button" type="primary" @click="turnstileShow = true">
-              <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
-            </el-button>
+            <el-button class="settings-action" @click="turnstileShow = true">{{ $t('change') }}</el-button>
           </div>
         </div>
         <div class="setting-item">
           <div><span>Secret Key</span></div>
           <div class="bot-verify">
             <span>{{ setting.secretKey }}</span>
-            <el-button class="opt-button" type="primary" @click="turnstileShow = true">
-              <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
-            </el-button>
+            <el-button class="settings-action" @click="turnstileShow = true">{{ $t('change') }}</el-button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="settings-card">
+    <div v-if="inArea('notice')" class="settings-card">
       <div class="card-title"><Icon icon="mingcute:announcement-line" width="15" height="15"/>{{ $t('noticeTitle') }}</div>
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ $t('noticePopup') }}</span></div>
           <div class="forward">
             <span>{{ setting.notice === 0 ? $t('enabled') : $t('disabled') }}</span>
-            <el-button class="opt-button" type="primary" @click="noticePopupShow = true">
-              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
-            </el-button>
+            <el-button class="settings-action" @click="noticePopupShow = true">{{ $t('manage') }}</el-button>
           </div>
         </div>
         <div class="setting-item">
           <div><span>{{ $t('popUp') }}</span></div>
           <div class="forward">
-            <el-button class="opt-button" type="primary" @click="uiStore.showNotice()">
-              <Icon icon="mingcute:hand-finger-line" width="18" height="18"/>
-            </el-button>
+            <el-button class="settings-action" @click="uiStore.showNotice()">{{ $t('preview') }}</el-button>
           </div>
         </div>
       </div>
@@ -268,24 +250,6 @@
       </form>
     </el-dialog>
 
-    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="regVerifyCountShow"
-               :title="$t('rulesVerifyTitle', { count: regVerifyCount })"
-               @closed="regVerifyCount = setting.regVerifyCount">
-      <form>
-        <el-input-number v-model="regVerifyCount" :min="1"/>
-        <el-button type="primary" :loading="settingLoading" @click="saveRegVerifyCount">{{ $t('save') }}</el-button>
-      </form>
-    </el-dialog>
-
-    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="addVerifyCountShow"
-               :title="$t('rulesVerifyTitle', { count: addVerifyCount })"
-               @closed="addVerifyCount = setting.addVerifyCount">
-      <form>
-        <el-input-number v-model="addVerifyCount" :min="1"/>
-        <el-button type="primary" :loading="settingLoading" @click="saveAddVerifyCount">{{ $t('save') }}</el-button>
-      </form>
-    </el-dialog>
-
     <el-dialog v-model="tgSettingShow" class="sys-setting-dialog forward-dialog">
       <template #header>
         <div class="forward-head">
@@ -327,52 +291,6 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="thirdEmailShow" class="sys-setting-dialog forward-dialog">
-      <template #header>
-        <div class="forward-head">
-          <span class="forward-set-title">{{ $t('otherEmail') }}</span>
-          <el-tooltip effect="dark" :content="$t('otherEmailDesc')">
-            <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
-          </el-tooltip>
-        </div>
-      </template>
-      <div class="forward-set-body">
-        <el-input-tag tag-type="warning" :placeholder="$t('otherEmailInputDesc')" v-model="forwardEmail"
-                      @add-tag="emailAddTag"/>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-switch v-model="forwardStatus" :active-value="0" :inactive-value="1" :active-text="$t('enable')"
-                     :inactive-text="$t('disable')"/>
-          <el-button :loading="settingLoading" type="primary" @click="forwardEmailSave">{{ $t('save') }}</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="forwardRulesShow" class="sys-setting-dialog forward-dialog">
-      <template #header>
-        <div class="forward-head">
-          <span class="forward-set-title">{{ $t('forwardingRules') }}</span>
-          <el-tooltip effect="dark" :content="$t('forwardingRulesDesc')">
-            <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
-          </el-tooltip>
-        </div>
-      </template>
-      <div class="forward-set-body">
-        <el-input-tag :placeholder="$t('ruleEmailsInputDesc')" tag-type="success" v-model="ruleEmail"
-                      @add-tag="ruleEmailAddTag"/>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-radio-group v-model="ruleType">
-            <el-radio :value="0">{{ $t('forwardAll') }}</el-radio>
-            <el-radio :value="1">{{ $t('rules') }}</el-radio>
-          </el-radio-group>
-          <el-button :loading="settingLoading" type="primary" @click="ruleEmailSave">{{ $t('save') }}</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
     <el-dialog top="5vh" v-model="noticePopupShow" :title="$t('noticePopup')" class="sys-setting-dialog notice-popup"
                @closed="resetNoticeForm">
       <form @submit.prevent>
@@ -402,14 +320,6 @@
       </template>
     </el-dialog>
 
-    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="aiCodeFilterShow" :title="$t('aiCodeFilter')"
-               @closed="resetAiCodeFilter">
-      <div class="tag-editor">
-        <div class="tag-editor-hint">{{ $t('aiCodeFilterHint') }}</div>
-        <el-input-tag v-model="aiCodeFilterData" :placeholder="$t('aiCodeFilterPlaceholder')" />
-        <el-button type="primary" :loading="settingLoading" @click="saveAiCodeFilter">{{ $t('save') }}</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
@@ -422,14 +332,28 @@ import {useUiStore} from "@/store/ui.js";
 import {useSysSetting} from "../use-sys-setting.js";
 import NoticeEditor from "../components/notice-editor.vue";
 import { useServerStore } from '@/store/server.js';
+import { useRoute } from 'vue-router';
 
 defineOptions({
   name: 'sys-setting-integration'
 })
 
+const props = defineProps({settingsArea:{type:String,default:''}})
 const {t, locale} = useI18n()
+const route = useRoute()
+const sectionArea = computed(() => {
+  if (props.settingsArea) return props.settingsArea
+  const key = route.query.find
+  if (['tgBot','otherEmail','forwardingRules'].includes(key)) return 'forward'
+  if (['signUpVerification','addEmailVerification'].includes(key)) return 'verify'
+  if (['noticeTitle','noticePopup','popUp'].includes(key)) return 'notice'
+  if (key === 'resendWebhookTitle') return 'webhook'
+  if (['workersAi','aiModel','aiCodeEnable','s3Configuration','storageType'].includes(key)) return 'storage'
+  return 'all'
+})
+const inArea = area => sectionArea.value === 'all' || sectionArea.value === area
 const uiStore = useUiStore()
-const {setting, settingLoading, clearS3Loading, editSetting, change, beforeChange, onSettingsLoaded} = useSysSetting()
+const {setting, settingLoading, clearS3Loading, editSetting, change, beforeChange, onSettingsLoaded, onSettingsDirty} = useSysSetting()
 const webhookSecret = ref('')
 const webhookServer = useServerStore()
 const webhookUrl = computed(() => new URL(webhookServer.getActiveBaseURL().replace(/\/+$/, '') + '/webhooks', window.location.origin).href)
@@ -443,15 +367,11 @@ const r2DomainInput = ref('')
 const addS3Show = ref(false)
 const turnstileShow = ref(false)
 const tgSettingShow = ref(false)
-const thirdEmailShow = ref(false)
-const forwardRulesShow = ref(false)
 const noticePopupShow = ref(false)
-const regVerifyCountShow = ref(false)
-const addVerifyCountShow = ref(false)
 const regVerifyCount = ref(1)
 const addVerifyCount = ref(1)
-const aiCodeFilterShow = ref(false)
 const aiCodeFilterData = ref([])
+let aiFilterBaseline
 
 const turnstileForm = reactive({siteKey: '', secretKey: ''})
 
@@ -486,6 +406,9 @@ const forwardEmail = ref([])
 const forwardStatus = ref(0)
 const ruleType = ref(0)
 const ruleEmail = ref([])
+let forwardBaseline, ruleBaseline
+const forwardSnapshot = () => JSON.stringify({status:forwardStatus.value,emails:forwardEmail.value})
+const ruleSnapshot = () => JSON.stringify({type:ruleType.value,emails:ruleEmail.value})
 
 const showHideOption = computed(() => [
   {label: t('show'), value: 'show'},
@@ -523,19 +446,22 @@ onSettingsLoaded(() => {
   addVerifyCount.value = setting.value.addVerifyCount
   resetS3Form()
   resetNoticeForm()
-  resetAiCodeFilter()
+  if (aiFilterBaseline === undefined || JSON.stringify(aiCodeFilterData.value) === aiFilterBaseline) resetAiCodeFilter()
+  if (forwardBaseline === undefined || forwardSnapshot() === forwardBaseline) resetForwardEmail()
+  if (ruleBaseline === undefined || ruleSnapshot() === ruleBaseline) resetForwardRules()
 })
+onSettingsDirty(() => (forwardBaseline !== undefined && forwardSnapshot() !== forwardBaseline) || (ruleBaseline !== undefined && ruleSnapshot() !== ruleBaseline) || (aiFilterBaseline !== undefined && JSON.stringify(aiCodeFilterData.value) !== aiFilterBaseline) || !!webhookSecret.value || !!turnstileForm.siteKey || !!turnstileForm.secretKey, () => { resetForwardEmail();resetForwardRules();resetAiCodeFilter();webhookSecret.value='';turnstileForm.siteKey='';turnstileForm.secretKey='' })
 
 function resetAiCodeFilter() {
   aiCodeFilterData.value = Array.isArray(setting.value.aiCodeFilter)
     ? [...setting.value.aiCodeFilter]
     : (setting.value.aiCodeFilter || '').split(',').filter(Boolean)
+  aiFilterBaseline = JSON.stringify(aiCodeFilterData.value)
 }
 
-function saveAiCodeFilter() {
-  editSetting({aiCodeFilter: aiCodeFilterData.value.join(',')}, true).then(ok => {
-    if (ok) aiCodeFilterShow.value = false
-  })
+async function saveAiCodeFilter() {
+  const saved = [...aiCodeFilterData.value]
+  if (await editSetting({aiCodeFilter:saved.join(',')}, true)) aiFilterBaseline = JSON.stringify(saved)
 }
 
 function aiModelLabel(m) {
@@ -559,26 +485,16 @@ function openTgSetting() {
   tgSettingShow.value = true
 }
 
-function openThirdEmailSetting() {
+function resetForwardEmail() {
   forwardStatus.value = setting.value.forwardStatus
   forwardEmail.value = setting.value.forwardEmail ? setting.value.forwardEmail.split(',') : []
-  thirdEmailShow.value = true
+  forwardBaseline = forwardSnapshot()
 }
 
-function openForwardRules() {
+function resetForwardRules() {
   ruleType.value = setting.value.ruleType
   ruleEmail.value = setting.value.ruleEmail ? setting.value.ruleEmail.split(',') : []
-  forwardRulesShow.value = true
-}
-
-function openRegVerifyCount() {
-  if (settingLoading.value) return
-  regVerifyCountShow.value = true
-}
-
-function openAddVerifyCount() {
-  if (settingLoading.value) return
-  addVerifyCountShow.value = true
+  ruleBaseline = ruleSnapshot()
 }
 
 /** el-input-tag emits the raw text, so split it on both ASCII and CJK commas. */
@@ -656,16 +572,12 @@ function saveTurnstileKey() {
 
 function saveRegVerifyCount() {
   regVerifyCount.value = regVerifyCount.value || 1
-  editSetting({regVerifyCount: regVerifyCount.value}).then(ok => {
-    if (ok) regVerifyCountShow.value = false
-  })
+  editSetting({regVerifyCount: regVerifyCount.value})
 }
 
 function saveAddVerifyCount() {
   addVerifyCount.value = addVerifyCount.value || 1
-  editSetting({addVerifyCount: addVerifyCount.value}).then(ok => {
-    if (ok) addVerifyCountShow.value = false
-  })
+  editSetting({addVerifyCount: addVerifyCount.value})
 }
 
 function tgBotSave() {
@@ -682,22 +594,16 @@ function tgBotSave() {
   })
 }
 
-function forwardEmailSave() {
-  editSetting({
-    forwardStatus: forwardStatus.value,
-    forwardEmail: forwardEmail.value + ''
-  }).then(ok => {
-    if (ok) thirdEmailShow.value = false
-  })
+async function forwardEmailSave() {
+  const saved = forwardSnapshot()
+  const ok = await editSetting({forwardStatus:forwardStatus.value,forwardEmail:forwardEmail.value.join(',')})
+  if (ok) forwardBaseline = saved
 }
 
-function ruleEmailSave() {
-  editSetting({
-    ruleEmail: ruleEmail.value + '',
-    ruleType: ruleType.value
-  }).then(ok => {
-    if (ok) forwardRulesShow.value = false
-  })
+async function ruleEmailSave() {
+  const saved = ruleSnapshot()
+  const ok = await editSetting({ruleEmail:ruleEmail.value.join(','),ruleType:ruleType.value})
+  if (ok) ruleBaseline = saved
 }
 
 function saveNoticePopup() {
@@ -711,6 +617,7 @@ function saveNoticePopup() {
 </script>
 
 <style scoped lang="scss">
+.verify-rule-hint { margin:0 0 12px; color:var(--el-text-color-secondary); font-size:12px; }
 .r2domain-item {
   display: flex;
   gap: 10px;

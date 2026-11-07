@@ -7,6 +7,7 @@ import { isSecureSecret } from '../utils/secret-policy';
 import starSchemaService from '../service/star-schema-service';
 import { ensureFeaturePermissions } from '../service/feature-permission-service';
 import mailShare from '../service/mail-share-service';
+import { ensureAnalysisIndexes } from '../service/mail-index-service';
 
 const dbInit = {
 	async init(c) {
@@ -55,6 +56,7 @@ const dbInit = {
 		await starSchemaService.ensure(c);
 		await ensureFeaturePermissions(c);
 		await mailShare.ensure(c);
+		await ensureAnalysisIndexes(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},

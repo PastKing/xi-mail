@@ -1,4 +1,6 @@
 <template>
+ <div class="personal-mail-page">
+  <MailSearchBar v-model="searchFilters" :show-unread="false" @search="sendScroll.refreshList?.()" />
   <emailScroll ref="sendScroll"
                :cancel-success="cancelStar"
                :star-success="addStar"
@@ -21,12 +23,14 @@
       </el-tooltip>
     </template>
   </emailScroll>
+ </div>
 </template>
 
 <script setup>
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import emailScroll from "@/components/email-scroll/index.vue"
+import MailSearchBar from '@/components/MailSearchBar.vue';
 import {emailList, emailDelete} from "@/request/email.js";
 import {starAdd, starCancel} from "@/request/star.js";
 import {defineOptions, onMounted, reactive, ref, watch} from "vue";
@@ -40,6 +44,7 @@ defineOptions({
 const emailStore = useEmailStore();
 const accountStore = useAccountStore();
 const sendScroll = ref({})
+const searchFilters = ref({});
 const params = reactive({
   timeSort: 0,
 })
@@ -76,9 +81,8 @@ function cancelStar(email) {
 function getEmailList(emailId, size) {
   const accountId =  accountStore.currentAccountId;
   const allReceive = accountStore.currentAccount?.allReceive;
-  return emailList(accountId, allReceive, emailId, params.timeSort, size, 1).then(data => {
-    data.latestEmail.reqAccountId = accountId;
-    data.latestEmail.allReceive = allReceive;
+  return emailList(accountId, allReceive, emailId, params.timeSort, size, 1, searchFilters.value).then(data => {
+    if (data.latestEmail) { data.latestEmail.reqAccountId = accountId; data.latestEmail.allReceive = allReceive; }
     return data;
   })
 }

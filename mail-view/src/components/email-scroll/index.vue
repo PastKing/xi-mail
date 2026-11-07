@@ -64,11 +64,11 @@
             >
               <el-checkbox :class=" props.type === 'all-email' ? 'all-email-checkbox' : 'checkbox'"
                            v-model="item.checked" @click.stop></el-checkbox>
-              <div @click.stop="starChange(item)" class="pc-star" v-if="showStar">
+              <div @click.stop="starChange(item)" class="pc-star" v-if="showStar && !item.isDraft">
                 <Icon v-if="item.isStar" icon="fluent-color:star-16" width="20" height="20"/>
                 <Icon v-else icon="mingcute:star-line" width="18" height="18"/>
               </div>
-              <div v-if="!showStar"></div>
+              <div v-else :class="{'pc-star': props.type === 'outbox' && showStar}"></div>
               <div class="title" :class="accountShow ? 'title-column' : 'title-column'">
 
                 <div class="email-sender" :style=" (showStatus ? 'gap: 10px;' : '') + ((item.unread === EmailUnreadEnum.UNREAD && showUnread)  ? 'font-weight: bold' : '')">
@@ -189,7 +189,7 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item v-if="['email','send', 'star'].includes(props.type)" @click="openForward(rightClickEmail)">
+          <el-dropdown-item v-if="['email','send','outbox', 'star'].includes(props.type)" @click="openForward(rightClickEmail)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="mingcute:share-forward-line" width="18" height="18"  />
@@ -197,7 +197,7 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item v-if="['email','send', 'star'].includes(props.type)" @click="starChange(rightClickEmail)">
+          <el-dropdown-item v-if="['email','send','outbox', 'star'].includes(props.type)" @click="starChange(rightClickEmail)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="mingcute:star-line" width="18" height="18"/>
@@ -524,7 +524,7 @@ function visibleChange(e) {
 
 const handleContextmenu = (event, email) => {
 
-  if (props.type === 'draft') {
+  if (props.type === 'draft' || email.isDraft) {
     return
   }
 
@@ -837,14 +837,7 @@ function getEmailList(refresh = false) {
   } else {
     followLoading.value = !refresh;
   }
-  let start = Date.now();
-
-  props.getEmailList(emailId, queryParam.size).then(async data => {
-    let end = Date.now();
-    let duration = end - start;
-    if (duration < 300 && !emailId) {
-        await sleep(300 - duration)
-    }
+  props.getEmailList(emailId, queryParam.size).then(data => {
     if (queuedRefresh || disposed) return;
     firstLoad.value = false
 
@@ -858,7 +851,7 @@ function getEmailList(refresh = false) {
       emailList.length = 0
     }
 
-    latestEmail.value = data.latestEmail
+    if (data.latestEmail) latestEmail.value = data.latestEmail
 
     handleList(list);
     emailList.push(...list);
@@ -867,7 +860,7 @@ function getEmailList(refresh = false) {
     noLoading.value = data.list.length < queryParam.size;
     followLoading.value = data.list.length >= queryParam.size;
 
-    total.value = data.total;
+    if (data.total != null && Number.isFinite(Number(data.total))) total.value = Number(data.total);
   }).catch(() => { /* The request interceptor displays the error. */ }).finally(() => {
     loading.value = false
     reqLock = false
@@ -894,7 +887,9 @@ function handleList(list) {
     if (email.isDel) {
       email.isDelContent = t('selectDeleted');
     }
-    email.statusIcon = statusIconMap[email.status];
+    email.statusIcon = statusIconMap[email.status] || { icon: 'mingcute:mail-line', color: 'var(--el-text-color-secondary)', content: t('unknownMailStatus') };
+    if (email.isDraft) email.statusIcon = { icon:'mingcute:edit-2-line',color:'var(--el-color-warning)',content:t('draftLabel') };
+    else if (props.type === 'outbox') email.statusIcon = {...email.statusIcon,icon:'mingcute:send-line'};
   })
 }
 

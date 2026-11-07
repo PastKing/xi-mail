@@ -11,6 +11,7 @@ dist-ssr
 *.local
 dist
 chrome-plug
+/test/
 
 .vscode/*
 !.vscode/extensions.json

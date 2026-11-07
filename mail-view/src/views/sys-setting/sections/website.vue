@@ -87,43 +87,15 @@
           </div>
         </div>
         <div class="setting-item">
-          <div><span>{{ $t('addAccount') }}</span></div>
-          <div>
-            <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
-                       v-model="setting.addEmail"/>
-          </div>
-        </div>
-        <div class="setting-item">
-          <div>
-            <span>{{ $t('multipleEmail') }}</span>
-            <el-tooltip effect="dark" :content="$t('multipleEmailDesc')">
-              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
-            </el-tooltip>
-          </div>
-          <div>
-            <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
-                       v-model="setting.manyEmail"/>
-          </div>
-        </div>
-        <div class="setting-item">
           <div class="title-item"><span>{{ $t('websiteTitle') }}</span></div>
           <div class="email-title">
-            <span>{{ setting.title }}</span>
-            <el-button class="opt-button" type="primary" @click="editTitleShow = true">
-              <Icon icon="mingcute:edit-2-line" width="16" height="16"/>
-            </el-button>
+            <el-input v-model="editTitle" :aria-label="$t('websiteTitle')" :placeholder="$t('websiteTitle')" @keyup.enter="saveTitle" />
+            <el-button type="primary" :loading="settingLoading" @click="saveTitle">{{ $t('save') }}</el-button>
           </div>
         </div>
       </div>
     </div>
 
-    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="editTitleShow" :title="$t('changeTitle')"
-               @closed="editTitle = setting.title">
-      <form>
-        <el-input type="text" :placeholder="$t('websiteTitle')" v-model="editTitle"/>
-        <el-button type="primary" :loading="settingLoading" @click="saveTitle">{{ $t('save') }}</el-button>
-      </form>
-    </el-dialog>
   </div>
 </template>
 
@@ -138,10 +110,10 @@ defineOptions({
 })
 
 const {t, locale} = useI18n()
-const {setting, settingLoading, editSetting, change, beforeChange, onSettingsLoaded} = useSysSetting()
+const {setting, settingLoading, editSetting, change, beforeChange, onSettingsLoaded, onSettingsDirty} = useSysSetting()
 
-const editTitleShow = ref(false)
 const editTitle = ref('')
+let titleBaseline
 
 const regKeyEnabled = computed(() => setting.value.regKey === 0 || setting.value.regKey === 2)
 
@@ -152,13 +124,17 @@ const regKeyOptions = computed(() => [
 ])
 
 onSettingsLoaded(() => {
-  editTitle.value = setting.value.title
+  if (titleBaseline === undefined || editTitle.value === titleBaseline) {
+    editTitle.value = setting.value.title
+    titleBaseline = editTitle.value
+  }
 })
+onSettingsDirty(() => titleBaseline !== undefined && editTitle.value !== titleBaseline, () => { editTitle.value = setting.value.title;titleBaseline = editTitle.value })
 
-function saveTitle() {
-  editSetting({title: editTitle.value}).then(ok => {
-    if (ok) editTitleShow.value = false
-  })
+async function saveTitle() {
+  const saved = editTitle.value
+  const ok = await editSetting({title:saved})
+  if (ok) titleBaseline = saved
 }
 </script>
 

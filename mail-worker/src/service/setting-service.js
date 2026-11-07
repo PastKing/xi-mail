@@ -358,7 +358,7 @@ const settingService = {
 			send: settingRow.send,
 			r2Domain: settingRow.r2Domain,
 			siteKey: settingRow.siteKey,
-			domainList: settingRow.domainList,
+			domainList: settingRow.loginDomain === 1 ? [] : settingRow.domainList,
 			regKey: settingRow.regKey,
 			regVerifyOpen: settingRow.regVerifyOpen,
 			addVerifyOpen: settingRow.addVerifyOpen,

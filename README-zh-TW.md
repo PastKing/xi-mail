@@ -6,9 +6,9 @@
 
 **基於 Cloudflare 的自架郵件服務**
 
-衍生自 [cloud-mail](https://github.com/eoao/cloud-mail)，重新設計介面並持續擴充功能
+衍生自 [cloud-mail](https://github.com/maillab/cloud-mail)，重新設計介面並持續擴充功能
 
-[![Version](https://img.shields.io/badge/Version-v3.6.4-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.5-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -39,10 +39,10 @@
 
 ## ✨ 主要特色
 
-- **郵件收發**：多信箱管理、撰寫與回覆、驗證碼擷取；相容 Resend、QueenSMTP、SendFlare。
+- **郵件收發**：多信箱管理、郵件搜尋、撰寫與回覆、驗證碼擷取；相容 Resend、QueenSMTP、SendFlare。
 - **網域與篩選**：在後台管理多個網域，支援寄件者允許清單、封鎖清單及關鍵字篩選。
 - **使用者與權限**：角色分級、註冊碼註冊、信箱移轉、限時收件匣分享及工作階段管理。
-- **第三方登入**：支援 NodeLoc、Telegram、LinuxDo，綁定既有信箱後即可登入。
+- **第三方登入**：支援 NodeLoc、Telegram、GitHub、Google、LinuxDo，綁定既有信箱後即可登入。
 - **介面自訂**：6 套登入範本、6 套主題色與 4 種導覽版面，支援行動裝置與中英文介面。
 - **彈性部署**：支援前後端一體部署、獨立前端、多個 Worker 執行個體與收信子 Worker。
 - **API 整合**：透過全域 API Token 查詢郵件，方便串接其他工具。
@@ -116,7 +116,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 未設定 `VITE_BASE_URL` 時，首次開啟會跳轉至 `/setup`，引導填寫 Worker 網址。
 
-詳細部署方式可參考上游專案的 [cloud-mail 文件](https://github.com/eoao/cloud-mail)。
+詳細部署方式可參考上游專案的 [cloud-mail 文件](https://github.com/maillab/cloud-mail)。
 
 ---
 
@@ -124,8 +124,8 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 更新摘要 |
 |---|---|
-| **v3.6.4** | SendFlare 寄信、限時收件匣分享與管理體驗改善 |
-| **v3.6.x** | 登入範本與品牌圖示更新；第三方登入、帳號綁定與授權狀態頁 |
+| **v3.6.5** | GitHub / Google 登入、統一寄件匣、郵件搜尋及系統設定改版 |
+| **v3.6.x** | OAuth 與品牌改版、限時收件匣分享、SendFlare 與管理體驗改善 |
 | **v3.5.x** | 瀏覽器擴充功能、QueenSMTP 寄信、子 Worker、登入工作階段與驗證碼擷取 |
 | **v3.4.x** | 浮島導覽與多套登入範本 |
 | **v3.3.x** | 寄件者允許清單模式 |
@@ -153,7 +153,7 @@ xi-mail/
 
 ## 💬 社群與支援
 
-[GitHub](https://github.com/PastKing/xi-mail) · [Telegram @pk_oa](https://t.me/pk_oa) · 上游專案 [eoao/cloud-mail](https://github.com/eoao/cloud-mail)
+[GitHub](https://github.com/PastKing/xi-mail) · [Telegram @pk_oa](https://t.me/pk_oa) · 上游專案 [maillab/cloud-mail](https://github.com/maillab/cloud-mail)
 
 若本專案對你有幫助，歡迎捐贈 USDT 支持開發：
 
@@ -166,4 +166,4 @@ xi-mail/
 
 ## 📄 授權
 
-採用 [MIT License](LICENSE)。上游專案 [eoao/cloud-mail](https://github.com/eoao/cloud-mail) 同樣採用 MIT 授權，本專案保留其原始版權聲明。
+採用 [MIT License](LICENSE)。上游專案 [maillab/cloud-mail](https://github.com/maillab/cloud-mail) 同樣採用 MIT 授權，本專案保留其原始版權聲明。

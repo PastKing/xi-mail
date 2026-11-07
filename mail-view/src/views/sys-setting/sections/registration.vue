@@ -1,21 +1,21 @@
 <template>
   <div class="sys-setting-section">
-    <div class="settings-card">
+    <div v-if="inArea('address')" class="settings-card">
       <div class="card-title">{{ t('emailAddressSetting') }}</div>
       <div class="card-content">
         <div class="setting-item">
-          <div>
-            <span>{{ t('emailPrefix') }}</span>
-          </div>
-          <div>
-            <el-button
-              class="opt-button"
-              type="primary"
-              :aria-label="t('emailPrefix')"
-              @click="emailPrefixShow = true"
-              ><Icon icon="mingcute:settings-3-line" width="18"
-            /></el-button>
-          </div>
+          <div><span>{{ t('addAccount') }}</span></div>
+          <div><el-switch v-model="setting.addEmail" @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1" /></div>
+        </div>
+        <div class="setting-item">
+          <div><span>{{ t('multipleEmail') }}</span><el-tooltip effect="dark" :content="t('multipleEmailDesc')"><Icon class="warning" icon="mingcute:information-line" width="18" height="18" /></el-tooltip></div>
+          <div><el-switch v-model="setting.manyEmail" @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1" /></div>
+        </div>
+        <div class="settings-inline-field">
+          <div class="settings-inline-heading"><span>{{ t('emailPrefix') }}</span><div class="email-prefix"><span>{{ t('atLeast') }}</span><el-input-number v-model="minEmailPrefix" :aria-label="t('emailPrefix')" :min="1" :max="20" style="width: 150px"><template #suffix>{{ t('character') }}</template></el-input-number></div></div>
+          <p>{{ t('emailPrefixRulesHint') }}</p>
+          <el-input-tag v-model="emailPrefixFilter" :aria-label="t('mustNotContain')" :placeholder="t('emailPrefixFilterPlaceholder')" />
+          <div class="settings-inline-actions"><el-button @click="resetEmailPrefix">{{ t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="saveEmailPrefix">{{ t('settingsInlineSave') }}</el-button></div>
         </div>
         <div class="setting-item">
           <div>
@@ -41,7 +41,7 @@
         </div>
       </div>
     </div>
-    <div class="settings-card">
+    <div v-if="inArea('delivery')" class="settings-card">
       <div class="card-title">{{ t('emailSetting') }}</div>
       <div class="card-content">
         <div class="setting-item">
@@ -137,37 +137,6 @@
         </div>
       </div>
     </div>
-    <el-dialog
-      class="sys-setting-dialog ss-dialog-sm"
-      v-model="emailPrefixShow"
-      :title="t('emailPrefix')"
-      @closed="resetEmailPrefix"
-    >
-      <div class="email-prefix">
-        <span>{{ t('atLeast') }}</span
-        ><el-input-number
-          v-model="minEmailPrefix"
-          :min="1"
-          :max="20"
-          style="width: 150px"
-          ><template #suffix>{{ t('character') }}</template></el-input-number
-        >
-      </div>
-      <div class="prefix-filter">
-        <label>{{ t('mustNotContain') }}</label
-        ><el-input-tag
-          v-model="emailPrefixFilter"
-          :placeholder="t('mustNotContainDesc')"
-        />
-      </div>
-      <el-button
-        type="primary"
-        class="save-prefix"
-        :loading="settingLoading"
-        @click="saveEmailPrefix"
-        >{{ t('save') }}</el-button
-      >
-    </el-dialog>
     <el-dialog
       class="sys-setting-dialog sending-services-dialog"
       v-model="providerDialogShow"
@@ -293,10 +262,20 @@
 </template>
 <script setup>
 import { computed, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import { useI18n } from 'vue-i18n';
 import { useSysSetting } from '../use-sys-setting.js';
 defineOptions({ name: 'sys-setting-registration' });
+const props = defineProps({settingsArea:{type:String,default:''}});
+const route = useRoute();
+const sectionArea = computed(() => {
+  if (props.settingsArea) return props.settingsArea;
+  if (['emailPrefix','randomPrefixLength','addAccount','multipleEmail'].includes(route.query.find)) return 'address';
+  if (['receiveEmail','sendEmail','autoRefresh','noRecipientTitle','sendProvider'].includes(route.query.find)) return 'delivery';
+  return '';
+});
+const inArea = area => !sectionArea.value || sectionArea.value === area;
 const { t } = useI18n();
 const {
   setting,
@@ -306,10 +285,12 @@ const {
   change,
   beforeChange,
   onSettingsLoaded,
+  onSettingsDirty,
 } = useSysSetting();
-const emailPrefixShow = ref(false),
-  minEmailPrefix = ref(0),
+const minEmailPrefix = ref(0),
   emailPrefixFilter = ref([]);
+let prefixBaseline;
+const prefixSnapshot = () => JSON.stringify({minEmailPrefix:minEmailPrefix.value,emailPrefixFilter:emailPrefixFilter.value});
 const providerDialogShow = ref(false),
   tokenDialogShow = ref(false);
 const providers = [
@@ -400,16 +381,16 @@ async function deleteToken() {
 function resetEmailPrefix() {
   minEmailPrefix.value = setting.value.minEmailPrefix;
   emailPrefixFilter.value = [...(setting.value.emailPrefixFilter || [])];
+  prefixBaseline = prefixSnapshot();
 }
-onSettingsLoaded(resetEmailPrefix);
+onSettingsLoaded(() => { if (prefixBaseline === undefined || prefixSnapshot() === prefixBaseline) resetEmailPrefix(); });
+onSettingsDirty(() => prefixBaseline !== undefined && prefixSnapshot() !== prefixBaseline, resetEmailPrefix);
 async function saveEmailPrefix() {
-  if (
-    await editSetting({
-      minEmailPrefix: minEmailPrefix.value,
-      emailPrefixFilter: emailPrefixFilter.value,
-    })
-  )
-    emailPrefixShow.value = false;
+  const saved = {minEmailPrefix:minEmailPrefix.value,emailPrefixFilter:[...emailPrefixFilter.value]};
+  const ok = await editSetting({
+      ...saved,
+    });
+  if (ok) prefixBaseline = JSON.stringify(saved);
 }
 </script>
 <style scoped lang="scss">

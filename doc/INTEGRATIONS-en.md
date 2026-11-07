@@ -7,7 +7,7 @@
 
 Configure Resend, QueenSMTP and SendFlare together under System Settings → Mail Settings → Sending Service → Manage. Select the service and domain when adding a token; click a configured service to replace or remove its token, and choose the default service per domain. SendFlare single and batch delivery, attachments and inline images follow the [official API](https://docs.sendflare.com/docs/api/integration/). Senders must still be active mailboxes owned by the user.
 
-The Outbox combines Sent and Drafts; `/drafts` opens its draft tab. Roles control viewing, sending and receiving mailbox transfers and managing linked sign-in accounts. New permissions are disabled for ordinary roles until granted by an administrator. Transfers also enforce recipient domain permissions and mailbox quota. Existing provider sign-in bindings continue to work.
+The Outbox shows sent mail and drafts in one list. An edit icon and Draft label identify drafts; click to continue editing. `/drafts` opens the unified Outbox. Roles control viewing, sending and receiving mailbox transfers and managing linked sign-in accounts. New permissions are disabled for ordinary roles until granted by an administrator. Transfers also enforce recipient domain permissions and mailbox quota. Existing provider sign-in bindings continue to work.
 
 
 
@@ -42,6 +42,8 @@ Select a provider in **System Settings → OAuth Integration**, enter its Client
 |---|---|---|
 | NodeLoc | [Applications](https://www.nodeloc.com/oauth-provider/applications) | `/oauth/nodeloc` |
 | Telegram | [BotFather](https://t.me/BotFather) → Login Widget | `/oauth/telegram` |
+| GitHub | [Developer settings](https://github.com/settings/developers) → OAuth Apps | `/oauth/github` |
+| Google | [Google Auth Platform](https://console.cloud.google.com/auth/clients) → Web application client | `/oauth/google` |
 | LinuxDo | [LinuxDo Connect](https://connect.linux.do/) | `/oauth/linuxdo` |
 
 The page generates a read-only callback URL for your site. Register that exact URL with the provider, for example `https://mail.example.com/oauth/nodeloc`.

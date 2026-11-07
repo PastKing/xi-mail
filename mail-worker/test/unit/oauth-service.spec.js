@@ -12,9 +12,11 @@ import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 
 const telegramKeys = await generateKeyPair('RS256');
 const telegramJwk = { ...await exportJWK(telegramKeys.publicKey), kid: 'telegram-test', alg: 'RS256', use: 'sig' };
+const googleKeys = await generateKeyPair('RS256');
+const googleJwk = { ...await exportJWK(googleKeys.publicKey), kid: 'google-test', alg:'RS256', use:'sig' };
 
 async function configureProvider(id) {
-  await oauthConfig.save(c, { [id + 'Switch']: true, [id + 'ClientId']: id === 'telegram' ? '123456789' : 'nodeloc-client',
+  await oauthConfig.save(c, { [id + 'Switch']: true, [id + 'ClientId']: id === 'telegram' ? '123456789' : id + '-client',
     [id + 'ClientSecret']: `${id}-fixture-secret`, [id + 'CallbackUrl']: `https://mail.example.com/oauth/${id}` }, id);
 }
 function mockTelegram(overrides = {}, signingKey = telegramKeys.privateKey) {
@@ -38,6 +40,32 @@ function mockTelegram(overrides = {}, signingKey = telegramKeys.privateKey) {
   }));
 }
 let telegramNonce;
+let googleNonce;
+function mockGoogle(claims={}, key=googleKeys.privateKey) {
+  vi.stubGlobal('fetch', vi.fn(async (url,options) => {
+    if (url.toString()==='https://www.googleapis.com/oauth2/v3/certs') return Response.json({keys:[googleJwk]});
+    expect(url).toBe('https://oauth2.googleapis.com/token');
+    expect(options.body.get('code_verifier')).toMatch(/^[a-f0-9]{64}$/);
+    expect(options.body.get('client_id')).toBe('google-client');
+    expect(options.body.get('client_secret')).toBe('google-fixture-secret');
+    return Response.json({id_token: await new SignJWT({nonce:googleNonce,name:'Google User',...claims})
+      .setProtectedHeader({alg:'RS256',kid:googleJwk.kid}).setIssuer(claims.iss ?? 'https://accounts.google.com')
+      .setAudience(claims.aud ?? 'google-client').setSubject(claims.sub ?? 'stable-google-sub')
+      .setIssuedAt().setExpirationTime(claims.exp ?? '5m').sign(key)});
+  }));
+}
+function mockGitHub(info={}) {
+  vi.stubGlobal('fetch',vi.fn(async (url,options) => {
+    if (url==='https://github.com/login/oauth/access_token') {
+      expect(options.body.get('client_id')).toBe('github-client');
+      expect(options.body.get('code_verifier')).toMatch(/^[a-f0-9]{64}$/);
+      return Response.json({access_token:'github-fixture-access'});
+    }
+    expect(url).toBe('https://api.github.com/user');
+    expect(options.headers['User-Agent']).toBe('Xi-Mail');
+    return Response.json({id:789,login:'github-login',name:'Display Name',...info});
+  }));
+}
 async function authorizeTelegram(intent = 'bind') {
   const flow = await oauthService.authorize(c, intent, 'telegram');
   telegramNonce = new URL(flow.authorizationUrl).searchParams.get('nonce');
@@ -76,7 +104,55 @@ beforeEach(async () => {
     linuxdoCallbackUrl: 'https://mail.example.com/oauth/linuxdo', linuxdoMinTrustLevel: 1 });
 });
 
-describe.skipIf(!DatabaseSync)('Telegram and NodeLoc integrations', () => {
+describe.skipIf(!DatabaseSync)('OAuth provider integrations', () => {
+  it.each(['github','google'])('configures %s independently, without exposing secrets',async id=>{
+    await configureProvider(id); await oauthConfig.save(c,{[id+'ClientSecret']:''},id);
+    expect((await oauthConfig.get(c,id)).clientSecret).toBe(id+'-fixture-secret');
+    await expect(oauthConfig.save(c,{[id+'CallbackUrl']:'https://mail.example.com/oauth/other'},id)).rejects.toMatchObject({code:400});
+    expect((await configService.get(c)).clientId).toBe('test-app');
+  });
+  it('binds GitHub by stable numeric ID and display login, without repository or email scopes',async()=>{
+    await configureProvider('github'); mockGitHub();
+    const flow=await oauthService.authorize(c,'bind','github'),url=new URL(flow.authorizationUrl);
+    expect(url.searchParams.get('scope')).toBeNull();
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(url.searchParams.get('nonce')).toBeNull();
+    await oauthService.finish(c,{code:'fixture',state:flow.state},'bind','github');
+    expect(await bindings.findIdentity(c,'github','789')).toMatchObject({userId:10,displayName:'github-login'});
+  });
+  it('verifies Google signatures/nonce and binds the OIDC subject rather than the email address',async()=>{
+    await configureProvider('google'); mockGoogle({email:'someone@example.com',email_verified:true});
+    const flow=await oauthService.authorize(c,'bind','google'),url=new URL(flow.authorizationUrl);
+    googleNonce=url.searchParams.get('nonce');
+    expect(url.searchParams.get('scope')).toBe('openid profile');
+    await oauthService.finish(c,{code:'fixture',state:flow.state},'bind','google');
+    expect(await bindings.findIdentity(c,'google','stable-google-sub')).toMatchObject({userId:10,displayName:'Google User'});
+    expect(await bindings.findIdentity(c,'google','someone@example.com')).toBeUndefined();
+  });
+  it.each([{iss:'https://attacker.example'},{aud:'other-client'},{nonce:'wrong'},{sub:''},{sub:'bad/subject'},
+    {exp:Math.floor(Date.now()/1000)-100},{aud:['google-client','other'],azp:'other'},{azp:'other'}])('rejects Google identity claims %j',async claims=>{
+    await configureProvider('google');mockGoogle(claims);
+    const flow=await oauthService.authorize(c,'bind','google');googleNonce=new URL(flow.authorizationUrl).searchParams.get('nonce');
+    await expect(oauthService.finish(c,{code:'fixture',state:flow.state},'bind','google')).rejects.toMatchObject({code:400});
+  });
+  it('rejects forged Google signatures',async()=>{
+    await configureProvider('google');const wrong=await generateKeyPair('RS256');mockGoogle({},wrong.privateKey);
+    const flow=await oauthService.authorize(c,'bind','google');googleNonce=new URL(flow.authorizationUrl).searchParams.get('nonce');
+    await expect(oauthService.finish(c,{code:'fixture',state:flow.state},'bind','google')).rejects.toMatchObject({code:400});
+  });
+  it.each(['github','google'])('requires an existing binding for %s and rejects a different binding session',async id=>{
+    await configureProvider(id);if(id==='google')mockGoogle();else mockGitHub();
+    let flow=await oauthService.authorize(c,'login',id);googleNonce=new URL(flow.authorizationUrl).searchParams.get('nonce');
+    await expect(oauthService.finish(c,{code:'fixture',state:flow.state},'login',id)).rejects.toMatchObject({code:403});
+    await bindings.bind(c,10,id,id==='google'?'stable-google-sub':'789','existing');
+    const login=vi.spyOn(loginService,'login').mockResolvedValue('session-token');
+    vi.spyOn(userService,'selectByIdIncludeDel').mockResolvedValue({userId:10,email:'user10@example.com'});
+    flow=await oauthService.authorize(c,'login',id);googleNonce=new URL(flow.authorizationUrl).searchParams.get('nonce');
+    expect(await oauthService.finish(c,{code:'fixture',state:flow.state},'login',id)).toEqual({token:'session-token'});
+    expect(login).toHaveBeenCalledWith(c,{email:'user10@example.com'},true);
+    flow=await oauthService.authorize(c,'bind',id);
+    await expect(oauthService.finish(context(10,'different-session'),{code:'fixture',state:flow.state},'bind',id)).rejects.toMatchObject({code:403});
+  });
   it.each(['telegram', 'nodeloc'])('isolates %s configuration and preserves secrets and existing bindings', async id => {
     await configureProvider(id);
     await oauthConfig.save(c, { [id + 'ClientSecret']: '' }, id);

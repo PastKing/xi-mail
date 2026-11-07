@@ -1,5 +1,22 @@
 import { emailConst } from '../const/entity-const';
 
+import { ensureAnalysisIndexes } from '../service/mail-index-service';
+
+async function dayCounts(c, table, type, offset) {
+    await ensureAnalysisIndexes(c);
+    const hours = Number(offset);
+    if (!Number.isFinite(hours) || Math.abs(hours) > 14) throw new Error('Invalid time zone offset');
+    const forward = `${hours >= 0 ? '+' : ''}${hours} hours`;
+    const backward = `${hours <= 0 ? '+' : ''}${-hours} hours`;
+    const values = [forward, forward, backward, forward, backward];
+    if (type !== null) values.push(type);
+    const { results } = await c.env.db.prepare(`SELECT DATE(create_time, ?) AS date, COUNT(*) AS total FROM ${table}
+        WHERE create_time >= datetime('now', ?, 'start of day', '-15 days', ?)
+        AND create_time < datetime('now', ?, 'start of day', ?) ${type === null ? '' : 'AND type = ?'}
+        GROUP BY date ORDER BY date ASC`).bind(...values).all();
+    return results;
+}
+
 const analysisDao = {
 	async numberCount(c) {
 		const { results } = await c.env.db.prepare(`
@@ -48,59 +65,9 @@ const analysisDao = {
 		return results[0];
 	},
 
-	async userDayCount(c, diffHours) {
-		const { results } = await c.env.db.prepare(`
-            SELECT
-                DATE(create_time,'+${diffHours} hours') AS date,
-                COUNT(*) AS total
-            FROM
-                user
-            WHERE
-                DATE(create_time,'+${diffHours} hours') BETWEEN DATE('now', '-15 days', '+${diffHours} hours') AND DATE('now','-1 day','+${diffHours} hours')
-            GROUP BY
-                DATE(create_time,'+${diffHours} hours')
-            ORDER BY
-                date ASC
-        `).all();
-		return results;
-	},
-
-	async receiveDayCount(c, diffHours) {
-		const { results } = await c.env.db.prepare(`
-            SELECT
-                DATE(create_time,'+${diffHours} hours') AS date,
-                COUNT(*) AS total
-            FROM
-                email
-            WHERE
-			  				DATE(create_time,'+${diffHours} hours') BETWEEN DATE('now', '-15 days', '+${diffHours} hours') AND DATE('now','-1 day','+${diffHours} hours')
-                AND type = 0
-            GROUP BY
-                DATE(create_time,'+${diffHours} hours')
-            ORDER BY
-                date ASC
-        `).all();
-		return results;
-	},
-
-	async sendDayCount(c, diffHours) {
-		const { results } = await c.env.db.prepare(`
-            SELECT
-                DATE(create_time,'+${diffHours} hours') AS date,
-                COUNT(*) AS total
-            FROM
-                email
-            WHERE
-			  				DATE(create_time,'+${diffHours} hours') BETWEEN DATE('now', '-15 days', '+${diffHours} hours') AND DATE('now','-1 day','+${diffHours} hours')
-                AND type = 1
-            GROUP BY
-                DATE(create_time,'+${diffHours} hours')
-            ORDER BY
-                date ASC
-        `).all();
-		return results;
-	}
-
+    async userDayCount(c, diffHours) { return dayCounts(c, 'user', null, diffHours); },
+    async receiveDayCount(c, diffHours) { return dayCounts(c, 'email', 0, diffHours); },
+    async sendDayCount(c, diffHours) { return dayCounts(c, 'email', 1, diffHours); },
 };
 
 export default analysisDao;

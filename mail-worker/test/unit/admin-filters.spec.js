@@ -21,7 +21,7 @@ function d1(db) {
     all: async () => ({ success: true, results: db.prepare(sql).all(...values) }),
     raw: async () => { const statement = db.prepare(sql); statement.setReturnArrays(true); return statement.all(...values); },
   });
-  return { prepare };
+  return { prepare, batch: async statements => Promise.all(statements.map(statement => statement.run())) };
 }
 let sql, c;
 function insert(table, row) {
