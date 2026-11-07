@@ -9,6 +9,7 @@ import { parseHTML } from 'linkedom';
 import { v4 as uuidv4 } from 'uuid';
 import domainUtils from '../utils/domain-uitls';
 import settingService from "./setting-service";
+import { attachmentDisposition } from '../utils/object-policy';
 
 const attService = {
 
@@ -21,9 +22,9 @@ const attService = {
 			}
 
 			if (!attachment.contentId) {
-				metadate.contentDisposition = `attachment;filename=${attachment.filename}`
+				metadate.contentDisposition = attachmentDisposition(attachment.filename)
 			} else {
-				metadate.contentDisposition = `inline;filename=${attachment.filename}`
+				metadate.contentDisposition = attachmentDisposition(attachment.filename, true)
 				metadate.cacheControl = `max-age=259200`
 			}
 
@@ -207,7 +208,7 @@ const attService = {
 		for (let att of attList) {
 			await r2Service.putObj(c, att.key, att.buff, {
 				contentType: att.type,
-				contentDisposition: `attachment;filename=${att.filename}`
+				contentDisposition: attachmentDisposition(att.filename)
 			});
 		}
 
@@ -228,7 +229,7 @@ const attService = {
 			await r2Service.putObj(c, attData.key, attData.buff, {
 				contentType: attData.mimeType,
 				cacheControl: `max-age=259200`,
-				contentDisposition: `inline;filename=${attData.filename}`
+				contentDisposition: attachmentDisposition(attData.filename, true)
 			});
 			delete attData.buff;
 		}

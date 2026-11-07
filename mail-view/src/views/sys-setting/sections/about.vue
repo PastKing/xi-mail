@@ -38,7 +38,7 @@
               <span class="donate-chain" :class="wallet.chain.toLowerCase()">{{ wallet.chain }}</span>
               <code class="donate-addr" @click="copyAddr(wallet.address)">{{ wallet.address }}</code>
               <el-tooltip :content="$t('copy')">
-                <el-button circle size="small" plain @click="copyAddr(wallet.address)">
+                <el-button circle plain @click="copyAddr(wallet.address)">
                   <Icon icon="mingcute:copy-2-line" width="13" height="13"/>
                 </el-button>
               </el-tooltip>
@@ -172,7 +172,7 @@ function copyAddr(addr) {
     flex: 1;
     min-width: 0;
     font-family: 'Courier New', monospace;
-    font-size: 11.5px;
+    font-size: 14px;
     color: var(--el-text-color-regular);
     word-break: break-all;
     cursor: pointer;

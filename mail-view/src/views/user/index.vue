@@ -1,52 +1,127 @@
 <template>
   <div class="user-box">
     <div class="header-actions">
-      <el-tooltip :content="$t('addUser')" placement="top">
-        <Icon class="icon" icon="mingcute:add-line" width="18" height="18" @click="openAdd"/>
-      </el-tooltip>
-      <div class="search">
-        <el-input
-            v-model="params.email"
-            class="search-input"
-            :placeholder="$t('searchByEmail')"
-        >
-        </el-input>
+      <div class="user-filters">
+        <div class="search">
+          <el-input v-model="params.email" class="search-input" :placeholder="$t('searchByEmail')" @keyup.enter="search" >
+          </el-input>
+        </div>
+        <el-select v-model="params.status" :aria-label="$t('adminStatusFilter')" class="status-select" @change="search">
+          <template #prefix>
+            <span class="status-label-full">{{ $t('adminStatusFilter') }}</span>
+            <span class="status-label-short">{{ $t('userStatusShort') }}</span>
+          </template>
+          <el-option :key="-1" :label="$t('all')" :value="-1"/>
+          <el-option :key="0" :label="$t('active')" :value="0"/>
+          <el-option :key="1" :label="$t('banned')" :value="1"/>
+          <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
+        </el-select>
+        <el-select v-model="params.roleId" :aria-label="$t('adminRoleFilter')" :placeholder="$t('adminAllRoles')" class="role-filter" @change="search" filterable>
+          <el-option :label="$t('adminAllRoles')" value="" />
+          <el-option :label="$t('admin')" :value="0" />
+          <el-option v-for="role in roleList" :key="role.roleId" :label="role.name" :value="role.roleId" />
+        </el-select>
+        <el-select v-model="params.provider" :aria-label="$t('adminProviderFilter')" :placeholder="$t('adminAllProviders')" class="provider-filter" @change="search">
+          <el-option :label="$t('adminAllProviders')" value="" />
+          <el-option :label="$t('adminHasBindings')" value="bound" />
+          <el-option :label="$t('adminNoBindings')" value="unbound" />
+          <el-option v-for="provider in OAUTH_PROVIDERS" :key="provider.id" :label="provider.name" :value="provider.id" />
+        </el-select>
       </div>
-      <el-select v-model="params.status" placeholder="Select" class="status-select"
-                 :style="`width: ${locale === 'en' ? 95 : 80 }px`">
-        <el-option :key="-1" :label="$t('all')" :value="-1"/>
-        <el-option :key="0" :label="$t('active')" :value="0"/>
-        <el-option :key="1" :label="$t('banned')" :value="1"/>
-        <el-option :key="-2" :label="$t('deleted')" :value="-2"/>
-      </el-select>
-      <el-tooltip :content="$t('searchAction')" placement="top">
-        <Icon class="icon" icon="mingcute:search-line" @click="search" width="18" height="18"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('sortByTime')" placement="top">
-        <Icon class="icon" @click="changeTimeSort" icon="mingcute:sort-descending-line"
-              v-if="params.timeSort === 1" width="18" height="18"/>
-        <Icon class="icon" @click="changeTimeSort" icon="mingcute:sort-ascending-line" v-else width="18"
-              height="18"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('sortByLogin')" placement="top">
-        <Icon class="icon" @click="changeLoginSort" icon="mingcute:time-line" width="18" height="18"
-              :style="params.loginSort ? 'color: var(--el-color-primary)' : ''" />
-      </el-tooltip>
-      <el-tooltip :content="$t('refresh')" placement="top">
-        <Icon class="icon" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('batchBan')" placement="top">
-        <Icon class="icon" icon="mingcute:forbid-circle-line" width="18" height="18" @click="batchBan"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('batchEnable')" placement="top">
-        <Icon class="icon" icon="mingcute:check-circle-line" width="18" height="18" @click="batchEnable"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('batchRestore')" placement="top">
-        <Icon class="icon" icon="mingcute:restore-line" width="18" height="18" @click="batchRestoreUsers"/>
-      </el-tooltip>
-      <el-tooltip :content="$t('delete')" placement="top">
-        <Icon class="icon" icon="mingcute:delete-2-line" width="18" height="18" @click="delUser"/>
-      </el-tooltip>
+      <div class="user-tools">
+        <el-tooltip :content="$t('addUser')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('addUser')" @click="openAdd" >
+            <Icon icon="mingcute:add-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('searchAction')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('searchAction')" @click="search" >
+            <Icon icon="mingcute:search-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('sortByTime')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('sortByTime')" @click="changeTimeSort" >
+            <Icon :icon="params.timeSort === 1 ? 'mingcute:sort-descending-line' : 'mingcute:sort-ascending-line'" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('sortByLogin')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('sortByLogin')" @click="changeLoginSort" :class="{ 'is-active': params.loginSort }">
+            <Icon icon="mingcute:time-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <el-tooltip :content="$t('refresh')" placement="top">
+          <button type="button" class="xi-icon-button" :aria-label="$t('refresh')" @click="refresh" >
+            <Icon icon="mingcute:refresh-2-line" width="18" height="18" />
+          </button>
+        </el-tooltip>
+        <div class="user-batch-tools">
+          <el-tooltip :content="$t('batchBan')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('batchBan')" @click="batchBan" >
+              <Icon icon="mingcute:forbid-circle-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="$t('batchEnable')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('batchEnable')" @click="batchEnable" >
+              <Icon icon="mingcute:check-circle-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="$t('batchRestore')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('batchRestore')" @click="batchRestoreUsers" >
+              <Icon icon="mingcute:restore-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+          <el-tooltip :content="$t('delete')" placement="top">
+            <button type="button" class="xi-icon-button" :aria-label="$t('delete')" @click="delUser" >
+              <Icon icon="mingcute:delete-2-line" width="18" height="18" />
+            </button>
+          </el-tooltip>
+        </div>
+        <el-dropdown class="user-batch-menu" trigger="click" placement="bottom-end">
+          <button type="button" class="user-batch-trigger" :aria-label="$t('userBatchActions')">
+            <Icon icon="mingcute:more-1-line" width="18" height="18" />
+            <span>
+              {{ $t('userBatchActions') }}
+            </span>
+            <Icon icon="mingcute:down-small-line" width="16" height="16" />
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="batchBan">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:forbid-circle-line" width="18" height="18" />
+                  <span>
+                    {{ $t('batchBan') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item @click="batchEnable">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:check-circle-line" width="18" height="18" />
+                  <span>
+                    {{ $t('batchEnable') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item @click="batchRestoreUsers">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:restore-line" width="18" height="18" />
+                  <span>
+                    {{ $t('batchRestore') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+              <el-dropdown-item @click="delUser">
+                <div class="user-menu-item">
+                  <Icon icon="mingcute:delete-2-line" width="18" height="18" />
+                  <span>
+                    {{ $t('delete') }}
+                  </span>
+                </div>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </div>
     <el-scrollbar ref="scrollbarRef" class="scrollbar">
       <div>
@@ -70,8 +145,17 @@
             <template #default="props">
               <div style="display: flex;gap: 5px">
                 <div class="email-row">{{ props.row.email }}</div>
-                <el-tag type="warning" v-if="props.row.username">L</el-tag>
               </div>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="typeShow" :label="$t('adminProviderFilter')" min-width="125">
+            <template #default="props">
+              <div v-if="props.row.oauthBindings?.length" class="user-binding-icons">
+                <el-tooltip v-for="binding in props.row.oauthBindings" :key="binding.provider" :content="providerName(binding.provider) + (binding.displayName ? ' · ' + binding.displayName : '')">
+                  <button type="button" class="user-binding-button" :aria-label="$t('adminBindingDetails') + ' ' + providerName(binding.provider)" @click="openDetails(props.row)"><img :src="providerLogo(binding.provider)" :alt="providerName(binding.provider)" width="18" height="18" /></button>
+                </el-tooltip>
+              </div>
+              <span v-else class="user-binding-empty">{{ $t('oauthUnbound') }}</span>
             </template>
           </el-table-column>
           <el-table-column :formatter="formatterReceive" label-class-name="receive" column-key="receive"
@@ -249,12 +333,13 @@
     <el-dialog class="account-dialog" v-model="detailsShow" :title="t('userDetails')"  >
       <div class="details">
         <div v-if="userDetails.displayId"><span class="details-item-title">{{ $t('displayId') }}:</span><span style="font-family: monospace; font-size: 13px; letter-spacing: 0.5px;">{{ userDetails.displayId }}</span></div>
-        <div v-if="userDetails.username"><span class="details-item-title">LinuxDo:</span>
-          <el-avatar :src="userDetails.avatar" :size="30" class="linuxdo-avatar"  />
-          <span style="margin: 0 10px">用户名：{{userDetails.username}}</span>
-          <span>
-                    等级：<el-tag type="success">{{userDetails.trustLevel}}</el-tag>
-                  </span>
+        <div class="user-binding-details">
+          <span class="details-item-title">{{ $t('adminProviderFilter') }}:</span>
+          <span v-if="!userDetails.oauthBindings?.length" class="user-binding-empty">{{ $t('adminNoBindings') }}</span>
+          <div v-for="binding in userDetails.oauthBindings || []" :key="binding.provider" class="user-binding-detail">
+            <img :src="providerLogo(binding.provider)" :alt="providerName(binding.provider)" width="22" height="22" />
+            <div><strong>{{ providerName(binding.provider) }}</strong><span>{{ binding.displayName || $t('oauthBound') }}</span><small>{{ $t('adminBoundAt') }} {{ binding.createTime ? tzDayjs(binding.createTime).format('YYYY-MM-DD HH:mm') : $t('unknown') }}</small></div>
+          </div>
         </div>
         <div v-if="!sendNumShow"><span
             class="details-item-title">{{ $t('tabSent') }}:</span>{{ userDetails.sendEmailCount }}
@@ -411,12 +496,15 @@ import {isEmail} from "@/utils/verify-utils.js";
 import {useRoleStore} from "@/store/role.js";
 import {useUserStore} from "@/store/user.js";
 import {useI18n} from 'vue-i18n';
+import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
 
 defineOptions({
   name: 'user'
 })
 
 const {t, locale} = useI18n();
+const providerName = id => OAUTH_PROVIDERS.find(provider => provider.id === id)?.name || id
+const providerLogo = id => OAUTH_PROVIDERS.find(provider => provider.id === id)?.logo
 const roleStore = useRoleStore()
 const userStore = useUserStore()
 const settingStore = useSettingStore()
@@ -473,7 +561,9 @@ const params = reactive({
   size: 15,
   timeSort: 0,
   loginSort: 0,
-  status: -1
+  status: -1,
+  roleId: '',
+  provider: '',
 })
 let chooseUser = {}
 const userForm = reactive({
@@ -490,6 +580,7 @@ const setPwdShow = ref(false)
 const pagerCount = ref(10)
 const settingLoading = ref(false)
 const tableLoading = ref(true)
+let userListRequest = 0
 const roleList = reactive([])
 const accountList = reactive([])
 const accountParams = reactive({
@@ -512,6 +603,8 @@ if (paramsStar) {
   params.timeSort = localParams.timeSort
   params.loginSort = localParams.loginSort || 0
   params.status = localParams.status
+  params.roleId = localParams.roleId ?? ''
+  params.provider = localParams.provider || ''
 }
 
 watch(() => params, () => {
@@ -1067,6 +1160,8 @@ function refresh() {
   params.email = ''
   params.num = 1
   params.status = -1
+  params.roleId = ''
+  params.provider = ''
   params.timeSort = 0
   params.loginSort = 0
   getUserList();
@@ -1102,7 +1197,7 @@ function sizeChange(size) {
 }
 
 function getUserList(loading = true) {
-
+  const requestId = ++userListRequest
   tableLoading.value = loading
   const newParams = {...params}
 
@@ -1111,10 +1206,12 @@ function getUserList(loading = true) {
     newParams.isDel = 1
   }
   userList(newParams).then(data => {
+    if (requestId !== userListRequest) return
     users.value = data.list.map(item => ({...item, checkedClass: ''}))
     total.value = data.total
     scrollbarRef.value?.setScrollTop(0);
-  }).finally(() => {
+  }).catch(() => { /* The request interceptor displays the error. */ }).finally(() => {
+    if (requestId !== userListRequest) return
     tableLoading.value = false
     setTimeout(() => {
       first.value = false
@@ -1169,6 +1266,11 @@ function adjustWidth() {
 .user-box {
   overflow: hidden;
   height: 100%;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 :deep(.el-dialog) {
@@ -1204,7 +1306,7 @@ function adjustWidth() {
 .header-actions {
   padding: 10px 16px;
   display: flex;
-  gap: 12px;
+  gap: 8px 16px;
   flex-wrap: wrap;
   align-items: center;
   border-bottom: 1px solid var(--el-border-color-lighter);
@@ -1232,6 +1334,33 @@ function adjustWidth() {
   }
 }
 
+.user-filters, .user-tools, .user-batch-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.user-tools { gap: 4px; }
+.user-batch-tools { gap: 4px; padding-left: 8px; margin-left: 4px; border-left: 1px solid var(--el-border-color-lighter); }
+.user-batch-menu { display: none; }
+.status-label-short { display: none; }
+.user-menu-item { display: flex; align-items: center; gap: 8px; }
+.user-batch-trigger { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border: 1px solid var(--el-border-color); border-radius: 6px; background: var(--el-bg-color); color: var(--el-text-color-regular); font: inherit; font-size: 13px; cursor: pointer; }
+.user-batch-trigger:focus-visible { outline: 2px solid var(--el-color-primary-light-5); outline-offset: 1px; }
+@media (max-width: 767px) {
+  .status-label-full { display: none; }
+  .status-label-short { display: inline; }
+  .header-actions { display: flex; flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+  .user-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .user-filters .search { grid-column: 1 / -1; }
+  .header-actions .search-input, .user-filters .status-select, .user-filters .role-filter, .user-filters .provider-filter { width: 100%; }
+  .user-filters .provider-filter { grid-column: 1 / -1; }
+  .header-actions .search :deep(.el-input__wrapper), .user-filters :deep(.el-select__wrapper) { min-height: 36px; }
+  .user-tools { flex-wrap: nowrap; gap: 4px; padding-top: 8px; border-top: 1px solid var(--el-border-color-lighter); }
+  .user-batch-tools { display: none; }
+  .user-batch-menu { display: inline-flex; margin-left: auto; }
+}
+@media (max-width: 359px) {
+  .user-tools { gap: 2px; }
+  .user-batch-trigger { padding: 0; width: 36px; justify-content: center; }
+  .user-batch-trigger span, .user-batch-trigger > svg:last-child { display: none; }
+}
+
 .container {
   display: grid;
   grid-template-columns: 1fr;
@@ -1251,10 +1380,8 @@ function adjustWidth() {
 .scrollbar {
   width: 100%;
   overflow: auto;
-  height: calc(100% - 50px);
-  @media (max-width: 464px) {
-    height: calc(100% - 90px);
-  }
+  flex: 1;
+  min-height: 0;
 }
 
 .details {
@@ -1306,10 +1433,24 @@ function adjustWidth() {
 }
 
 .status-select {
+  width: 168px;
   :deep(.el-select__wrapper) {
     min-height: 28px;
   }
 }
+.role-filter { width: 150px; }
+.provider-filter { width: 155px; }
+.user-binding-icons { display: flex; align-items: center; gap: 5px; }
+.user-binding-button { display: grid; place-items: center; width: 28px; height: 28px; padding: 4px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color-lighter); border-radius: 7px; cursor: pointer; }
+.user-binding-button:hover, .user-binding-button:focus-visible { border-color: var(--el-color-primary); outline: none; }
+.user-binding-button img, .user-binding-detail > img { object-fit: contain; flex-shrink: 0; }
+.user-binding-empty { font-size: 12px; color: var(--el-text-color-secondary); }
+.user-binding-details { display: flex; flex-direction: column; gap: 12px; }
+.user-binding-detail { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--el-border-color-lighter); border-radius: 8px; }
+.user-binding-detail > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.user-binding-detail strong { font-size: 13px; font-weight: 500; }
+.user-binding-detail span { font-size: 12px; overflow-wrap: anywhere; }
+.user-binding-detail small { color: var(--el-text-color-secondary); font-size: 11px; }
 
 .dialog {
   .dialog-box {

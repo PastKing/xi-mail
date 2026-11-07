@@ -24,7 +24,14 @@ import KvConst from '../../src/const/kv-const';
 let env;
 beforeEach(() => {
   vi.restoreAllMocks(); state.set.mockClear(); state.permissions = []; state.authenticated = true; state.channels = {};
-  vi.spyOn(settingService, 'query').mockResolvedValue({domainList: ['@first.example'], resendTokens: {'first.example': 'fake-saved-token'}, emailPrefixFilter: []});
+  vi.spyOn(settingService, 'query').mockResolvedValue({
+    domainList: ['@first.example'],
+    resendTokens: {'first.example': 'fake-saved-token'},
+    queenTokens: {},
+    sendProviders: {},
+    sendflareTokens: {},
+    emailPrefixFilter: [],
+  });
   vi.spyOn(settingService, 'refresh').mockResolvedValue();
   env = {admin: 'owner@example.net', EMAIL: {send: vi.fn()}, kv: {
     get: vi.fn(async key => key === KvConst.SEND_CHANNELS ? state.channels : null),
@@ -49,7 +56,11 @@ it('requires login and setting:set, validates before writes, and persists channe
   expect(state.set).not.toHaveBeenCalled();
   env.EMAIL = {send: vi.fn()};
   expect((await (await save(data)).json()).code).toBe(200);
-  expect(state.set).toHaveBeenCalledWith({resendTokens: JSON.stringify({'first.example': 'fake-saved-token'})});
+  expect(state.set).toHaveBeenCalledWith({
+    resendTokens: JSON.stringify({'first.example': 'fake-saved-token'}),
+    queenTokens: '{}',
+    sendProviders: '{}',
+  });
   expect(state.channels).toEqual({'first.example': 'cloudflare'});
   await save({send: 0});
   expect(state.channels).toEqual({'first.example': 'cloudflare'});

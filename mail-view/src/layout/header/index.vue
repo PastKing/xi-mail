@@ -6,7 +6,7 @@
     </div>
 
     <div v-perm="'email:send'" class="compose-btn" @click="openSend">
-      <Icon icon="mingcute:edit-2-line" width="16" height="16" />
+      <Icon icon="mingcute:edit-2-line" width="15" height="15" />
     </div>
 
     <div class="toolbar">
@@ -289,8 +289,8 @@ function formatName(email) {
 }
 
 .compose-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--xi-radius);
   background: var(--xi-gradient);
   color: #fff;

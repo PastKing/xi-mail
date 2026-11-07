@@ -10,6 +10,7 @@ node_modules
 dist-ssr
 *.local
 dist
+chrome-plug
 
 .vscode/*
 !.vscode/extensions.json
@@ -28,6 +29,12 @@ mail-vue/dist
 mail-worker/wrangler.local.toml
 task.md
 mail-worker/wrangler.toml
+mail-worker-sub/wrangler.toml
+mail-worker-sub/.cf.env
+mail-worker-sub/.cf-home
 
 git.md
 error.md
+# Local Worker secrets must never be committed.
+**/.dev.vars
+**/.dev.vars.*

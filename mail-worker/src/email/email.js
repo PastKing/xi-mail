@@ -12,6 +12,7 @@ import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
 import wecomService from '../service/wecom-service';
+import { managedSender, authenticatedSender, managedDomainList } from '../utils/sender-auth';
 
 function matchDomainList(list, address) {
 	if (!address) return false;
@@ -45,7 +46,8 @@ export async function email(message, env, ctx) {
 			senderDomainWhitelist,
 			aiCode,
 			aiCodeFilter,
-			aiModel
+			aiModel,
+			domainList
 		} = await settingService.query({ env });
 
 		if (receive === settingConst.receive.CLOSE) {
@@ -78,6 +80,11 @@ export async function email(message, env, ctx) {
 		}
 
 		const email = await PostalMime.parse(await new Response(message.raw).arrayBuffer());
+		if (managedSender(email.from?.address, managedDomainList({ domainList, domainMapping }, env))
+			&& !authenticatedSender(email.from?.address, message.headers?.get('Authentication-Results'))) {
+			message.setReject('Sender authentication failed');
+			return;
+		}
 
 		if (isWhitelistMode) {
 			// Whitelist mode: only authorized sender domains may deliver.
@@ -134,7 +141,7 @@ export async function email(message, env, ctx) {
 
 			let { banEmail, availDomain } = await roleService.selectByUserId({ env: env }, account.userId);
 
-			if (!roleService.hasAvailDomainPerm(availDomain, recipientTo)) {
+			if (!roleService.isPrimaryEmail(userRow.email, account.email) && !roleService.hasAvailDomainPerm(availDomain, recipientTo)) {
 				message.setReject('The recipient is not authorized to use this domain.');
 				return;
 			}

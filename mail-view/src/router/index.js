@@ -4,8 +4,10 @@ import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useServerStore} from "@/store/server.js";
 import {cvtR2Url} from "@/utils/convert.js";
+import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 
 const routes = [
+    { path: '/share', name: 'mail-share', component: () => import('@/views/mail-share/index.vue') },
     {
         path: '/',
         name: 'layout',
@@ -53,16 +55,6 @@ const routes = [
                 }
             },
             {
-                path: '/transfer',
-                name: 'transfer',
-                component: () => import('@/views/transfer/index.vue'),
-                meta: {
-                    title: 'transferPending',
-                    name: 'transfer',
-                    menu: true
-                }
-            },
-            {
                 path: '/sessions',
                 name: 'session',
                 component: () => import('@/views/session/index.vue'),
@@ -79,6 +71,11 @@ const routes = [
         path: '/login',
         name: 'login',
         component: () => import('@/views/login/index.vue')
+    },
+    {
+        path: `/oauth/:provider(${OAUTH_PROVIDERS.map(provider => provider.id).join('|')})`,
+        name: 'oauth-provider-callback',
+        component: () => import('@/views/oauth-callback/index.vue')
     },
     {
         path: '/setup',
@@ -133,7 +130,7 @@ router.beforeEach((to, from, next) => {
 
     const token = serverStore.getToken()
 
-    if (!token && to.name !== 'login' && to.name !== 'setup') {
+    if (!token && !['login', 'setup', 'oauth-provider-callback', 'mail-share'].includes(to.name)) {
         return next({name: 'login'})
     }
 

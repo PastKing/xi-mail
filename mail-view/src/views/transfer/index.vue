@@ -6,14 +6,14 @@
       </el-tooltip>
     </div>
 
-    <div class="transfer-body">
+    <div class="transfer-body" :class="{ 'history-only': !hasPerm('transfer:send') || !hasPerm('account:query') }">
       <!-- 左栏：发起转移 -->
-      <div class="col-left">
+      <div class="col-left" v-if="hasPerm('transfer:send') && hasPerm('account:query')">
         <div class="section-title">
           <Icon icon="mingcute:transfer-3-line" width="14" height="14" />
           {{ $t('initiateTransfer') }}
         </div>
-        <div class="create-card">
+      <div class="create-card" v-if="hasPerm('transfer:send') && hasPerm('account:query')">
           <div class="form-field">
             <div class="field-label">{{ $t('transferFromAccount') }}</div>
             <el-select
@@ -80,11 +80,11 @@
                 </div>
               </div>
               <div class="card-actions">
-                <el-button size="small" type="primary" @click="doAccept(item)">
+                <el-button v-perm="'transfer:receive'" size="small" type="primary" @click="doAccept(item)">
                   <Icon icon="mingcute:check-line" width="13" height="13" style="margin-right:3px"/>
                   {{ $t('acceptTransfer') }}
                 </el-button>
-                <el-button size="small" @click="doReject(item)">{{ $t('rejectTransfer') }}</el-button>
+                <el-button v-perm="'transfer:receive'" size="small" @click="doReject(item)">{{ $t('rejectTransfer') }}</el-button>
               </div>
             </div>
           </div>
@@ -164,6 +164,7 @@ import { tzDayjs } from '@/utils/day.js'
 import { useTransferStore } from '@/store/transfer.js'
 import { useUserStore } from '@/store/user.js'
 import { ElMessage } from 'element-plus'
+import { hasPerm } from '@/perm/perm.js'
 
 defineOptions({ name: 'transfer' })
 
@@ -184,6 +185,7 @@ const createLoading = ref(false)
 const createForm = reactive({ accountId: null, toDisplayId: '' })
 
 async function loadMyAccounts() {
+  if (!hasPerm('transfer:send') || !hasPerm('account:query')) return
   accountsLoading.value = true
   try {
     const list = await accountList(0, 200, null)
@@ -279,6 +281,7 @@ onMounted(() => { loadAll(); loadMyAccounts() })
 
 /* 主体：左右两栏，溢出滚动 */
 .transfer-body {
+  &.history-only { grid-template-columns: 1fr; }
   flex: 1;
   overflow: auto;
   padding: 20px;

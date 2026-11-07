@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import KvConst from '../const/kv-const';
 import constant from '../const/constant';
 import reqUtils from '../utils/req-utils';
+import { isSecureSecret } from '../utils/secret-policy';
 
 const MAX_SESSIONS = 10;
 // 活跃时间按小时粒度刷新，避免每个请求都写一次 KV
@@ -21,13 +22,42 @@ function isExpired(session, now = Date.now()) {
 	return !!session?.expireTime && new Date(session.expireTime).getTime() <= now;
 }
 
+async function signingKeyId(c) {
+	if (!isSecureSecret(c.env.jwt_secret)) throw new Error('A strong signing secret is required');
+	const encoder = new TextEncoder();
+	const key = await crypto.subtle.importKey('raw', encoder.encode(c.env.jwt_secret),
+		{ name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+	const signature = await crypto.subtle.sign('HMAC', key, encoder.encode('xi-mail:session-key:v1'));
+	return Array.from(new Uint8Array(signature), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 const sessionService = {
 
-	get(c, userId) {
-		return c.env.kv.get(KvConst.AUTH_INFO + userId, { type: 'json' });
+	async get(c, userId, verifiedToken) {
+		const authInfo = await c.env.kv.get(KvConst.AUTH_INFO + userId, { type: 'json' });
+		if (!authInfo) return null;
+		const keyId = await signingKeyId(c);
+		if (authInfo.signingKeyId !== keyId) {
+			// Only a JWT already verified with the current key can migrate an unversioned session.
+			// A known different key generation always revokes every stored session.
+			authInfo.tokens = !authInfo.signingKeyId && verifiedToken
+				? (authInfo.tokens || []).filter(token => token === verifiedToken) : [];
+			authInfo.sessions = Object.fromEntries(authInfo.tokens
+				.filter(token => authInfo.sessions?.[token]).map(token => [token, authInfo.sessions[token]]));
+			authInfo.signingKeyId = keyId;
+			this.normalize(authInfo);
+			await this.save(c, userId, authInfo);
+		}
+		return authInfo;
 	},
 
-	save(c, userId, authInfo) {
+	async save(c, userId, authInfo) {
+		const keyId = await signingKeyId(c);
+		if (authInfo.signingKeyId && authInfo.signingKeyId !== keyId) {
+			authInfo.tokens = [];
+			authInfo.sessions = {};
+		}
+		authInfo.signingKeyId = keyId;
 		return c.env.kv.put(KvConst.AUTH_INFO + userId, JSON.stringify(authInfo), { expirationTtl: constant.TOKEN_EXPIRE });
 	},
 
@@ -98,7 +128,7 @@ const sessionService = {
 	},
 
 	async list(c, userId, currentToken) {
-		const authInfo = await this.get(c, userId);
+		const authInfo = await this.get(c, userId, currentToken);
 		if (!authInfo) return [];
 
 		if (this.normalize(authInfo)) {

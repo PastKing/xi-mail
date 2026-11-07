@@ -6,6 +6,14 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { t } from '../i18n/i18n';
 import userService from './user-service';
+import roleService from './role-service';
+import permService from './perm-service';
+
+async function canTransfer(c, userId, permission) {
+    const user = await userService.selectByIdIncludeDel(c, userId);
+    return user && !user.isDel && !user.status && (user.email === c.env.admin
+        || (await permService.userPermKeys(c, userId)).includes(permission));
+}
 
 async function isPrimaryAccount(c, userId, email) {
     const user = await userService.selectByIdIncludeDel(c, userId);
@@ -44,6 +52,8 @@ const accountTransferService = {
             throw new BizError(t('cannotTransferToSelf'));
         }
 
+        if (!await canTransfer(c, toUser.userId, 'transfer:receive')) throw new BizError(t('transferUnavailable'), 403);
+
         // Check no existing pending transfer for this account
         const existing = await orm(c).select().from(accountTransfer)
             .where(and(
@@ -76,26 +86,39 @@ const accountTransferService = {
             throw new BizError(t('transferNotFound'));
         }
 
+        const mailbox = await orm(c).select({ userId: account.userId, isDel: account.isDel, email: account.email })
+            .from(account).where(eq(account.accountId, transferRow.accountId)).get();
+        if (!mailbox || mailbox.isDel || mailbox.userId !== transferRow.fromUserId || mailbox.email !== transferRow.accountEmail)
+            throw new BizError(t('transferUnavailable'), 409);
+
         if (await isPrimaryAccount(c, transferRow.fromUserId, transferRow.accountEmail)) {
             throw new BizError(t('cannotTransferPrimaryAccount'));
         }
 
-        // Update account ownership (emails follow naturally via account_id)
-        await orm(c).update(account)
-            .set({ userId })
-            .where(eq(account.accountId, transferRow.accountId))
-            .run();
-
-        // Also update email records' user_id
-        await c.env.db.prepare(
-            `UPDATE email SET user_id = ? WHERE account_id = ?`
-        ).bind(userId, transferRow.accountId).run();
-
-        // Mark as accepted
-        await orm(c).update(accountTransfer)
-            .set({ status: 1 })
-            .where(eq(accountTransfer.transferId, transferId))
-            .run();
+        if (!await canTransfer(c, userId, 'transfer:receive') || !await canTransfer(c, transferRow.fromUserId, 'transfer:send'))
+            throw new BizError(t('transferUnavailable'), 403);
+        const receiver = await userService.selectByIdIncludeDel(c, userId);
+        const role = await roleService.selectById(c, receiver.type);
+        const admin = receiver.email === c.env.admin;
+        if (!admin && !roleService.hasAvailDomainPerm(role?.availDomain || '', transferRow.accountEmail)) throw new BizError(t('noDomainPermAdd'), 403);
+        const quota = admin ? 0 : Math.max(0, Number(role?.accountCount) || 0);
+        // A single transaction moves the mailbox, messages and attachment ownership together.
+        // The actual ownership write checks quota and pending state atomically.
+        const guard = `EXISTS(SELECT 1 FROM account a JOIN account_transfer t ON t.account_id=a.account_id
+            WHERE a.account_id=? AND a.user_id=? AND a.is_del=0 AND t.transfer_id=? AND t.status=0)`;
+        const results = await c.env.db.batch([
+            c.env.db.prepare(`UPDATE account SET user_id=? WHERE account_id=? AND user_id=? AND is_del=0
+                AND (?<=0 OR (SELECT COUNT(*) FROM account WHERE user_id=? AND is_del=0)<?)
+                AND EXISTS(SELECT 1 FROM account_transfer WHERE transfer_id=? AND status=0)`)
+                .bind(userId, transferRow.accountId, transferRow.fromUserId, quota, userId, quota, transferId),
+            c.env.db.prepare(`UPDATE email SET user_id=? WHERE account_id=? AND ${guard}`)
+                .bind(userId, transferRow.accountId, transferRow.accountId, userId, transferId),
+            c.env.db.prepare(`UPDATE attachments SET user_id=? WHERE account_id=? AND ${guard}`)
+                .bind(userId, transferRow.accountId, transferRow.accountId, userId, transferId),
+            c.env.db.prepare(`UPDATE account_transfer SET status=1 WHERE transfer_id=? AND status=0 AND ${guard}`)
+                .bind(transferId, transferRow.accountId, userId, transferId),
+        ]);
+        if (!results[0].meta?.changes) throw new BizError(t('transferUnavailable'), 409);
     },
 
     async reject(c, transferId, userId) {

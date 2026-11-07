@@ -1,7 +1,7 @@
 <template>
   <div class="box">
     <div class="container">
-      <div class="title">{{$t('profile')}}</div>
+      <div class="title"><Icon icon="mingcute:idcard-line" width="18" height="18" />{{$t('profile')}}</div>
       <div class="item">
         <div>{{$t('displayId')}}</div>
         <div>
@@ -47,14 +47,24 @@
         </div>
       </div>
     </div>
+    <div class="container oauth-connections" v-if="hasPerm('oauth:manage')">
+      <div class="title"><Icon icon="mingcute:key-2-line" width="18" height="18" />{{ $t('oauthAccounts') }}</div>
+      <p class="oauth-description">{{ $t('oauthAccountsNote') }}</p>
+      <div v-if="oauthLoading" class="oauth-description">{{ $t('oauthLoadingText') }}</div>
+      <div v-for="provider in oauthProviders" :key="provider.provider" class="oauth-connection-row">
+        <span class="oauth-logo"><img v-if="providerLogo(provider.provider)" :src="providerLogo(provider.provider)" :alt="provider.name" width="28" height="28" /><Icon v-else icon="mingcute:key-2-line" width="22" height="22" /></span>
+        <div><strong>{{ provider.name }}</strong><small>{{ provider.binding ? provider.binding.displayName || $t('oauthBound') : $t('oauthUnbound') }}</small></div>
+        <el-button v-if="provider.binding" size="small" :loading="oauthBusy === provider.provider" @click="unbindProvider(provider)">{{ $t('oauthUnbind') }}</el-button>
+        <el-button v-else size="small" type="primary" plain :disabled="!provider.enabled" :loading="oauthBusy === provider.provider" @click="bindProvider(provider)">{{ provider.enabled ? $t('oauthBind') : $t('oauthUnavailable') }}</el-button>
+      </div>
+      <el-button v-if="oauthLoadFailed" size="small" @click="loadOAuth">{{ $t('oauthRetry') }}</el-button>
+    </div>
     <div class="del-email" v-perm="'my:delete'">
-      <div class="title">{{$t('deleteUser')}}</div>
-      <div style="color: var(--regular-text-color);">
-        {{$t('delAccountMsg')}}
+      <div class="delete-copy">
+        <div class="title">{{$t('deleteUser')}}</div>
+        <p>{{$t('delAccountMsg')}}</p>
       </div>
-      <div>
-        <el-button type="primary" @click="deleteConfirm">{{$t('deleteUserBtn')}}</el-button>
-      </div>
+      <el-button type="danger" plain @click="deleteConfirm">{{$t('deleteUserBtn')}}</el-button>
     </div>
     <el-dialog v-model="pwdShow" :title="$t('changePassword')" width="340">
       <div class="update-pwd">
@@ -67,7 +77,7 @@
   </div>
 </template>
 <script setup>
-import {reactive, ref, defineOptions} from 'vue'
+import {reactive, ref, defineOptions, onMounted} from 'vue'
 import {Icon} from "@iconify/vue";
 import {resetPassword, userDelete} from "@/request/my.js";
 import {useUserStore} from "@/store/user.js";
@@ -76,6 +86,10 @@ import {accountSetName} from "@/request/account.js";
 import {useAccountStore} from "@/store/account.js";
 import {useI18n} from "vue-i18n";
 import {useServerStore} from "@/store/server.js";
+import {oauthBindings, oauthUnbind} from '@/request/ouath.js';
+import {startOAuth} from '@/utils/oauth.js';
+import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
+import {hasPerm} from '@/perm/perm.js';
 
 const { t } = useI18n()
 const accountStore = useAccountStore()
@@ -84,6 +98,32 @@ const setPwdLoading = ref(false)
 const setNameShow = ref(false)
 const setNameLoading = ref(false)
 const accountName = ref(null)
+const providerLogo = id => OAUTH_PROVIDERS.find(provider => provider.id === id)?.logo
+const oauthProviders = ref([])
+const oauthLoading = ref(false)
+const oauthBusy = ref('')
+const oauthLoadFailed = ref(false)
+async function loadOAuth() {
+  oauthLoading.value = true; oauthLoadFailed.value = false
+  try { oauthProviders.value = await oauthBindings() }
+  catch { oauthLoadFailed.value = true }
+  finally { oauthLoading.value = false }
+}
+onMounted(() => { if (hasPerm('oauth:manage')) loadOAuth() })
+async function bindProvider(provider) {
+  oauthBusy.value = provider.provider
+  try { await startOAuth(provider.provider, 'bind') }
+  catch { /* The request interceptor displays the error. */ }
+  finally { oauthBusy.value = '' }
+}
+async function unbindProvider(provider) {
+  try { await ElMessageBox.confirm(t('oauthUnbindConfirm'), { confirmButtonText: t('confirm'), cancelButtonText: t('cancel'), type: 'warning' }) }
+  catch { return }
+  oauthBusy.value = provider.provider
+  try { await oauthUnbind(provider.provider); await loadOAuth(); ElMessage.success(t('oauthUnboundSuccess')) }
+  catch { /* The request interceptor displays the error. */ }
+  finally { oauthBusy.value = '' }
+}
 
 defineOptions({
   name: 'setting'
@@ -107,6 +147,10 @@ function showSetName() {
 function setName() {
   if (setNameLoading.value) return
   const name = accountName.value.trim()
+  if (!name) {
+    ElMessage({message: t('emptyUserNameMsg'), type: 'error', plain: true})
+    return
+  }
   if (name === userStore.user.name) {
     setNameShow.value = false
     return
@@ -222,13 +266,15 @@ function submitPwd() {
 }
 
 .box {
-  padding: 40px 40px;
-  max-width: 600px;
-
-  @media (max-width: 767px) {
-    padding: 28px 24px;
+  width: 100%; max-width: 1280px; margin: 0 auto; padding: 32px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-content: start;
+  .title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .title > svg { color: var(--el-text-color-secondary); }
+  .container { min-width: 0; padding: 26px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-bg-color); font-size: 13px; display: grid; align-content: start; gap: 24px; }
+  .container .item { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 18px; min-height: 28px;
+    > div:first-child { color: var(--el-text-color-secondary); font-size: 12px; }
+    > div:last-child { min-width: 0; }
   }
-
   .update-pwd {
     display: flex;
     flex-direction: column;
@@ -329,5 +375,19 @@ function submitPwd() {
     padding-top: 24px;
     border-top: 1px solid var(--el-border-color-lighter);
   }
+  .oauth-description { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.8; margin: -6px 0 0; }
+  .oauth-connection-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 9px; }
+  .oauth-connection-row > div { flex: 1; min-width: 0; }
+  .oauth-connection-row strong { font-size: 13px; font-weight: 500; }
+  .oauth-connection-row small { display: block; font-size: 11px; margin-top: 4px; color: var(--el-text-color-secondary); overflow-wrap: anywhere; }
+  .oauth-logo { display: grid; place-items: center; width: 36px; height: 36px; background: var(--el-fill-color-light); border-radius: 9px; flex-shrink: 0; }
+  .oauth-logo img { width: 28px; height: 28px; object-fit: contain; }
+  .del-email { grid-column: 1 / -1; padding: 24px 26px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--el-bg-color); }
+  .delete-copy p { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.8; margin: 10px 0 0; }
+}
+.update-pwd { display: flex; flex-direction: column; gap: 15px; }
+@media (max-width: 1023px) { .box { grid-template-columns: 1fr; padding: 24px; } }
+@media (max-width: 600px) {
+  .box { padding: 18px; gap: 18px; .container { padding: 20px; } .container .item { grid-template-columns: 66px minmax(0, 1fr); gap: 12px; } .del-email { padding: 20px; flex-direction: column; align-items: flex-start; gap: 18px; } }
 }
 </style>

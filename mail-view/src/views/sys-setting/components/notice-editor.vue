@@ -7,7 +7,7 @@
         </button>
       </el-tooltip>
 
-      <el-dropdown trigger="click" @command="insertColor">
+      <el-dropdown popper-class="sys-setting-popper" trigger="click" @command="insertColor">
         <el-tooltip :content="$t('neColor')" placement="top" :show-after="300">
           <button type="button" class="ne-tool">
             <Icon icon="mingcute:font-line" width="16" height="16" />
@@ -24,7 +24,7 @@
 
       <span class="ne-sep"></span>
 
-      <el-dropdown trigger="click" @command="applyTemplate">
+      <el-dropdown popper-class="sys-setting-popper" trigger="click" @command="applyTemplate">
         <button type="button" class="ne-tool ne-text-tool">
           <Icon icon="mingcute:layout-line" width="15" height="15" />
           <span>{{ $t('neTemplate') }}</span>
@@ -227,8 +227,8 @@ async function applyTemplate(key) {
 }
 
 .ne-tool {
-  height: 28px;
-  min-width: 28px;
+  height: var(--settings-control-height, 32px);
+  min-width: var(--settings-control-height, 32px);
   padding: 0 6px;
   border: 0;
   border-radius: 6px;
@@ -239,7 +239,7 @@ async function applyTemplate(key) {
   justify-content: center;
   gap: 4px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
 
   &:hover {
     background: var(--el-fill-color);
@@ -295,7 +295,7 @@ async function applyTemplate(key) {
     box-shadow: none;
     padding: 12px 14px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.7;
   }
 }
@@ -324,7 +324,7 @@ async function applyTemplate(key) {
 }
 
 .ne-empty {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--el-text-color-placeholder);
 }
 </style>

@@ -14,7 +14,7 @@ vi.mock('../../src/service/att-service', () => ({ default: { addAtt: vi.fn() } }
 vi.mock('../../src/service/telegram-service', () => ({ default: { sendEmailToBot: vi.fn() } }));
 vi.mock('../../src/service/ai-service', () => ({ default: { extractCode: async () => '' } }));
 vi.mock('../../src/i18n/i18n', () => ({ t: key => key }));
-import { email } from '../../src/email/email';
+import { email as emailHandler } from '../../src/email/email';
 import wecomService from '../../src/service/wecom-service';
 import { settingConst } from '../../src/const/entity-const';
 
@@ -36,7 +36,7 @@ async function receiveMail() {
 			controller.close();
 		} }), setReject: vi.fn(), forward: vi.fn(async () => {}) };
 	const pending = [];
-	await email(message, env, { waitUntil: promise => pending.push(promise) });
+	await emailHandler(message, env, { waitUntil: promise => pending.push(promise) });
 	await Promise.all(pending);
 	return { message, pending };
 }

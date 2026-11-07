@@ -23,7 +23,7 @@ export function notifyNewEmail(email, opts = {}) {
             const n = new Notification(opts.title || sender, {
                 body: subject,
                 tag: `email-${email.emailId}`,
-                icon: '/mail.png'
+                icon: '/brand/notification-64.png?v=3.6.0-flight'
             })
             n.onclick = () => {
                 window.focus()

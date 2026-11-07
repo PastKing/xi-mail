@@ -9,21 +9,21 @@ import sessionService from '../service/session-service';
 import { t } from '../i18n/i18n'
 import app from '../hono/hono';
 
-const exclude = [
+const publicExact = [
+	'/mail-share/read',
+	'/mail-share/content',
+	'/mail-share/attachment',
 	'/login',
 	'/register',
-	'/oss',
 	'/setting/websiteConfig',
 	'/webhooks',
-	'/init',
 	'/public/genToken',
-	'/telegram',
-	'/test',
-	'/oauth',
-	'/admin/',
 ];
+const publicTrees = ['/oss/', '/init/', '/telegram/', '/oauth/', '/admin/'];
 
 const requirePerms = [
+	'/mail-share/',
+	'/transfer/', '/my/oauth',
 	'/email/send',
 	'/email/delete',
 	'/account/list',
@@ -70,6 +70,11 @@ const requirePerms = [
 ];
 
 const premKey = {
+	'account:share': ['/mail-share/list', '/mail-share/create', '/mail-share/revoke'],
+	'transfer:query': ['/transfer/pending', '/transfer/sent', '/transfer/received-history'],
+	'transfer:send': ['/transfer/create'],
+	'transfer:receive': ['/transfer/accept', '/transfer/reject'],
+	'oauth:manage': ['/my/oauth', '/my/oauth/'],
 	'email:delete': ['/email/delete'],
 	'email:send': ['/email/send'],
 	'account:add': ['/account/add'],
@@ -101,11 +106,7 @@ app.use('*', async (c, next) => {
 
 	const path = c.req.path;
 
-	const index = exclude.findIndex(item => {
-		return path.startsWith(item);
-	});
-
-	if (index > -1) {
+	if (publicExact.includes(path) || publicTrees.some(root => path.startsWith(root))) {
 		return await next();
 	}
 
@@ -129,7 +130,7 @@ app.use('*', async (c, next) => {
 	}
 
 	const { userId, token } = result;
-	const authInfo = await sessionService.get(c, userId);
+	const authInfo = await sessionService.get(c, userId, token);
 
 	if (!authInfo) {
 		throw new BizError(t('authExpired'), 401);
@@ -150,7 +151,7 @@ app.use('*', async (c, next) => {
 		const userPaths = permKeyToPaths(permKeys);
 
 		const userPermIndex = userPaths.findIndex(item => {
-			return path.startsWith(item);
+			return item.endsWith('/') ? path.startsWith(item) : path === item;
 		});
 
 		if (userPermIndex === -1 && authInfo.user.email !== c.env.admin) {

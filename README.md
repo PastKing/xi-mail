@@ -1,17 +1,19 @@
 <div align="center">
 
+<img src="mail-view/public/brand/icon.svg" width="64" height="64" alt="Xi-Mail" />
+
 # Xi-Mail
 
 **基于 Cloudflare 全家桶的自托管邮箱服务**
 
 二次开发自 [cloud-mail](https://github.com/eoao/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.5.7-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.4-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
 
-[简体中文](README.md) | [English](README-en.md)
+[简体中文](README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md)
 
 </div>
 
@@ -23,7 +25,7 @@
 
 | 登录模板 | 浮岛导航 |
 |:---:|:---:|
-| ![分栏登录模板](doc/images/template/Split.png) | ![浮岛导航](doc/images/layout/FloatingIsland.png) |
+| ![刊物登录模板](doc/images/template/Editorial.png) | ![浮岛导航](doc/images/layout/FloatingIsland.png) |
 | **域名管理** | **数据分析** |
 | ![域名管理](doc/images/system-setting-domain.png) | ![数据分析](doc/images/analysis.png) |
 
@@ -37,28 +39,35 @@
 
 ## ✨ 主要特性
 
-**界面**
-9 套拥有独立构图的登录模板（包含拆信、邮件终端和邮政护照）+ 6 套主题色，四种登录后布局（完整侧边栏 / 图标侧边栏 / 顶栏导航 / 浮岛导航），全部在系统设置中一键切换并持久化。浮岛布局在桌面端使用悬浮轨道，手机端自动切换为底部 Dock。图标统一使用 `mingcute`，中英文双语，语言偏好随账号跨设备同步。
+- **邮件收发**：多邮箱管理、写信回复与验证码提取；兼容 Resend、QueenSMTP、SendFlare。
+- **域名与过滤**：后台管理多个域名，支持发件人黑白名单和关键词过滤。
+- **用户与权限**：角色分级、注册码注册、邮箱转移、限时收件箱分享与会话管理。
+- **第三方登录**：支持 NodeLoc、Telegram、LinuxDo，绑定已有邮箱后即可登录。
+- **界面定制**：6 套登录模板、6 套主题色、4 种导航布局，适配手机与中英文。
+- **灵活部署**：支持一体部署、独立前端、多 Worker 实例与收信子 Worker。
+- **API 集成**：通过全局 API Token 查询邮件，方便接入其他工具。
 
-**用户与账号**
-用户 ID 为随机字母数字组合并支持点击复制；单用户最多 100 个邮箱账号，删除后可重建；支持将邮箱连同全部邮件转移给其他用户，接收方可确认或拒绝；角色带 `level` 字段，只能签发权限低于自己的邀请码。
+配置方法与接口示例见 [OAuth 与 API 集成说明](doc/INTEGRATIONS.md)。
 
-**收发控制**
-发件人域名过滤支持黑名单 / 白名单两种模式，白名单模式下只接收授权服务商的邮件；同时校验 SMTP 信封发件人与邮件头 From 地址，支持子域名匹配。另有邮件地址关键词黑名单、注册码提示与获取链接（中英文分别配置）。
+---
 
-**域名管理**
-无需改 `wrangler.toml`，在系统设置中直接增删域名、启用禁用，并可拖拽或用上下按钮排序 —— 顺序即注册页邮箱后缀的展示顺序，第一个为默认值。
+## 🧩 浏览器插件
 
-**部署形态**
-支持前后端一体部署，也支持 `build:standalone` 构建纯静态前端部署到 CF Pages / Vercel。前端可同时连接多个 Worker 实例并聚合数据；`mail-worker-sub/` 提供轻量子 Worker 模板，只负责收信和 API，不含用户系统与页面。
+配套的 Chrome 插件，不用打开网页就能收信、看验证码、写信和管理邮箱。
 
-**运维接口**
-可生成全局 API Token，用 `x-admin-auth` 请求头免登录查询邮件：
+| 收件箱 | 阅读邮件 | 深色 · 切换邮箱 |
+|:---:|:---:|:---:|
+| ![插件收件箱](doc/images/plug-in/inbox.png) | ![插件阅读邮件](doc/images/plug-in/reader.png) | ![插件深色模式](doc/images/plug-in/mailbox-dropdown-dark.png) |
 
-```http
-GET /api/admin/mails?limit=20&offset=0&address=user@domain.com
-x-admin-auth: <your-token>
-```
+- 收件箱、已发送、写信与回复，邮件列表直接显示验证码，一键复制
+- 多个邮箱切换、新建与删除，多账号登录互不干扰
+- 任意网页右侧的悬浮入口，可拖动，展开后是完整的邮箱窗口
+- 新邮件通知，浅色 / 深色 / 跟随系统
+- 密码不保存，登录凭证加密存在本地；邮件正文在沙箱中显示，默认不加载远程图片
+
+**安装**：下载 [`doc/plug-in/chrome-plug.zip`](doc/plug-in/chrome-plug.zip) 并解压 → 打开 `chrome://extensions`，开启「开发者模式」→「加载已解压的扩展程序」，选择解压后的文件夹 → 点击工具栏的 Xi-Mail 图标，填写站点地址（如 `https://mail.example.com`）、邮箱和密码登录。
+
+需要 Chrome 120 及以上。暂不支持发送附件；需要人机验证的操作（如部分新建邮箱）请到网页版完成。
 
 ---
 
@@ -78,12 +87,16 @@ npx wrangler r2 bucket create xi-mail
 # 填写配置
 cp wrangler.example.toml wrangler.toml
 
+# 分别输入两个独立随机密钥，至少 32 位
+npx wrangler secret put jwt_secret
+npx wrangler secret put init_secret
+
 # 构建前端并部署
 cd ../mail-view && npm install && npm run build
 cd ../mail-worker && npx wrangler deploy
 ```
 
-部署完成后访问 `https://your-worker.workers.dev/api/init/<JWT_SECRET>` 初始化 / 迁移数据库表结构。
+部署完成后访问 `https://your-worker.workers.dev/api/init/<INIT_SECRET>` 初始化 / 迁移数据库表结构。登录签名与初始化使用独立的 Cloudflare Secret，不要沿用示例密钥。
 
 Cloudflare 原生发信渠道可在后台按域名选择；使用前请完成 [Cloudflare 发信配置](doc/CLOUDFLARE-SENDING.md)。
 
@@ -93,7 +106,6 @@ Cloudflare 原生发信渠道可在后台按域名选择；使用前请完成 [C
 [vars]
 domain      = ["mail.example.com"]   # 域名列表；改用系统设置管理域名后可留空
 admin       = "admin@example.com"    # 管理员邮箱，初始化后无法更改
-jwt_secret  = "your-secret"          # JWT 密钥，至少 32 位随机字符串
 ```
 
 ### 独立部署前端
@@ -114,20 +126,16 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 要点 |
 |------|------|
-| **v3.5.7** | 新建邮箱一键复制；修复潜在的安全风险 |
-| **v3.5.6** | 新增登录会话管理；公告弹窗优化 |
-| **v3.5.5** | 修复潜在的安全风险 |
-| **v3.5.4** | 手机底栏没有其他可去页面时，不再显示「更多」按钮 |
-| **v3.5.3** | 验证码识别更准：不再误抓链接参数，也不会把验证码截成半截 |
-| **v3.5.2** | 浮岛导航常驻邮箱转移，个人设置排在其下；用户 ID 提到邮箱上方；3.4.x 版本记录合并 |
-| **v3.5.1** | 验证码识别默认开启，入口移到服务集成；支持选择 Workers AI 模型，改为模型优先、失败才回退正则；子 Worker 支持子地址查询与按天数自动清理 |
-| **v3.5.0** | 邮件列表只查摘要字段并懒加载正文，补齐数据库索引；新增自动清理邮件、同步删除开关、验证码识别一键复制、子地址投递与新邮件通知 |
-| **v3.4.x** | 浮岛导航（桌面窄轨 + 移动底栏）与 9 套登录模板；系统设置拆分子页、域名内联排序；禁止主账号转移；正文插图一步插入并修复发送丢图 |
-| **v3.3.x** | 发件人白名单模式；黑白名单合并入同一入口；`/settings` 重排与 ID 点击复制；图标与尺寸统一 |
-| **v3.2.x** | 发件人域名屏蔽修复（信封 + From 双检）；侧边栏收窄至 200px |
-| **v3.1.0** | 子 Worker 聚合；语言偏好持久化到用户账号 |
-| **v3.0.0** | 前后端分离；多 Server 架构；standalone 独立部署 |
-| **v2.0.0** | 外观模板系统；登录后主布局切换；系统设置页重构 |
+| **v3.6.4** | SendFlare 发件、限时收件箱分享与管理体验优化 |
+| **v3.6.x** | 登录模板与品牌图标更新；三方登录、账号绑定与授权状态页 |
+| **v3.5.x** | 浏览器插件、QueenSMTP 发件、子 Worker、会话与验证码优化 |
+| **v3.4.x** | 浮岛导航与多套登录模板 |
+| **v3.3.x** | 发件人白名单模式 |
+| **v3.2.x** | 发件人域名屏蔽 |
+| **v3.0 – 3.1** | 前后端分离、多 Server、子 Worker |
+| **v2.0.0** | 外观模板系统 |
+
+完整更新记录见 [Releases](https://github.com/PastKing/xi-mail/releases)。
 
 ---
 

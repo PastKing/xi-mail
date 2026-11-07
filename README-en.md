@@ -1,17 +1,19 @@
 <div align="center">
 
+<img src="mail-view/public/brand/icon.svg" width="64" height="64" alt="Xi-Mail" />
+
 # Xi-Mail
 
 **Self-hosted mail service built entirely on Cloudflare**
 
 A fork of [cloud-mail](https://github.com/eoao/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.5.7-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.4-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
 
-[简体中文](README.md) | [English](README-en.md)
+[简体中文](README.md) | [繁體中文](README-zh-TW.md) | [English](README-en.md)
 
 </div>
 
@@ -23,7 +25,7 @@ With a single domain hosted on Cloudflare you can deploy a complete mail platfor
 
 | Login template | Floating Island |
 |:---:|:---:|
-| ![Split login template](doc/images/template/Split.png) | ![Floating Island navigation](doc/images/layout/FloatingIsland.png) |
+| ![Editorial login template](doc/images/template/Editorial.png) | ![Floating Island navigation](doc/images/layout/FloatingIsland.png) |
 | **Domain management** | **Analytics** |
 | ![Domain management](doc/images/system-setting-domain.png) | ![Analytics](doc/images/analysis.png) |
 
@@ -37,28 +39,35 @@ Try it at [mail.azx.us](https://mail.azx.us) using invite code `viewUser` (limit
 
 ## ✨ Highlights
 
-**Interface**
-Nine login templates with genuinely different compositions, including Open Letter, Mail Terminal and Postal Passport, and six color themes, plus four post-login layouts (full sidebar, icon-only sidebar, top navigation and Floating Island), all switchable from system settings and persisted server-side. Floating Island uses a detached rail on desktop and a bottom dock on mobile. Icons are unified on `mingcute`; the UI ships in English and Chinese, and the language preference follows the account across devices.
+- **Mail**: multiple mailboxes, compose and reply, code extraction; Resend, QueenSMTP and SendFlare sending.
+- **Domains and filtering**: manage domains in the dashboard, with sender allowlists, blocklists and keyword filters.
+- **Users and permissions**: tiered roles, invitation codes, mailbox transfers, expiring inbox-sharing links and session management.
+- **Provider sign-in**: connect NodeLoc, Telegram or LinuxDo to an existing mailbox.
+- **Appearance**: six login templates, six color themes and four navigation layouts, with mobile support and English/Chinese UI.
+- **Flexible deployment**: deploy together or with a standalone frontend; connect multiple Workers and receiving sub-workers.
+- **API integration**: query mail with a global API token for use in other tools.
 
-**Users and accounts**
-User IDs are random alphanumeric strings and can be copied with one click. Each user can hold up to 100 mailbox accounts, and a deleted mailbox can be recreated. Mailboxes can be transferred to another user along with all their mail, subject to the recipient's approval. Roles carry a `level` field, so a user can only issue invite codes for roles below their own.
+Setup instructions and request examples: [OAuth and API integration](doc/INTEGRATIONS-en.md).
 
-**Delivery control**
-Sender-domain filtering runs in either blacklist or whitelist mode; in whitelist mode only authorized providers are accepted. Both the SMTP envelope sender and the header `From` address are checked, with subdomain matching. There is also an address keyword blacklist and configurable invite-code hints and links (separately for English and Chinese).
+---
 
-**Domain management**
-No need to edit `wrangler.toml` — add, remove, enable and disable domains directly in system settings, and reorder them by dragging or with the up/down buttons. That order is exactly the order of mailbox suffixes on the registration page, with the first entry as the default.
+## 🧩 Browser extension
 
-**Deployment shapes**
-Deploy the frontend and Worker together, or run `build:standalone` to produce a static frontend for CF Pages, Vercel or any static host. The frontend can connect to several Worker instances at once and aggregate their data, and `mail-worker-sub/` provides a lightweight sub-worker template that only receives mail and serves the API — no user system, no pages.
+A companion Chrome extension for reading mail, copying verification codes, writing mail and managing mailboxes without opening the website.
 
-**Admin API**
-Generate a global API token and query mail without logging in via the `x-admin-auth` header:
+| Inbox | Reading | Dark · switch mailbox |
+|:---:|:---:|:---:|
+| ![Extension inbox](doc/images/plug-in/inbox.png) | ![Extension reader](doc/images/plug-in/reader.png) | ![Extension dark mode](doc/images/plug-in/mailbox-dropdown-dark.png) |
 
-```http
-GET /api/admin/mails?limit=20&offset=0&address=user@domain.com
-x-admin-auth: <your-token>
-```
+- Inbox, sent, compose and reply; verification codes shown in the list with one-click copy
+- Switch, create and delete mailboxes; multiple accounts stay separate
+- Draggable floating button on the right edge of any page that opens the full mailbox window
+- New mail notifications; light / dark / follow system
+- Passwords are never stored and the login token is encrypted locally; mail bodies render in a sandbox with remote images blocked
+
+**Install**: download [`doc/plug-in/chrome-plug.zip`](doc/plug-in/chrome-plug.zip) and unzip it → open `chrome://extensions` and turn on Developer mode → click "Load unpacked" and pick the unzipped folder → click the Xi-Mail toolbar icon and sign in with your site URL (e.g. `https://mail.example.com`), email and password.
+
+Requires Chrome 120 or later. Attachments cannot be sent yet; actions that need a CAPTCHA (such as some mailbox creation) should be done on the website.
 
 ---
 
@@ -78,12 +87,16 @@ npx wrangler r2 bucket create xi-mail
 # Fill in the configuration
 cp wrangler.example.toml wrangler.toml
 
+# Enter two independent random secrets, at least 32 characters each
+npx wrangler secret put jwt_secret
+npx wrangler secret put init_secret
+
 # Build the frontend and deploy
 cd ../mail-view && npm install && npm run build
 cd ../mail-worker && npx wrangler deploy
 ```
 
-After deploying, visit `https://your-worker.workers.dev/api/init/<JWT_SECRET>` to initialize or migrate the database schema.
+After deploying, visit `https://your-worker.workers.dev/api/init/<INIT_SECRET>` to initialize or migrate the database schema. Use separate Cloudflare Secrets for login signing and initialization; never reuse example keys.
 
 Key `wrangler.toml` fields:
 
@@ -91,7 +104,6 @@ Key `wrangler.toml` fields:
 [vars]
 domain      = ["mail.example.com"]   # Domain list; may be left empty once domains are managed in system settings
 admin       = "admin@example.com"    # Admin address, immutable after initialization
-jwt_secret  = "your-secret"          # JWT secret, at least 32 random characters
 ```
 
 ### Standalone frontend
@@ -112,20 +124,16 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
-| **v3.5.7** | One-click copy when adding a mailbox; fixed potential security risks |
-| **v3.5.6** | Login sessions management; announcement popup improvements |
-| **v3.5.5** | Fixed potential security risks |
-| **v3.5.4** | The mobile dock hides the "More" button when there is nowhere else to go |
-| **v3.5.3** | More accurate verification codes: no more truncated codes or URL tokens mistaken as OTPs |
-| **v3.5.2** | Floating Island now pins mailbox transfer on the rail above Settings; user ID sits above the email; 3.4.x release notes collapsed |
-| **v3.5.1** | Code extraction is on by default under Integrations, with a Workers AI model picker; the model runs first and regex is only a fallback; sub-worker now supports plus-address queries and day-based auto cleanup |
-| **v3.5.0** | Email lists now fetch summary columns with lazy-loaded bodies plus new database indexes; added auto email cleaning, hard-delete switch, verification code extraction with one-click copy, sub-addressing and new email notifications |
-| **v3.4.x** | Floating Island (desktop rail + mobile dock) and nine login templates; settings split into sub-pages with inline domain sorting; primary-mailbox transfers blocked; one-step inline images and send-loss fixes |
-| **v3.3.x** | Sender whitelist mode; blacklist and whitelist merged into one entry point; `/settings` reordered with click-to-copy IDs; icon set and sizes unified |
-| **v3.2.x** | Sender-domain blocking fixed (envelope + header `From`); sidebar narrowed to 200px |
-| **v3.1.0** | Sub-worker aggregation; language preference persisted to the user account |
-| **v3.0.0** | Frontend/backend split; multi-server architecture; standalone deployment |
-| **v2.0.0** | Appearance template system; switchable post-login layout; system settings rewrite |
+| **v3.6.4** | SendFlare, expiring inbox-sharing links and management improvements |
+| **v3.6.x** | Refreshed login templates and brand icons, provider sign-in, account connections and authorization status pages |
+| **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |
+| **v3.4.x** | Floating Island navigation and login templates |
+| **v3.3.x** | Sender whitelist mode |
+| **v3.2.x** | Sender-domain blocking |
+| **v3.0 – 3.1** | Frontend/backend split, multi-server, sub-worker |
+| **v2.0.0** | Appearance template system |
+
+Full changelog: [Releases](https://github.com/PastKing/xi-mail/releases).
 
 ---
 

@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const star = sqliteTable('star', {
@@ -8,4 +8,4 @@ export const star = sqliteTable('star', {
 	createTime: text('create_time')
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),
-});
+}, table => [uniqueIndex('idx_star_user_email_unique').on(table.userId, table.emailId)]);

@@ -12,6 +12,7 @@ crons = ["0 16 * * *"]
 
 [vars]
 api_token = "<YOUR_API_TOKEN_MIN_32_CHARS>"
+# 多个域名：["a.com", "b.com"]；在控制台手动填写时也可以写成 a.com,b.com
 domain = ["sub-domain.com"]
 # 邮件保留天数，超过后由定时任务自动删除；0 或不配置表示永久保留
 auto_clean_days = 0

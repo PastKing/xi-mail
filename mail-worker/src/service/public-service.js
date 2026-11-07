@@ -11,16 +11,20 @@ import { t } from '../i18n/i18n';
 import settingService from './setting-service';
 import reqUtils from '../utils/req-utils';
 import dayjs from 'dayjs';
-import { isDel, roleConst } from '../const/entity-const';
+import { isDel, roleConst, userConst } from '../const/entity-const';
 import email from '../entity/email';
 import userService from './user-service';
 import KvConst from '../const/kv-const';
+import subWorkerService from './sub-worker-service';
+import securityRateLimit from './security-rate-limit-service';
 
 const publicService = {
 
 	async emailList(c, params) {
 
 		let { toEmail, content, subject, sendName, sendEmail, timeSort, num, size, type , isDel } = params
+
+		await subWorkerService.syncAll(c);
 
 		const query = orm(c).select({
 				emailId: email.emailId,
@@ -175,16 +179,20 @@ const publicService = {
 
 	async verifyUser(c, params) {
 
-		const { email, password } = params
+		const email = typeof params?.email === 'string' ? params.email.trim().toLowerCase() : '';
+		const password = params?.password;
+		if (!email || email.length > 320 || typeof password !== 'string' || !password || password.length > 256)
+			throw new BizError(t('invalidCredentials'));
+		await securityRateLimit.login(c, email);
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
 		// 三种失败统一文案，避免用于枚举管理员邮箱
-		if (email !== c.env.admin
-			|| !userRow || userRow.isDel === isDel.DELETE
-			|| !await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {
-			throw new BizError(t('IncorrectPwd'));
+		const valid = await cryptoUtils.verifyPassword(password, userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || 'unmatchable-dummy-hash');
+		if (email !== c.env.admin.toLowerCase() || !userRow || userRow.isDel === isDel.DELETE || userRow.status === userConst.status.BAN || !valid) {
+			throw new BizError(t('invalidCredentials'));
 		}
+		await securityRateLimit.loginSuccess(c, email);
 	}
 
 }

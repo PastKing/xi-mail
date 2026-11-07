@@ -1,6 +1,6 @@
 <template>
   <div class="email-container">
-    <div class="header-actions">
+    <div class="header-actions" :class="{ 'admin-mail-toolbar': props.type === 'all-email' }">
       <el-checkbox
           v-model="checkAll"
           :indeterminate="isIndeterminate"
@@ -11,19 +11,35 @@
       <div class="header-left" :style="'padding-left:' + actionLeft">
 
         <slot name="first"></slot>
-        <Icon class="icon reload" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
-        <Icon v-perm="'email:delete'" class="icon delete" icon="mingcute:delete-2-line" width="18" height="18"
+        <div class="header-tools">
+        <slot name="tools"></slot>
+        <el-tooltip :content="$t('refresh')" placement="top">
+          <button type="button" class="xi-icon-button reload" :aria-label="$t('refresh')" @click="refresh"><Icon icon="mingcute:refresh-2-line" width="18" height="18" /></button>
+        </el-tooltip>
+        <button type="button" v-perm="'email:delete'" class="xi-icon-button selection-action" :aria-label="$t('delete')"
               v-if="getSelectedMailsIds().length > 0"
-              @click="handleDelete"/>
-        <Icon v-perm="'email:delete'" class="icon delete" icon="mingcute:mail-open-line" width="18" height="18"
+              @click="handleDelete"><Icon icon="mingcute:delete-2-line" width="18" height="18" /></button>
+        <button type="button" v-perm="'email:delete'" class="xi-icon-button selection-action" :aria-label="$t('markAsRead')"
               v-if="getSelectedMailsIds().length > 0 && showUnread"
-              @click="handleRead"/>
+              @click="handleRead"><Icon icon="mingcute:mail-open-line" width="18" height="18" /></button>
+        <el-dropdown v-if="props.type === 'all-email'" class="mail-overflow" trigger="click" placement="bottom-end">
+          <button type="button" class="xi-icon-button" :aria-label="$t('moreNavigation')"><Icon icon="mingcute:more-1-line" width="18" height="18" /></button>
+          <template #dropdown><el-dropdown-menu>
+            <slot name="more-actions"></slot>
+            <el-dropdown-item v-if="getSelectedMailsIds().length > 0 && hasPerm('email:delete')" @click="handleDelete"><Icon icon="mingcute:delete-2-line" width="18" height="18" />{{ $t('delete') }}</el-dropdown-item>
+            <el-dropdown-item v-if="getSelectedMailsIds().length > 0 && showUnread && hasPerm('email:delete')" @click="handleRead"><Icon icon="mingcute:mail-open-line" width="18" height="18" />{{ $t('markAsRead') }}</el-dropdown-item>
+          </el-dropdown-menu></template>
+        </el-dropdown>
+        </div>
       </div>
 
       <div class="header-right">
         <span class="email-count" v-if="total">{{ $t('emailCount', {total: total}) }}</span>
-        <Icon v-if="showAccountIcon" class="more-icon icon" width="18" height="18" icon="mingcute:dot-grid-line"
-              @click="changeAccountShow"/>
+        <el-tooltip v-if="canToggleAccount" :content="accountShow ? $t('hideAccountList') : $t('showAccountList')" placement="bottom">
+          <Icon class="icon" width="18" height="18"
+                :icon="accountShow ? 'mingcute:layout-leftbar-close-line' : 'mingcute:layout-leftbar-open-line'"
+                @click="changeAccountShow"/>
+        </el-tooltip>
       </div>
     </div>
 
@@ -70,7 +86,7 @@
                   <span class="name">
                     <span>
                       <div class="unread" v-if="isMobile && (item.unread === EmailUnreadEnum.UNREAD && showUnread) "/>
-                      <slot name="name" :email="item"> {{ item.name }}</slot>
+                      <span class="sender-display-name" :title="item.sendEmail"><slot name="name" :email="item"> {{ item.name }}</slot></span>
                     </span>
                     <span>
                       <Icon v-if="item.isStar" icon="fluent-color:star-16" width="18" height="18"/>
@@ -234,6 +250,7 @@ import {computed, onActivated, reactive, ref, watch, nextTick, onMounted, onUnmo
 import {useEmailStore} from "@/store/email.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
+import {hasPerm} from "@/perm/perm.js";
 import {sleep} from "@/utils/time-utils.js"
 import {fromNow} from "@/utils/day.js";
 import {useI18n} from "vue-i18n";
@@ -241,6 +258,7 @@ import {ElMessage} from "element-plus";
 import {EmailUnreadEnum} from "@/enums/email-enum.js";
 import { UseVirtualList } from '@vueuse/components'
 import { useScroll } from '@vueuse/core'
+import { emailPreviewText } from '@/utils/email-html'
 
 const props = defineProps({
   getEmailList: Function,
@@ -311,6 +329,8 @@ let scrollTop = 0
 const latestEmail = ref(null)
 const scrollbarRef = ref(null)
 let reqLock = false
+let queuedRefresh = false
+let disposed = false
 let isMobile = ref(innerWidth < 1367)
 let skeletonRows = 0
 const timePaddingRight = ref('');
@@ -366,6 +386,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  disposed = true
   clearInterval(timer)
 })
 
@@ -542,6 +563,10 @@ function getSkeletonRows() {
   skeletonRows = emailList.length
 }
 
+const canToggleAccount = computed(() => {
+  return props.showAccountIcon && settingStore.settings.manyEmail === 0 && hasPerm('account:query')
+})
+
 const accountShow = computed(() => {
   return uiStore.accountShow && settingStore.settings.manyEmail === 0
 })
@@ -549,15 +574,7 @@ const accountShow = computed(() => {
 function htmlToText(email) {
   if (email.content) {
 
-    const tempDiv = document.createElement('div');
-
-    tempDiv.innerHTML = email.content.replace(
-        /<(img|iframe|object|embed|video|audio|source|link)[^>]*>/gi, ''
-    );
-
-    const scriptsAndStyles = tempDiv.querySelectorAll('script, style, title');
-    scriptsAndStyles.forEach(el => el.remove());
-    let text = tempDiv.textContent || tempDiv.innerText || '';
+    let text = emailPreviewText(email.content);
     text = text.replace(/\s+/g, ' ').trim();
     return cleanSpace(text)
   }
@@ -794,8 +811,8 @@ function jumpDetails(email) {
 
 
 function getEmailList(refresh = false) {
-
-  if (reqLock) return;
+  if (disposed) return;
+  if (reqLock) { if (refresh) queuedRefresh = true; return; }
 
   let emailId = emailList.length > 0 ? emailList.at(-1).emailId : 0;
 
@@ -828,6 +845,7 @@ function getEmailList(refresh = false) {
     if (duration < 300 && !emailId) {
         await sleep(300 - duration)
     }
+    if (queuedRefresh || disposed) return;
     firstLoad.value = false
 
     let list = data.list.map(item => ({
@@ -850,9 +868,10 @@ function getEmailList(refresh = false) {
     followLoading.value = data.list.length >= queryParam.size;
 
     total.value = data.total;
-  }).finally(() => {
+  }).catch(() => { /* The request interceptor displays the error. */ }).finally(() => {
     loading.value = false
     reqLock = false
+    if (queuedRefresh) { queuedRefresh = false; getEmailList(true); }
   })
 }
 
@@ -1002,6 +1021,15 @@ function loadData() {
     padding: 10px 0;
     align-items: flex-start;
 
+    .email-sender {
+      align-self: start;
+      align-items: start;
+
+      .name {
+        min-width: 0;
+      }
+    }
+
     /* 在中间宽度（开发者工具打开 / 非全屏），保持双列但让左列缩小，不要切换为单列 */
     .title, .title.title-column {
       @media (max-width: 1366px) and (min-width: 701px) {
@@ -1147,9 +1175,19 @@ function loadData() {
         }
 
         > span:first-child {
+          display: flex;
+          align-items: center;
+          min-width: 0;
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
+        }
+
+        .sender-display-name {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .name-skeleton {
@@ -1319,54 +1357,52 @@ function loadData() {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 16px;
-  padding: 6px 16px;
+  min-height: 42px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
+  font-size: 18px;
 
   .header-left {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
     position: relative;
-    gap: 10px;
-    padding-left: 4px;
+    gap: 16px;
     min-width: 0;
     overflow: hidden;
     color: var(--el-text-color-primary);
   }
 
   .header-right {
-    display: grid;
-    grid-template-columns: auto auto;
-    align-items: start;
-    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
     color: var(--el-text-color-secondary);
 
     .email-count {
       white-space: nowrap;
-      margin-top: 6px;
       font-size: 13px;
     }
   }
 
-  .icon {
-    font-size: 18px;
+  .icon,
+  :slotted(.icon) {
+    flex-shrink: 0;
     cursor: pointer;
     color: var(--el-text-color-secondary);
-    transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: var(--xi-radius-sm);
-    
-    &:hover {
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-    }
-  }
+    transition: color 0.15s;
+    outline: none;
 
-  .more-icon {
-    margin-top: 6px;
-    margin-left: 14px;
+    &:hover { color: var(--el-text-color-primary); }
   }
+}
+
+.header-tools { display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.mail-overflow { display: none; }
+@media (max-width: 767px) {
+  .admin-mail-toolbar .mail-overflow { display: inline-flex; }
+  .admin-mail-toolbar .selection-action { display: none; }
 }
 
 .del-status {

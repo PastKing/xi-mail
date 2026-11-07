@@ -20,27 +20,34 @@ import { toUtc } from '../utils/date-uitil';
 import { t } from '../i18n/i18n.js';
 import verifyRecordService from './verify-record-service';
 import sessionService from './session-service';
+import securityRateLimit from './security-rate-limit-service';
 
 const loginService = {
 
-	async register(c, params, oauth = false) {
+	async register(c, params) {
 
-		const { email, password, token, code } = params;
+		const { email, password, token, code } = params || {};
 
 		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter, emailKeywordBlacklist } = await settingService.query(c)
-
-		if (oauth) {
-			registerVerify = settingConst.registerVerify.CLOSE;
-			register = settingConst.register.OPEN;
-		}
 
 		if (register === settingConst.register.CLOSE) {
 			throw new BizError(t('regDisabled'));
 		}
+		await securityRateLimit.consume(c, 'register-ip', c.req?.header('CF-Connecting-IP') || 'unknown', 20, 300);
 
-		if (!verifyUtils.isEmail(email)) {
+		if (typeof email !== 'string' || email.length > 320 || !verifyUtils.isEmail(email)) {
 			throw new BizError(t('notEmail'));
 		}
+		if (typeof password !== 'string' || password.length < 6) throw new BizError(t('pwdMinLength'));
+		if (password.length > 30) throw new BizError(t('pwdLengthLimit'));
+
+		// Registration is anonymous: claiming the admin address must not bypass CAPTCHA.
+		// Verify before policy, invitation or address lookups to avoid unverified probing.
+		let regVerifyOpen = registerVerify === settingConst.registerVerify.OPEN;
+		if (registerVerify === settingConst.registerVerify.COUNT) {
+			regVerifyOpen = await verifyRecordService.isOpenRegVerify(c, regVerifyCount);
+		}
+		if (regVerifyOpen) await turnstileService.verify(c, token);
 
 		if (emailUtils.getName(email).length < minEmailPrefix) {
 			throw new BizError(t('minEmailPrefix', { msg: minEmailPrefix } ));
@@ -56,14 +63,6 @@ const loginService = {
 
 		if (emailUtils.getName(email).length > 64) {
 			throw new BizError(t('emailLengthLimit'));
-		}
-
-		if (password.length > 30) {
-			throw new BizError(t('pwdLengthLimit'));
-		}
-
-		if (password.length < 6) {
-			throw new BizError(t('pwdMinLength'));
 		}
 
 		const isAdmin = email === c.env.admin;
@@ -117,22 +116,6 @@ const loginService = {
 				throw new BizError(t('noDomainPermReg'),403)
 			}
 
-		}
-
-		let regVerifyOpen = false
-
-		if (!isAdmin) {
-			if (registerVerify === settingConst.registerVerify.OPEN) {
-				regVerifyOpen = true
-				await turnstileService.verify(c, token)
-			}
-
-			if (registerVerify === settingConst.registerVerify.COUNT) {
-				regVerifyOpen = await verifyRecordService.isOpenRegVerify(c, regVerifyCount);
-				if (regVerifyOpen) {
-					await turnstileService.verify(c, token)
-				}
-			}
 		}
 
 		const { salt, hash } = await saltHashUtils.hashPassword(password);
@@ -210,21 +193,19 @@ const loginService = {
 
 	async login(c, params, noVerifyPwd = false) {
 
-		const { email, password } = params;
-
-		if ((!email || !password) && !noVerifyPwd) {
-			throw new BizError(t('emailAndPwdEmpty'));
-		}
+		const email = typeof params?.email === 'string' ? params.email.trim().toLowerCase() : '';
+		const password = params?.password;
+		if (!email || email.length > 320 || (!noVerifyPwd && (typeof password !== 'string' || !password || password.length > 256)))
+			throw new BizError(t('invalidCredentials'));
+		if (!noVerifyPwd) await securityRateLimit.login(c, email);
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
-		if (!userRow) {
-			throw new BizError(t('notExistUser'));
-		}
-
-		if(userRow.isDel === isDel.DELETE) {
-			throw new BizError(t('isDelUser'));
-		}
+		// Hash even for unknown accounts, and use one response for unknown/deleted/wrong-password logins.
+		const validPassword = noVerifyPwd || await cryptoUtils.verifyPassword(password,
+			userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || 'unmatchable-dummy-hash');
+		if (!userRow || userRow.isDel === isDel.DELETE || !validPassword)
+			throw new BizError(t('invalidCredentials'));
 
 		if(userRow.status === userConst.status.BAN) {
 			const settings = await settingService.query(c);
@@ -232,9 +213,7 @@ const loginService = {
 			throw new BizError(banMsg);
 		}
 
-		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password) && !noVerifyPwd) {
-			throw new BizError(t('IncorrectPwd'));
-		}
+		if (!noVerifyPwd) await securityRateLimit.loginSuccess(c, email);
 
 		const uuid = uuidv4();
 		const jwt = await JwtUtils.generateToken(c,{ userId: userRow.userId, token: uuid });

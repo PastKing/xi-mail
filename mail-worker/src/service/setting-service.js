@@ -10,6 +10,14 @@ import {t} from '../i18n/i18n'
 import verifyRecordService from './verify-record-service';
 import { AI_CODE_MODELS, resolveAiModel } from '../const/ai-models';
 import sendChannelService from './send-channel-service';
+import subWorkerService from './sub-worker-service';
+import { normalizeLoginTemplate } from '../const/login-templates';
+import oauthConfigService from './oauth-config-service';
+import { OAUTH_PROVIDERS } from '../const/oauth-providers';
+import webhookConfig from './resend-webhook-config-service';
+import sendflareService from './sendflare-service';
+
+const SEND_PROVIDERS = ['resend', 'queensmtp', 'sendflare'];
 
 function generateToken(len = 32) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -20,9 +28,28 @@ function generateToken(len = 32) {
 
 const settingService = {
 
+	async ensureSendColumns(c) {
+		for (const column of ['queen_tokens', 'send_providers']) {
+			try {
+				await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN ${column} TEXT NOT NULL DEFAULT '{}';`).run();
+			} catch (e) {}
+		}
+	},
+
 	async refresh(c) {
-		const settingRow = await orm(c).select().from(setting).get();
+		let settingRow;
+		try {
+			settingRow = await orm(c).select().from(setting).get();
+		} catch (e) {
+			// 新增的发件服务字段还没迁移时先补列再读
+			await this.ensureSendColumns(c);
+			settingRow = await orm(c).select().from(setting).get();
+		}
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
+		settingRow.queenTokens = JSON.parse(settingRow.queenTokens || '{}');
+		settingRow.sendProviders = JSON.parse(settingRow.sendProviders || '{}');
+		settingRow.subWorkerDomains = await subWorkerService.domains(c, true);
+		settingRow.loginTemplate = normalizeLoginTemplate(settingRow.loginTemplate);
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 	},
@@ -57,6 +84,18 @@ const settingService = {
 			settingRow.aiModel = resolveAiModel('', c.env.ai_model);
 		}
 
+		if (!settingRow.queenTokens || !settingRow.sendProviders) {
+			try {
+				await this.ensureSendColumns(c);
+				const raw = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+				raw.queenTokens = raw.queenTokens || {};
+				raw.sendProviders = raw.sendProviders || {};
+				await c.env.kv.put(KvConst.SETTING, JSON.stringify(raw));
+			} catch (e) {}
+			settingRow.queenTokens = settingRow.queenTokens || {};
+			settingRow.sendProviders = settingRow.sendProviders || {};
+		}
+
 		// Parse managed domains (web-configured), fall back to env domain
 		let managedDomains = [];
 		if (settingRow.managedDomains) {
@@ -74,21 +113,36 @@ const settingService = {
 			}
 			domainList = envDomain ? envDomain.map(item => '@' + item) : [];
 		}
+
+		// 子 Worker 的域名追加在后面，由子 Worker 收信、主站同步展示
+		if (!Array.isArray(settingRow.subWorkerDomains)) {
+			try {
+				settingRow.subWorkerDomains = await subWorkerService.domains(c);
+				const raw = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+				raw.subWorkerDomains = settingRow.subWorkerDomains;
+				await c.env.kv.put(KvConst.SETTING, JSON.stringify(raw));
+			} catch (e) {
+				settingRow.subWorkerDomains = [];
+			}
+		}
+		for (const domain of settingRow.subWorkerDomains) {
+			if (!domainList.includes('@' + domain)) {
+				domainList.push('@' + domain);
+			}
+		}
 		settingRow.domainList = domainList;
 
-		let linuxdoSwitch = c.env.linuxdo_switch;
-
-		if (typeof linuxdoSwitch === 'string' && linuxdoSwitch === 'true') {
-			linuxdoSwitch = true
-		} else if (linuxdoSwitch === true) {
-			linuxdoSwitch = true
-		} else {
-			linuxdoSwitch = false
-		}
-
-		settingRow.linuxdoClientId = c.env.linuxdo_client_id;
-		settingRow.linuxdoCallbackUrl = c.env.linuxdo_callback_url;
-		settingRow.linuxdoSwitch = linuxdoSwitch;
+		settingRow.sendflareTokens = await sendflareService.tokens(c);
+		const oauthConfigs = await Promise.all(OAUTH_PROVIDERS.map(provider => oauthConfigService.get(c, provider.id)));
+		settingRow.hasResendWebhookSecret = (await webhookConfig.get(c)).length > 0;
+		OAUTH_PROVIDERS.forEach((provider, index) => {
+			const config = oauthConfigs[index], id = provider.id;
+			settingRow[id + 'ClientId'] = config.clientId;
+			settingRow[id + 'CallbackUrl'] = config.callbackUrl;
+			settingRow[id + 'Switch'] = config.enabled && config.ready;
+			settingRow[id + 'HasSecret'] = !!config.clientSecret;
+			settingRow[id + 'MinTrustLevel'] = config.minTrustLevel ?? 0;
+		});
 
 		settingRow.emailPrefixFilter = settingRow.emailPrefixFilter.split(",").filter(Boolean);
 		settingRow.emailKeywordBlacklist = (settingRow.emailKeywordBlacklist || '').split(",").filter(Boolean);
@@ -99,6 +153,7 @@ const settingService = {
 			settingRow.domainMapping = JSON.parse(settingRow.domainMapping || '{}');
 		}
 
+		settingRow.loginTemplate = normalizeLoginTemplate(settingRow.loginTemplate);
 		c.set?.('setting', settingRow);
 		return settingRow;
 	},
@@ -120,6 +175,11 @@ const settingService = {
 		Object.keys(settingRow.resendTokens).forEach(key => {
 			settingRow.resendTokens[key] = `${settingRow.resendTokens[key].slice(0, 12)}******`;
 		});
+
+		Object.keys(settingRow.queenTokens).forEach(key => {
+			settingRow.queenTokens[key] = `${settingRow.queenTokens[key].slice(0, 12)}******`;
+		});
+		settingRow.sendflareTokens = Object.fromEntries(Object.keys(settingRow.sendflareTokens || {}).map(domain => [domain, '******']));
 
 		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
@@ -151,14 +211,19 @@ const settingService = {
 	},
 
 	async set(c, params) {
+		await webhookConfig.save(c, params);
+		delete params.resendWebhookSecret;
+		delete params.hasResendWebhookSecret;
+		for (const provider of OAUTH_PROVIDERS) await oauthConfigService.save(c, params, provider.id);
+		if (Object.hasOwn(params, 'loginTemplate')) params.loginTemplate = normalizeLoginTemplate(params.loginTemplate);
 		delete params.hasAi
 		delete params.hasCloudflareEmail
 		delete params.hasR2
 		delete params.aiModels
 		delete params.domainList
-		delete params.linuxdoSwitch
-		delete params.linuxdoClientId
-		delete params.linuxdoCallbackUrl
+		for (const provider of OAUTH_PROVIDERS) {
+			for (const suffix of ['Switch', 'ClientId', 'CallbackUrl', 'ClientSecret', 'HasSecret', 'MinTrustLevel']) delete params[provider.id + suffix];
+		}
 		delete params.regVerifyOpen
 		delete params.addVerifyOpen
 		delete params.storageType
@@ -172,9 +237,24 @@ const settingService = {
 			params.sendChannels, settingData.domainList, typeof c.env.EMAIL?.send === 'function'
 		);
 		delete params.sendChannels;
+		const sendflareInput = params.sendflareTokens;
+		delete params.sendflareTokens;
 		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
 		Object.keys(resendTokens).forEach(domain => {
 			if (!resendTokens[domain]) delete resendTokens[domain];
+		});
+
+		const queenInput = Object.fromEntries(Object.entries(params.queenTokens || {})
+			.filter(([, value]) => !String(value || '').endsWith('******')));
+		let queenTokens = { ...settingData.queenTokens, ...queenInput };
+		Object.keys(queenTokens).forEach(domain => {
+			if (!queenTokens[domain]) delete queenTokens[domain];
+		});
+
+		// 每个域名选用的发件服务：resend / queensmtp，空值表示自动（优先 Resend）
+		let sendProviders = { ...settingData.sendProviders, ...params.sendProviders };
+		Object.keys(sendProviders).forEach(domain => {
+			if (!SEND_PROVIDERS.includes(sendProviders[domain])) delete sendProviders[domain];
 		});
 
 		if (Array.isArray(params.emailPrefixFilter)) {
@@ -202,10 +282,13 @@ const settingService = {
 		}
 
 		params.resendTokens = JSON.stringify(resendTokens);
+		params.queenTokens = JSON.stringify(queenTokens);
+		params.sendProviders = JSON.stringify(sendProviders);
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		if (sendChannels !== undefined) {
 			await c.env.kv.put(KvConst.SEND_CHANNELS, JSON.stringify(sendChannels));
 		}
+		if (sendflareInput !== undefined) await sendflareService.saveTokens(c, sendflareInput);
 		await this.refresh(c);
 	},
 
@@ -304,16 +387,14 @@ const settingService = {
 			noticeOffset: settingRow.noticeOffset,
 			notice: settingRow.notice,
 			loginDomain: settingRow.loginDomain,
-			linuxdoClientId: settingRow.linuxdoClientId,
-			linuxdoCallbackUrl: settingRow.linuxdoCallbackUrl,
-			linuxdoSwitch: settingRow.linuxdoSwitch,
+			...Object.fromEntries(OAUTH_PROVIDERS.map(provider => [provider.id + 'Switch', settingRow[provider.id + 'Switch']])),
 			minEmailPrefix: settingRow.minEmailPrefix,
 			randomPrefixLength: settingRow.randomPrefixLength,
 			regKeyHint: settingRow.regKeyHint || '',
 			regKeyHintEn: settingRow.regKeyHintEn || '',
 			regKeyLink: settingRow.regKeyLink || '',
 			colorTheme: settingRow.colorTheme || 'indigo',
-			loginTemplate: settingRow.loginTemplate || 'gradient',
+			loginTemplate: normalizeLoginTemplate(settingRow.loginTemplate),
 			layoutMode: settingRow.layoutMode || 'default',
 			newEmailNotify: settingRow.newEmailNotify ?? 0,
 		};

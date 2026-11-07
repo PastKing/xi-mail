@@ -21,6 +21,7 @@
 		"drizzle-orm": "^0.42.0",
 		"hono": "^4.7.5",
 		"i18next": "^25.3.2",
+		"jose": "^6.2.15",
 		"linkedom": "^0.18.10",
 		"postal-mime": "^2.4.3",
 		"resend": "^6.4.1",

@@ -2,7 +2,7 @@
   <div class="aside-root" :class="{ compact: isCompact }">
     <div class="aside-header">
       <div class="logo-mark">
-        <Icon icon="mingcute:mail-send-fill" width="18" height="18" />
+        <BrandMark :size="32" />
       </div>
       <div v-if="!isCompact" class="logo-text">{{ settingStore.settings.title }}</div>
     </div>
@@ -70,6 +70,7 @@ import router from "@/router/index.js";
 import { useRoute } from "vue-router";
 import { computed } from "vue";
 import { Icon } from "@iconify/vue";
+import BrandMark from '@/components/BrandMark.vue';
 import { useSettingStore } from "@/store/setting.js";
 import { useNavigationAccess } from "@/layout/nav-config.js";
 
@@ -155,24 +156,12 @@ const {transferStore, visibleMainNav, visibleAdminNav} = useNavigationAccess();
 .logo-mark {
   width: 36px;
   height: 36px;
-  border-radius: var(--xi-radius);
-  background: var(--xi-gradient);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--el-color-primary);
   flex-shrink: 0;
-  box-shadow: 
-    0 2px 8px rgba(61, 139, 132, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-  
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 
-      0 4px 16px rgba(61, 139, 132, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
 }
 
 .logo-text {

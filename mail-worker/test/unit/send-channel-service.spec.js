@@ -10,7 +10,10 @@ const state = vi.hoisted(() => ({
 vi.mock('resend', () => ({Resend: class { constructor(token) {this.token = token; this.emails = {send: state.resend};} }}));
 vi.mock('../../src/i18n/i18n', () => ({t: key => key}));
 vi.mock('../../src/service/setting-service', () => ({default: {query: async () => state.settings}}));
-vi.mock('../../src/service/account-service', () => ({default: {selectById: async () => state.account}}));
+vi.mock('../../src/service/account-service', () => ({default: {
+  selectById: async () => state.account,
+  selectOwnedById: async (c, accountId, userId) => state.account.userId === userId ? state.account : null,
+}}));
 vi.mock('../../src/service/role-service', () => ({default: {
   selectById: async () => state.role, hasAvailDomainPerm: (domains, address) => domains.includes(address.split('@')[1]),
 }}));
@@ -111,7 +114,7 @@ it('retains ownership, domain, role, quota and system gates before calling eithe
   state.role.sendType = 'day'; state.user.sendCount = 10;
   await expect(emailService.send(context(), params(), 1)).rejects.toThrow('daySendLimit');
   state.user.sendCount = 0; state.account.userId = 2;
-  await expect(emailService.send(context(), params(), 1)).rejects.toThrow('sendEmailNotCurUser');
+  await expect(emailService.send(context(), params(), 1)).rejects.toThrow('senderAccountNotExist');
   state.account.userId = 1; state.role.availDomain = '@other.example';
   await expect(emailService.send(context(), params(), 1)).rejects.toThrow('noDomainPermSend');
   expect(state.cf).not.toHaveBeenCalled(); expect(state.resend).not.toHaveBeenCalled(); expect(state.insert).not.toHaveBeenCalled();
@@ -149,7 +152,7 @@ it('reports provider errors without fallback, recording success, or consuming qu
   state.cf.mockResolvedValueOnce({});
   await expect(emailService.send(context(), params(), 1)).rejects.toThrow('cloudflareSendFailed');
   expect(state.resend).not.toHaveBeenCalled(); expect(state.insert).not.toHaveBeenCalled(); expect(state.count).not.toHaveBeenCalled();
-  await expect(resendService.webhooks({}, {data: {email_id: 'cloudflare:cf-test-id'}, type: 'email.delivered'})).rejects.toThrow('Invalid Resend email ID');
+  await expect(resendService.webhooks({}, {data: {email_id: 'cloudflare:cf-test-id'}, type: 'email.delivered'})).rejects.toThrow('Invalid webhook signature');
 });
 
 it.each(['resend', 'cloudflare'])('sends CC through %s, deduplicates To/CC and stores both headers', async channel => {

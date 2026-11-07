@@ -3,6 +3,18 @@ import userService from '../service/user-service';
 import result from '../model/result';
 import userContext from '../security/user-context';
 import sessionService from '../service/session-service';
+import oauthService from '../service/oauth-service';
+import { OAUTH_PROVIDERS } from '../const/oauth-providers';
+
+app.get('/my/oauth', async c => c.json(result.ok(await oauthService.list(c, userContext.getUserId(c)))));
+for (const provider of OAUTH_PROVIDERS) {
+  app.post(`/my/oauth/${provider.apiId}/authorize`, async c => c.json(result.ok(await oauthService.authorize(c, 'bind', provider.id))));
+  app.post(`/my/oauth/${provider.apiId}/callback`, async c => c.json(result.ok(await oauthService.finish(c, await c.req.json(), 'bind', provider.id))));
+}
+app.delete('/my/oauth', async c => {
+	await oauthService.remove(c, userContext.getUserId(c), c.req.query('provider'));
+	return c.json(result.ok());
+});
 
 app.get('/my/loginUserInfo', async (c) => {
 	const user = await userService.loginUserInfo(c, userContext.getUserId(c));

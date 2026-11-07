@@ -6,6 +6,7 @@ import email from '../entity/email';
 import BizError from '../error/biz-error';
 import { and, eq, desc, count } from 'drizzle-orm';
 import { isDel } from '../const/entity-const';
+import subWorkerService from '../service/sub-worker-service';
 
 /** Verify x-admin-auth header against stored global token */
 async function verifyAdminToken(c) {
@@ -38,6 +39,8 @@ app.get('/admin/mails', async (c) => {
 	if (!address) {
 		throw new BizError('address 参数必填', 400);
 	}
+
+	await subWorkerService.syncAll(c);
 
 	const db = orm(c);
 

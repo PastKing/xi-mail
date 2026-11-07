@@ -86,50 +86,17 @@
             <button
               v-for="tpl in loginTemplates"
               :key="tpl.id"
-              :class="['tpl-card', { active: setting.loginTemplate === tpl.id }]"
+              :class="['tpl-card', { active: normalizeLoginTemplate(setting.loginTemplate) === tpl.id }]"
               @click="applyLoginTemplate(tpl.id)"
             >
-              <div v-if="tpl.id === 'gradient'" class="tpl-preview tpl-gradient">
-                <div class="tpl-card-inner"></div>
-              </div>
-              <div v-else-if="tpl.id === 'minimal'" class="tpl-preview tpl-minimal">
-                <div class="tpl-card-inner tpl-minimal-card"></div>
-              </div>
-              <div v-else-if="tpl.id === 'split'" class="tpl-preview tpl-split">
-                <div class="tpl-split-left"></div>
-                <div class="tpl-split-right">
-                  <div class="tpl-card-inner tpl-split-card"></div>
-                </div>
-              </div>
-              <div v-else-if="tpl.id === 'glassmorphism'" class="tpl-preview tpl-glassmorphism">
-                <div class="tpl-glass-orb tpl-glass-orb-1"></div>
-                <div class="tpl-glass-orb tpl-glass-orb-2"></div>
-                <div class="tpl-glass-card"></div>
-              </div>
-              <div v-else-if="tpl.id === 'aurora'" class="tpl-preview tpl-aurora">
-                <div class="tpl-aurora-left">
-                  <div class="tpl-aurora-card"></div>
-                </div>
-                <div class="tpl-aurora-right">
-                  <div class="tpl-aurora-wave"></div>
-                </div>
-              </div>
-              <div v-else-if="tpl.id === 'geometric'" class="tpl-preview tpl-geometric">
-                <div class="tpl-geo-shapes">
-                  <div class="tpl-geo-circle"></div>
-                  <div class="tpl-geo-square"></div>
-                  <div class="tpl-geo-triangle"></div>
-                </div>
-                <div class="tpl-geo-card"></div>
-              </div>
+              <div v-if="tpl.id === 'minimal'" class="tpl-preview tpl-minimal"><div class="tpl-card-inner tpl-minimal-card"></div></div>
+              <div v-else-if="tpl.id === 'editorial'" class="tpl-preview tpl-editorial"><i></i><b></b><span></span></div>
+              <div v-else-if="tpl.id === 'window'" class="tpl-preview tpl-window"><i></i><b></b></div>
+              <div v-else-if="tpl.id === 'grid'" class="tpl-preview tpl-grid"><i></i><b></b><span></span></div>
               <div v-else-if="tpl.id === 'envelope'" class="tpl-preview tpl-envelope">
                 <div class="tpl-envelope-flap"></div>
                 <div class="tpl-envelope-label"></div>
                 <div class="tpl-envelope-stamp"></div>
-              </div>
-              <div v-else-if="tpl.id === 'terminal'" class="tpl-preview tpl-terminal">
-                <div class="tpl-terminal-copy"></div>
-                <div class="tpl-terminal-form"></div>
               </div>
               <div v-else-if="tpl.id === 'passport'" class="tpl-preview tpl-passport">
                 <div class="tpl-passport-seam"></div>
@@ -149,6 +116,7 @@
 import {computed, defineOptions} from "vue";
 import {Icon} from "@iconify/vue";
 import {useI18n} from "vue-i18n";
+import {LOGIN_TEMPLATES, normalizeLoginTemplate} from '@/config/login-templates.js';
 import {useSysSetting} from "../use-sys-setting.js";
 
 defineOptions({
@@ -174,17 +142,7 @@ const layoutModes = computed(() => [
   { id: 'island',  label: t('layoutIsland') },
 ])
 
-const loginTemplates = computed(() => [
-  { id: 'gradient',      label: t('templateGradient')      },
-  { id: 'minimal',       label: t('templateMinimal')       },
-  { id: 'split',         label: t('templateSplit')         },
-  { id: 'glassmorphism', label: t('templateGlassmorphism') },
-  { id: 'aurora',        label: t('templateAurora')        },
-  { id: 'geometric',     label: t('templateGeometric')     },
-  { id: 'envelope',      label: t('templateEnvelope')      },
-  { id: 'terminal',      label: t('templateTerminal')      },
-  { id: 'passport',      label: t('templatePassport')      },
-])
+const loginTemplates = computed(() => LOGIN_TEMPLATES.map(template => ({ id: template.id, label: t(template.label) })))
 
 function applyColorTheme(id) {
   setting.value.colorTheme = id
@@ -306,49 +264,6 @@ function applyLoginTemplate(id) {
   font-size: 12px;
   font-weight: 500;
   color: var(--el-text-color-secondary);
-}
-
-/* ink editorial preview */
-.tpl-gradient {
-  background: linear-gradient(90deg, #090d0d 0 56%, #f3f0e8 56%);
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    width: 42px;
-    height: 42px;
-    top: -16px;
-    left: -12px;
-    border-radius: 50%;
-    background: var(--xi-orb-1);
-    filter: blur(12px);
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 8px;
-    bottom: 10px;
-    width: 34px;
-    height: 3px;
-    border-top: 2px solid rgba(255,255,255,.75);
-    border-bottom: 1px solid rgba(255,255,255,.25);
-  }
-
-  .tpl-card-inner {
-    position: absolute;
-    top: 13px;
-    right: 7px;
-    width: 34px;
-    height: 39px;
-    background:
-      linear-gradient(#cbc7bd 1px, transparent 1px) 4px 12px / 26px 9px repeat-y;
-    border: 0;
-    border-radius: 0;
-    z-index: 1;
-  }
 }
 
 /* layout mode selector */
@@ -541,176 +456,6 @@ function applyLoginTemplate(id) {
   }
 }
 
-/* split preview */
-.tpl-split {
-  background: var(--el-bg-color);
-  display: flex;
-
-  .tpl-split-left {
-    width: 36px;
-    background: var(--xi-gradient);
-    flex-shrink: 0;
-  }
-
-  .tpl-split-right {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--el-bg-color);
-  }
-
-  .tpl-split-card {
-    width: 32px; height: 26px;
-    background: var(--el-bg-color);
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 3px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  }
-}
-
-/* glassmorphism preview */
-.tpl-glassmorphism {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  position: relative;
-  overflow: hidden;
-
-  .tpl-glass-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(8px);
-    opacity: 0.6;
-  }
-
-  .tpl-glass-orb-1 {
-    width: 35px; height: 35px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    top: -10px; right: -5px;
-  }
-
-  .tpl-glass-orb-2 {
-    width: 25px; height: 25px;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    bottom: -8px; left: -5px;
-  }
-
-  .tpl-glass-card {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 54px; height: 38px;
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(4px);
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.2);
-    z-index: 1;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 7px;
-      border-top: 1px solid rgba(255,255,255,.18);
-    }
-  }
-}
-
-/* aurora preview */
-.tpl-aurora {
-  background: #0a0a12;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-
-  .tpl-aurora-left {
-    width: 45%;
-    background: #0d0d16;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .tpl-aurora-card {
-    width: 28px; height: 24px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 3px;
-    border: 1px solid rgba(255,255,255,0.1);
-  }
-
-  .tpl-aurora-right {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .tpl-aurora-wave {
-    position: absolute;
-    width: 200%; height: 100%;
-    top: 0; left: -50%;
-    background: linear-gradient(180deg,
-      transparent 0%,
-      var(--xi-orb-1) 30%,
-      var(--xi-orb-2) 60%,
-      transparent 100%
-    );
-    filter: blur(8px);
-  }
-}
-
-/* geometric preview */
-.tpl-geometric {
-  background: #faf9f7;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 8px;
-
-  .tpl-geo-shapes {
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 60%;
-  }
-
-  .tpl-geo-circle {
-    position: absolute;
-    width: 30px; height: 30px;
-    background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-    border-radius: 50%;
-    top: -8px; left: -8px;
-  }
-
-  .tpl-geo-square {
-    position: absolute;
-    width: 20px; height: 20px;
-    background: linear-gradient(135deg, #5f27cd 0%, #a55eea 100%);
-    border-radius: 4px;
-    bottom: 8px; left: 12px;
-    transform: rotate(15deg);
-  }
-
-  .tpl-geo-triangle {
-    position: absolute;
-    width: 0; height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-bottom: 18px solid #00d2d3;
-    left: 35%; top: 30%;
-  }
-
-  .tpl-geo-card {
-    position: relative;
-    width: 38px; height: 28px;
-    background: #fff;
-    border-radius: 4px;
-    border: 2px solid #1a1a1a;
-    box-shadow: 3px 3px 0 #1a1a1a;
-    z-index: 1;
-  }
-}
-
 /* physical envelope preview */
 .tpl-envelope {
   background: #c7b999;
@@ -744,27 +489,6 @@ function applyLoginTemplate(id) {
     top: 8px;
     border: 2px dotted var(--el-color-primary);
     background: #eee8d8;
-  }
-}
-
-/* command terminal preview */
-.tpl-terminal {
-  display: flex;
-  background: #07100a;
-
-  .tpl-terminal-copy {
-    width: 43%;
-    margin: 9px 6px;
-    background: repeating-linear-gradient(0deg, #6f9d76 0 2px, transparent 2px 7px);
-    opacity: .6;
-  }
-
-  .tpl-terminal-form {
-    flex: 1;
-    margin: 7px 6px 7px 0;
-    border-top: 6px solid #b7f7c0;
-    background:
-      linear-gradient(#315838 1px, transparent 1px) 5px 12px / calc(100% - 10px) 9px repeat-y;
   }
 }
 
@@ -802,4 +526,19 @@ function applyLoginTemplate(id) {
     background: linear-gradient(#8d8775 1px, transparent 1px) 0 0 / 100% 8px repeat-y;
   }
 }
+/* Thumbnails mirror the three new page compositions. */
+.tpl-editorial { background: #f6f1e6; }
+.tpl-editorial::before { content: ''; position: absolute; left: 8px; right: 8px; top: 10px; border-top: 3px double #29271f; }
+.tpl-editorial i { position: absolute; top: 23px; left: 10px; width: 27px; height: 19px; border-block: 4px solid #29271f; }
+.tpl-editorial b { position: absolute; left: 10px; bottom: 6px; width: 12px; height: 12px; border: 1px solid #8a8172; border-radius: 50%; }
+.tpl-editorial span { position: absolute; top: 23px; right: 10px; width: 32px; height: 29px; background: repeating-linear-gradient(0deg, transparent 0 8px, #cfc6b5 8px 9px); }
+.tpl-window { background: #111a2b; }
+.tpl-window::before { content: ''; position: absolute; width: 28px; height: 28px; border-radius: 50%; left: 9px; top: 10px; background: #dddbc7; }
+.tpl-window::after { content: ''; position: absolute; width: 28px; height: 28px; border-radius: 50%; left: 16px; top: 5px; background: #111a2b; }
+.tpl-window i { position: absolute; z-index: 1; inset: 9px 23px; border: 1px solid #e3dfd1; border-radius: 3px; background: #f5f2e9; }
+.tpl-window b { position: absolute; z-index: 2; inset: 21px 31px 16px; background: repeating-linear-gradient(0deg, transparent 0 6px, #a6a99e 6px 7px); }
+.tpl-grid { background: #eeeae1; }
+.tpl-grid i { position: absolute; left: 10px; top: 14px; width: 33px; height: 38px; border: 1px solid #34332c; background: #fbf9f2; }
+.tpl-grid b { position: absolute; right: 10px; top: 17px; width: 20px; height: 20px; border-radius: 50%; background: #c4513a; }
+.tpl-grid span { position: absolute; right: 10px; top: 39px; width: 20px; height: 14px; background: #d5aa57; }
 </style>

@@ -18,7 +18,7 @@
               <span class="sender-selected-label">{{ label }}</span>
             </template>
             <el-option
-              v-for="item in accountOptions"
+              v-for="item in senderOptions"
               :key="item.accountId"
               :value="item.accountId"
               :label="`${item.name?.trim() || item.email.split('@')[0]} <${item.email}>`"
@@ -34,6 +34,9 @@
             <el-input id="compose-sender-name" v-model="form.name" :placeholder="$t('senderNamePlaceholder')" :title="$t('composeSenderNameHint')" :maxlength="30" clearable size="small" :disabled="senderNameLoading || accountsLoading" @keyup.enter="saveSenderName()" />
             <el-button size="small" :loading="senderNameLoading" :disabled="accountsLoading" @click="saveSenderName()">{{ $t('save') }}</el-button>
           </div>
+          <el-tooltip v-if="internalOnly" :content="$t('senderInternalOnlyDesc')">
+            <span class="sender-internal-tag">{{ $t('senderInternalOnly') }}</span>
+          </el-tooltip>
         </div>
         <div @click="close" style="cursor: pointer;">
           <Icon icon="mingcute:close-line" width="20" height="20"/>
@@ -197,6 +200,12 @@ const accountOptions = ref([])
 const savedSenderName = ref('')
 const senderNameLoading = ref(false)
 const accountsLoading = ref(false)
+const accountsLoaded = ref(false)
+
+// 只列出能对外发件的邮箱；一个都没有时保留全部邮箱，此时只能发给站内邮箱
+const sendableAccounts = computed(() => accountOptions.value.filter(item => item.canSend))
+const internalOnly = computed(() => accountsLoaded.value && sendableAccounts.value.length === 0)
+const senderOptions = computed(() => sendableAccounts.value.length > 0 ? sendableAccounts.value : accountOptions.value)
 
 const contacts = computed(() => writerStore.sendRecipientRecord.map(item => ({email: item})))
 
@@ -250,6 +259,7 @@ function selectStatusChange(status) {
 async function loadAccounts() {
   accountsLoading.value = true
   savedSenderName.value = form.name || ''
+  accountsLoaded.value = false
   try {
     // 先用当前账户填充，保证选择框立即有值显示
     if (form.sendEmail) {
@@ -272,6 +282,13 @@ async function loadAccounts() {
     }
   } finally {
     accountsLoading.value = false
+  }
+  accountsLoaded.value = true
+
+  // 当前邮箱不能对外发件时，默认换成第一个能发的邮箱
+  const sendable = sendableAccounts.value
+  if (sendable.length > 0 && !sendable.some(item => item.accountId === form.accountId)) {
+    changeSender(sendable[0].accountId)
   }
 }
 
@@ -901,6 +918,15 @@ function close() {
           flex-basis: 100%;
           max-width: none;
         }
+      .sender-internal-tag {
+        flex-shrink: 0;
+        font-size: 12px;
+        line-height: 20px;
+        padding: 0 6px;
+        border-radius: 4px;
+        color: var(--el-color-warning);
+        background: var(--el-color-warning-light-9);
+        cursor: default;
       }
 
       & > div:last-child {

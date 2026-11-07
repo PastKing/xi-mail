@@ -1,13 +1,10 @@
-import orm from '../entity/orm';
-import email from '../entity/email';
 import settingService from './setting-service';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
-import { eq } from 'drizzle-orm';
-import jwtUtils from '../utils/jwt-utils';
+import mailLinkService from './mail-link-service';
 import emailMsgTemplate from '../template/email-msg';
 import emailTextTemplate from '../template/email-text';
 import emailHtmlTemplate from '../template/email-html';
@@ -20,13 +17,7 @@ const telegramService = {
 
 		const { token } = params
 
-		const result = await jwtUtils.verifyToken(c, token);
-
-		if (!result) {
-			return emailTextTemplate('Access denied')
-		}
-
-		const emailRow = await orm(c).select().from(email).where(eq(email.emailId, result.emailId)).get();
+		const emailRow = await mailLinkService.read(c, token);
 
 		if (emailRow) {
 
@@ -38,7 +29,7 @@ const telegramService = {
 			}
 
 		} else {
-			return emailTextTemplate('The email does not exist')
+			return emailTextTemplate('Access denied')
 		}
 
 	},
@@ -49,9 +40,13 @@ const telegramService = {
 
 		const tgChatIds = tgChatId.split(',');
 
-		const jwtToken = await jwtUtils.generateToken(c, { emailId: email.emailId })
-
-		const webAppUrl = customDomain ? `${domainUtils.toOssDomain(customDomain)}/api/telegram/getEmail/${jwtToken}` : 'https://www.cloudflare.com/404'
+		let viewOrigin = null;
+		try {
+			const url = new URL(domainUtils.toOssDomain(customDomain?.trim()));
+			if (url.protocol === 'https:' && !url.username && !url.password) viewOrigin = url.origin;
+		} catch { /* Missing/invalid viewer configuration must not create a broken button. */ }
+		const viewToken = viewOrigin ? await mailLinkService.issue(c, email) : null;
+		const webAppUrl = viewToken ? `${viewOrigin}/api/telegram/getEmail/${viewToken}` : null;
 
 		await Promise.all(tgChatIds.map(async chatId => {
 			try {
@@ -64,7 +59,7 @@ const telegramService = {
 						chat_id: chatId,
 						parse_mode: 'HTML',
 						text: emailMsgTemplate(email, tgMsgTo, tgMsgFrom, tgMsgText),
-						reply_markup: {
+						...(webAppUrl ? { reply_markup: {
 							inline_keyboard: [
 								[
 									{
@@ -73,7 +68,7 @@ const telegramService = {
 									}
 								]
 							]
-						}
+						} } : {})
 					})
 				});
 				if (!res.ok) {

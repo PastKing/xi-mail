@@ -9,6 +9,7 @@ import accountService from './account-service';
 import BizError from '../error/biz-error';
 import emailUtils from '../utils/email-utils';
 import sendChannelService from './send-channel-service';
+import { Resend } from 'resend';
 import attService from './att-service';
 import { parseHTML } from 'linkedom';
 import userService from './user-service';
@@ -23,6 +24,15 @@ import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import permService from './perm-service';
 import verifyUtils from '../utils/verify-utils';
+import subWorkerService from './sub-worker-service';
+import queenSmtpService from './queen-smtp-service';
+import sendflareService from './sendflare-service';
+import domainUtils from '../utils/domain-uitls';
+import { mailFilterConditions } from './mail-filter-service';
+import starSchemaService from './star-schema-service';
+
+	// QueenSMTP 的消息 id 存在 resend_email_id 字段，加前缀区分来源，避免和 Resend 的状态回调混淆
+const QUEEN_ID_PREFIX = 'queensmtp:';
 
 const emailService = {
 
@@ -40,6 +50,8 @@ const emailService = {
 			size = 50;
 		}
 
+		const firstPage = !emailId;
+
 		if (!emailId) {
 
 			if (timeSort) {
@@ -50,11 +62,17 @@ const emailService = {
 
 		}
 
-		if (isNaN(allReceive)) {
-			let accountRow = await accountService.selectById(c, accountId);
-			allReceive = accountRow.allReceive;
+		if (accountId > 0) {
+			const accountRow = await accountService.selectOwnedById(c, accountId, userId);
+			if (!accountRow) return { list: [], total: 0, latestEmail: { emailId: 0, accountId, userId } };
+			if (isNaN(allReceive)) allReceive = accountRow.allReceive;
+		} else if (isNaN(allReceive)) allReceive = 1;
+
+		if (firstPage && Number(type) === emailConst.type.RECEIVE) {
+			await subWorkerService.syncAll(c);
 		}
 
+		await starSchemaService.ensure(c);
 		const query = orm(c)
 			.select({
 				...emailBriefColumns,
@@ -167,6 +185,34 @@ const emailService = {
 		return orm(c).insert(email).values({ ...params }).returning().get();
 	},
 
+	// 选择域名的发件服务：按「发件服务」设置优先，未设置时 Resend 优先，保持旧行为
+	resolveSendProvider(setting, domain, hasAttachments) {
+		const resendToken = setting.resendTokens?.[domain];
+		const queenToken = setting.queenTokens?.[domain];
+		const flareToken = setting.sendflareTokens?.[domain];
+		const preferred = setting.sendProviders?.[domain];
+		const channel = setting.sendChannels?.[domain];
+
+		const resend = resendToken ? { type: 'resend', token: resendToken } : null;
+		const cloudflare = channel === 'cloudflare' ? { type: 'cloudflare', token: null } : null;
+		const queen = queenToken ? { type: 'queensmtp', token: queenToken } : null;
+		const flare = flareToken ? { type: 'sendflare', token: flareToken } : null;
+
+		let provider = cloudflare
+			|| ({ resend, queensmtp: queen, sendflare: flare })[preferred]
+			|| resend
+			|| queen
+			|| flare;
+
+		//QueenSMTP 不支持附件，有附件时换用 Resend
+		if (provider?.type === 'queensmtp' && hasAttachments) {
+			if (!resend) throw new BizError(t('queenNoAttachment'));
+			provider = resend;
+		}
+
+		return provider;
+	},
+
 	//邮件发送
 	async send(c, params, userId) {
 
@@ -205,12 +251,18 @@ const emailService = {
 
 		const { resendTokens, r2Domain, send, domainList } = await settingService.query(c);
 
-		let { imageDataList, html } = await attService.toImageUrlHtml(c, content);
+		const setting = await settingService.query(c);
 
 		//判断是否关闭发件功能
 		if (send === settingConst.send.CLOSE) {
 			throw new BizError(t('disabledSend'), 403);
 		}
+		const accountRow = await accountService.selectOwnedById(c, accountId, userId);
+		if (!accountRow) throw new BizError(t('senderAccountNotExist'));
+		const domain = emailUtils.getDomain(accountRow.email);
+		if (!domainList.includes('@' + domain)) throw new BizError(t('noDomainPermSend'), 403);
+
+		let { imageDataList, html } = await attService.toImageUrlHtml(c, content);
 
 		//数量校验必须在发件之前，否则邮件已经发出去了才报错
 		if (imageDataList.length > 10) {
@@ -259,16 +311,6 @@ const emailService = {
 
 		}
 
-		const accountRow = await accountService.selectById(c, accountId);
-
-		if (!accountRow) {
-			throw new BizError(t('senderAccountNotExist'));
-		}
-
-		if (accountRow.userId !== userId) {
-			throw new BizError(t('sendEmailNotCurUser'));
-		}
-
 		if (c.env.admin !== userRow.email) {
 			//用户没有这个域名的使用权限
 			if(!roleService.hasAvailDomainPerm(roleRow.availDomain, accountRow.email)) {
@@ -277,12 +319,22 @@ const emailService = {
 
 		}
 
-		const domain = emailUtils.getDomain(accountRow.email);
-		const resendToken = resendTokens[domain];
+		const sendChannels = await sendChannelService.query(c);
+		const provider = allInternal ? null : this.resolveSendProvider(
+			{ ...setting, sendChannels },
+			domain,
+			attachments?.length > 0,
+		);
 
-		// 网页发信使用已保存的邮箱名称；兼容 API 显式传入名称。
-		if (name != null && (typeof name !== 'string' || /[\x00-\x1f\x7f]/.test(name))) {
-			throw new BizError(t('invalidSenderName'));
+		//如果接收方存在站外邮箱，又没有可用的发件服务
+		if (!provider && !allInternal) {
+			throw new BizError(t('noResendToken'));
+		}
+
+		//没有发件人名字自动截取
+		name = typeof name === 'string' ? name.replace(/[\x00-\x1f\x7f]/g, ' ').trim() : '';
+		if (!name) {
+			name = accountRow.name || emailUtils.getName(accountRow.email);
 		}
 		name = (name || accountRow.name || '').replace(/[<>\x00-\x1f\x7f]/g, '').trim()
 			|| emailUtils.getName(accountRow.email);
@@ -302,13 +354,44 @@ const emailService = {
 
 		}
 
-		let outboundId;
+		let resendResult = {};
+		let providerMessage = null;
 
-		//存在站外邮箱时，全部收件人由发件域名配置的渠道发送
-		if (!allInternal) {
+		//存在站外时邮箱全部交给该域名的发件服务
+		if (!allInternal && provider.type === 'queensmtp') {
+
+			//QueenSMTP 不支持 cid 内嵌图片，正文图片换成可公开访问的地址（图片在发件后写入存储，收件人打开时已可访问）
+			const baseUrl = domainUtils.toOssDomain(r2Domain) || new URL(c.req.url).origin;
+			const queenHtml = this.imgReplace(html, imageDataList, r2Domain).replace(/{{domain}}/g, baseUrl + '/');
+
+			const { ids, failed } = await queenSmtpService.send(provider.token, {
+				from: accountRow.email,
+				fromName: name,
+				to: receiveEmail,
+				subject,
+				html: queenHtml,
+				text,
+				inReplyTo: sendType === 'reply' ? emailRow.messageId : null,
+			});
+
+			resendResult = { data: { id: QUEEN_ID_PREFIX + ids[0] } };
+
+			if (failed.length > 0) {
+				providerMessage = 'QueenSMTP: ' + failed.map(item => `${item.to} ${item.error}`).join('; ');
+			}
+
+		} else if (!allInternal && provider.type === 'sendflare') {
+			const id = await sendflareService.send(provider.token, {
+				from: accountRow.email, to: receiveEmail, subject, html, text,
+				cc,
+				attachments: [...imageDataList, ...(attachments || [])],
+				inReplyTo: sendType === 'reply' ? emailRow.messageId : null,
+			});
+			resendResult = { data: { id: 'sendflare:' + id } };
+		} else if (!allInternal) {
 
 			const sendForm = {
-				from: `${JSON.stringify(name)} <${accountRow.email}>`,
+				from: `"${name.replace(/["\\]/g, '\\$&')}" <${accountRow.email}>`,
 				to: [...receiveEmail],
 				...(cc.length ? { cc: [...cc] } : {}),
 				subject: subject,
@@ -324,10 +407,15 @@ const emailService = {
 				};
 			}
 
-			outboundId = await sendChannelService.send(c, domain, resendToken, sendForm, {
+			resendResult = await sendChannelService.send(c, domain, provider.token, sendForm, {
 				email: accountRow.email, name
-			});
+			}).then(id => ({ data: { id } }));
 
+		}
+
+		const { data, error } = resendResult;
+		if (error) {
+			throw new BizError(error.message);
 		}
 
 		imageDataList = imageDataList.map(item => ({...item, contentId: `<${item.contentId}>`}))
@@ -346,7 +434,10 @@ const emailService = {
 		emailData.status = emailConst.status.SENT;
 		emailData.type = emailConst.type.SEND;
 		emailData.userId = userId;
-		emailData.resendEmailId = outboundId;
+		emailData.resendEmailId = data?.id;
+		if (providerMessage) {
+			emailData.message = providerMessage;
+		}
 
 		const recipient = [];
 
@@ -440,12 +531,12 @@ const emailService = {
 
 				const roleRow = roleList.find(roleRow => roleRow.userId === accountRow.userId);
 
-				let { banEmail, availDomain } = roleRow;
+				let { banEmail, availDomain, userEmail } = roleRow;
 
 				//如果收件人没有这个域名的使用权限和有邮件拦截，就把邮件改为拒收状态
 				if (email !== c.env.admin) {
 
-					if (!roleService.hasAvailDomainPerm(availDomain, email)) {
+					if (!roleService.isPrimaryEmail(userEmail, accountRow.email) && !roleService.hasAvailDomainPerm(availDomain, email)) {
 						emailValues.status = emailConst.status.BOUNCED;
 						emailValues.message = `The recipient <${email}> is not authorized to use this domain.`;
 					} else if(roleService.isBanEmail(banEmail, sendEmailData.sendEmail)) {
@@ -565,44 +656,42 @@ const emailService = {
 	// 懒加载正文：列表只返回摘要，打开邮件时再取全文
 	async content(c, params, userId) {
 		const emailId = Number(params.emailId);
+		const currentUser = c.get('user');
+		let canViewAll = currentUser?.email === c.env.admin;
+		if (!canViewAll) {
+			const keys = await permService.userPermKeys(c, userId);
+			canViewAll = keys.includes('all-email:query') || keys.includes('*');
+		}
 
 		const emailRow = await orm(c).select({
 			emailId: email.emailId,
 			userId: email.userId,
 			content: email.content,
 			text: email.text
-		}).from(email).where(eq(email.emailId, emailId)).get();
+		}).from(email).where(and(eq(email.emailId, emailId), canViewAll ? sql`1 = 1` : eq(email.userId, userId))).get();
 
 		if (!emailRow) {
 			throw new BizError(t('unauthorized'), 404);
 		}
 
-		// 非本人邮件需要管理员或全部邮件查看权限
-		if (emailRow.userId !== userId) {
-			const userRow = c.get('user');
-			if (userRow?.email !== c.env.admin) {
-				const permKeys = await permService.userPermKeys(c, userId);
-				if (!permKeys.includes('all-email:query')) {
-					throw new BizError(t('unauthorized'), 403);
-				}
-			}
-		}
-
 		return {
 			emailId: emailRow.emailId,
 			content: emailRow.content,
-			text: emailRow.text
+			text: emailRow.text,
 		};
 	},
 
 	async latest(c, params, userId) {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
+		const accountRow = await accountService.selectOwnedById(c, accountId, userId);
+		if (!accountRow) return [];
 
 		if (isNaN(allReceive)) {
-			let accountRow = await accountService.selectById(c, accountId);
 			allReceive = accountRow.allReceive;
 		}
+
+		await subWorkerService.syncAll(c);
 
 		let list = await orm(c).select({...emailBriefColumns}).from(email)
 			.innerJoin(
@@ -679,6 +768,8 @@ const emailService = {
 
 		if (!emailId) {
 
+			await subWorkerService.syncAll(c);
+
 			if (timeSort) {
 				emailId = 0;
 			} else {
@@ -687,46 +778,7 @@ const emailService = {
 
 		}
 
-		const conditions = [];
-
-		if (type === 'send') {
-			conditions.push(eq(email.type, emailConst.type.SEND));
-		}
-
-		if (type === 'receive') {
-			conditions.push(eq(email.type, emailConst.type.RECEIVE));
-		}
-
-		if (type === 'delete') {
-			conditions.push(eq(email.isDel, isDel.DELETE));
-		}
-
-		if (type === 'noone') {
-			conditions.push(eq(email.status, emailConst.status.NOONE));
-		}
-
-		if (userEmail) {
-			conditions.push(sql`${user.email} COLLATE NOCASE LIKE ${'%'+ userEmail + '%'}`);
-		}
-
-		if (accountEmail) {
-			conditions.push(
-				or(
-					sql`${email.toEmail} COLLATE NOCASE LIKE ${'%'+ accountEmail + '%'}`,
-					sql`${email.sendEmail} COLLATE NOCASE LIKE ${'%'+ accountEmail + '%'}`,
-				)
-			)
-		}
-
-		if (name) {
-			conditions.push(sql`${email.name} COLLATE NOCASE LIKE ${'%'+ name + '%'}`);
-		}
-
-		if (subject) {
-			conditions.push(sql`${email.subject} COLLATE NOCASE LIKE ${'%'+ subject + '%'}`);
-		}
-
-		conditions.push(ne(email.status, emailConst.status.SAVING));
+		const conditions = mailFilterConditions(c, params);
 
 		const countConditions = [...conditions];
 
@@ -788,14 +840,16 @@ const emailService = {
 	async allEmailLatest(c, params) {
 
 		const { emailId } = params;
+		const conditions = mailFilterConditions(c, { ...params, type: 'receive' });
+
+		await subWorkerService.syncAll(c);
 
 		let list = await orm(c).select({...emailBriefColumns, userEmail: user.email}).from(email)
 			.leftJoin(user, eq(email.userId, user.userId))
 			.where(
 				and(
-					gt(email.emailId, emailId),
-					eq(email.type, emailConst.type.RECEIVE),
-					ne(email.status, emailConst.status.SAVING)
+					gt(email.emailId, Number(emailId) || 0),
+					...conditions
 				))
 			.orderBy(desc(email.emailId))
 			.limit(20);

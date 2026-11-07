@@ -5,8 +5,8 @@
       <div class="card-content">
         <div class="sub-worker-toolbar">
           <span class="sw-count">{{ subWorkers.length }} {{ $t('subWorkerManage') }}</span>
-          <el-button type="primary" size="small" @click="subWorkerDialogShow = true">
-            <Icon icon="mingcute:add-line" width="14" height="14" style="margin-right: 4px;" />
+          <el-button type="primary" @click="subWorkerDialogShow = true">
+            <Icon icon="mingcute:add-line" width="18" height="18" style="margin-right: 4px;" />
             {{ $t('subWorkerAdd') }}
           </el-button>
         </div>
@@ -18,14 +18,20 @@
             <div class="sw-info">
               <span class="sw-name">{{ sw.name }}</span>
               <span class="sw-domains-tag" v-for="d in sw.domains" :key="d">{{ d }}</span>
+              <span v-if="!sw.domains?.length" class="sw-domains-tag sw-domains-empty">{{ $t('subWorkerNoDomain') }}</span>
             </div>
             <div class="sw-actions">
               <el-tag :type="sw.status ? 'success' : 'info'" size="small">
                 {{ sw.status ? $t('subWorkerEnabled') : $t('subWorkerDisabled') }}
               </el-tag>
-              <el-switch :model-value="!!sw.status" size="small" @change="toggleStatus(sw)"/>
-              <el-button size="small" type="danger" plain @click="removeSubWorker(sw)">
-                <Icon icon="mingcute:delete-2-line" width="14" height="14" />
+              <el-switch :model-value="!!sw.status" @change="toggleStatus(sw)"/>
+              <el-tooltip :content="$t('subWorkerSyncDomains')">
+                <el-button class="opt-button" plain :aria-label="$t('subWorkerSyncDomains')" :loading="syncingId === sw.id" @click="syncDomains(sw)">
+                  <Icon icon="mingcute:refresh-2-line" width="18" height="18" />
+                </el-button>
+              </el-tooltip>
+              <el-button class="opt-button" type="danger" plain :aria-label="$t('delete')" @click="removeSubWorker(sw)">
+                <Icon icon="mingcute:delete-2-line" width="18" height="18" />
               </el-button>
             </div>
           </div>
@@ -69,7 +75,8 @@ import {
   subWorkerDelete,
   subWorkerList,
   subWorkerSetStatus,
-  subWorkerTest
+  subWorkerTest,
+  subWorkerUpdate
 } from "@/request/sub-worker.js";
 
 defineOptions({
@@ -124,6 +131,13 @@ function removeSubWorker(sw) {
 function toggleStatus(sw) {
   subWorkerSetStatus(sw.id, sw.status ? 0 : 1).then(loadSubWorkers)
 }
+
+const syncingId = ref(null)
+
+function syncDomains(sw) {
+  syncingId.value = sw.id
+  subWorkerUpdate(sw.id, {}).then(loadSubWorkers).finally(() => { syncingId.value = null })
+}
 </script>
 
 <style scoped lang="scss">
@@ -136,7 +150,7 @@ function toggleStatus(sw) {
 }
 
 .sw-count {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--el-text-color-secondary);
 }
 
@@ -144,7 +158,7 @@ function toggleStatus(sw) {
   text-align: center;
   color: var(--el-text-color-secondary);
   padding: 20px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .sw-list {
@@ -180,14 +194,14 @@ function toggleStatus(sw) {
 }
 
 .sw-name {
-  font-size: 13px;
+  font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .sw-domains-tag {
-  font-size: 11px;
+  font-size: 12px;
   padding: 1px 6px;
   border-radius: 4px;
   background: var(--el-color-primary-light-9);
@@ -195,11 +209,23 @@ function toggleStatus(sw) {
   font-weight: 500;
 }
 
+.sw-domains-empty {
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+}
+
 .sw-actions {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  .el-button + .el-button { margin-left: 0; }
+}
+
+@media (max-width: 600px) {
+  .sw-row { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px 8px; }
+  .sw-actions { justify-content: flex-end; }
+  .sw-name { max-width: 100%; }
 }
 
 .sub-worker-form {
@@ -209,7 +235,7 @@ function toggleStatus(sw) {
 
   .sw-field label {
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--el-text-color-regular);
     margin-bottom: 4px;

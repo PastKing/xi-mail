@@ -33,6 +33,10 @@ app.onError((err, c) => {
 
 	// 只回显业务异常文案，其余（D1/运行时错误等）统一兜底，避免泄露后端细节
 	if (err.name === 'BizError') {
+		if (err.code === 429) {
+			c.header('Retry-After', String(err.retryAfter || 60));
+			return c.json(result.fail(err.message, 429), 429);
+		}
 		return c.json(result.fail(err.message, err.code));
 	}
 

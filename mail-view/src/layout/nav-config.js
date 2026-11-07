@@ -7,10 +7,9 @@ import {hasPerm} from '@/perm/perm.js'
 
 export const mainNav = Object.freeze([
   { name: 'email', icon: 'mingcute:inbox-line', label: 'inbox', primary: true },
-  { name: 'send', icon: 'mingcute:send-line', label: 'sent', sendOnly: true, primary: true },
-  { name: 'draft', icon: 'mingcute:file-line', label: 'drafts', sendOnly: true },
+  { name: 'send', icon: 'mingcute:send-line', label: 'outbox', sendOnly: true, primary: true },
   { name: 'star', icon: 'mingcute:star-line', label: 'starred', primary: true },
-  { name: 'transfer', icon: 'mingcute:transfer-3-line', label: 'transferPending', badge: 'transfer', primary: true },
+  { name: 'transfer', icon: 'mingcute:transfer-3-line', label: 'transferPending', badge: 'transfer', perm: 'transfer:query', primary: true },
   { name: 'session', icon: 'mingcute:device-line', label: 'loginSessions' },
   { name: 'setting', icon: 'mingcute:settings-3-line', label: 'settings', primary: true },
 ])
@@ -57,7 +56,7 @@ export function useNavigationAccess() {
   const visibleMainNav = computed(() => mainNav.filter(isVisible))
   const visibleAdminNav = computed(() => adminNav.filter(isVisible))
 
-  loadPendingCount(transferStore)
+  if (hasPerm('transfer:query')) loadPendingCount(transferStore)
 
   return {
     canSend,

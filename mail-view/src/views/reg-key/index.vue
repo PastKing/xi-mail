@@ -115,6 +115,7 @@ import {getTextWidth} from "@/utils/text.js";
 import dayjs from "dayjs";
 import {tzDayjs} from "@/utils/day.js";
 import {useI18n} from "vue-i18n";
+import { generateInviteCode as generateRandomCode } from '@/utils/invite-code';
 
 defineOptions({
   name: 'reg-key'
@@ -286,15 +287,6 @@ async function copyCode(code) {
 
 function genCode() {
   addForm.code = generateRandomCode()
-}
-
-function generateRandomCode(length = 8) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
 }
 
 function clearNotUse() {

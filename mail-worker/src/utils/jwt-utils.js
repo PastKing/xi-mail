@@ -1,3 +1,5 @@
+import { isSecureSecret } from './secret-policy';
+import constant from '../const/constant';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -14,16 +16,18 @@ const base64urlDecode = (str) => {
 
 const jwtUtils = {
 	async generateToken(c, payload, expiresInSeconds) {
+		if (!isSecureSecret(c.env.jwt_secret)) throw new Error('A strong signing secret is required');
 		const header = {
 			alg: 'HS256',
 			typ: 'JWT'
 		};
 
 		const now = Math.floor(Date.now() / 1000);
-		const exp = expiresInSeconds ? now + expiresInSeconds : undefined;
+		const exp = now + (expiresInSeconds ?? constant.TOKEN_EXPIRE);
 
 		const fullPayload = {
 			...payload,
+			purpose: 'session', aud: 'xi-mail', iss: 'xi-mail',
 			iat: now,
 			...(exp ? { exp } : {})
 		};
@@ -47,10 +51,14 @@ const jwtUtils = {
 	},
 
 	async verifyToken(c, token) {
+		if (!isSecureSecret(c.env.jwt_secret) || typeof token !== 'string' || token.length > 8192
+			|| !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) return null;
 		try {
 			const [headerB64, payloadB64, signatureB64] = token.split('.');
 
 			if (!headerB64 || !payloadB64 || !signatureB64) return null;
+			const header = JSON.parse(decoder.decode(base64urlDecode(headerB64)));
+			if (header.alg !== 'HS256' || header.typ !== 'JWT') return null;
 
 			const data = `${headerB64}.${payloadB64}`;
 			const key = await crypto.subtle.importKey(
@@ -74,12 +82,14 @@ const jwtUtils = {
 			const payload = JSON.parse(payloadJson);
 
 			const now = Math.floor(Date.now() / 1000);
-			if (payload.exp && payload.exp < now) return null;
+			if (payload.purpose !== 'session' || payload.aud !== 'xi-mail' || payload.iss !== 'xi-mail'
+				|| !Number.isSafeInteger(payload.userId) || payload.userId <= 0 || typeof payload.token !== 'string' || !payload.token
+				|| !Number.isFinite(payload.iat) || payload.iat > now + 60 || !Number.isFinite(payload.exp)
+				|| payload.exp <= now || payload.exp <= payload.iat) return null;
 
 			return payload;
 
 		} catch (err) {
-			console.log(err)
 			return null;
 		}
 	}

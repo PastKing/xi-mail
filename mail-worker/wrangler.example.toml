@@ -34,18 +34,35 @@ not_found_handling = "single-page-application"
 run_worker_first = true
 
 [triggers]
-crons = ["0 16 * * *"]
+# 每天 0 点（UTC+8）执行清理任务；每分钟同步子 Worker 邮件，不用子 Worker 可删掉第二项
+crons = ["0 16 * * *", "* * * * *"]
 
 [vars]
 orm_log = false
 domain = ["example.com", "mail.example.com"]
 admin = "admin@example.com"
-jwt_secret = "<YOUR_JWT_SECRET_MIN_32_CHARS>"
+# Configure two different random secrets (at least 32 characters each):
+# npx wrangler secret put jwt_secret
+# npx wrangler secret put init_secret
 
-# Uncomment to enable OAuth (LinuxDo)
+# Resend webhook signature verification is required. Configure Signing Secret in
+# System Settings → Service Integration, or use the secret below (comma-separated values supported).
+# npx wrangler secret put resend_webhook_secret
+
+# OAuth can be configured in System Settings → OAuth Integration.
+# These variables remain supported as a fallback for existing installations.
 # linuxdo_switch = "false"
 # linuxdo_client_id = "<YOUR_LINUXDO_CLIENT_ID>"
-# linuxdo_callback_url = "https://your-worker.workers.dev/oauth/linuxdo/callback"
+# linuxdo_callback_url = "https://your-frontend.example.com/oauth/linuxdo"
+# Store linuxdo_client_secret with `npx wrangler secret put linuxdo_client_secret`.
+# telegram_switch = "false"
+# telegram_client_id = "<BOTFATHER_CLIENT_ID>"
+# telegram_callback_url = "https://your-frontend.example.com/oauth/telegram"
+# Store telegram_client_secret with `npx wrangler secret put telegram_client_secret`.
+# nodeloc_switch = "false"
+# nodeloc_client_id = "<YOUR_NODELOC_CLIENT_ID>"
+# nodeloc_callback_url = "https://your-frontend.example.com/oauth/nodeloc"
+# Store nodeloc_client_secret with `npx wrangler secret put nodeloc_client_secret`.
 
 # [build]
 # command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"

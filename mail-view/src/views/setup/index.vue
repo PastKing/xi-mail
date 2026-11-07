@@ -2,7 +2,7 @@
   <div class="setup-page">
     <div class="setup-card">
       <div class="setup-logo">
-        <Icon icon="mingcute:mail-send-fill" width="28" height="28" />
+        <BrandMark :size="38" />
       </div>
       <h1 class="setup-title">{{ $t('setupTitle') }}</h1>
       <p class="setup-desc">{{ $t('setupDesc') }}</p>
@@ -41,6 +41,7 @@
 </template>
 
 <script setup>
+import BrandMark from '@/components/BrandMark.vue';
 import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useServerStore } from '@/store/server.js'
@@ -113,11 +114,11 @@ async function connect() {
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  background: var(--xi-gradient);
+  background: var(--el-color-primary-light-9);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--el-color-primary);
   margin-bottom: 20px;
 }
 
