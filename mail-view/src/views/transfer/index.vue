@@ -2,7 +2,7 @@
   <div class="transfer-box">
     <div class="header-actions">
       <el-tooltip :content="$t('refresh')" placement="bottom">
-        <Icon class="icon" icon="mingcute:refresh-2-line" width="18" height="18" @click="loadAll" />
+        <button type="button" class="xi-icon-button" :aria-label="$t('refresh')" @click="loadAll"><Icon icon="mingcute:refresh-2-line" width="18" height="18" /></button>
       </el-tooltip>
     </div>
 
@@ -265,18 +265,12 @@ onMounted(() => { loadAll(); loadMyAccounts() })
 .header-actions {
   padding: 10px 16px;
   display: flex;
-  gap: 14px;
+  gap: 12px;
   align-items: center;
   border-bottom: 1px solid var(--el-border-color-lighter);
   font-size: 18px;
   flex-shrink: 0;
 
-  .icon {
-    cursor: pointer;
-    color: var(--el-text-color-secondary);
-    transition: color 0.15s;
-    &:hover { color: var(--el-text-color-primary); }
-  }
 }
 
 /* 主体：左右两栏，溢出滚动 */

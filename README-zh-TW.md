@@ -8,7 +8,7 @@
 
 衍生自 [cloud-mail](https://github.com/maillab/cloud-mail)，重新設計介面並持續擴充功能
 
-[![Version](https://img.shields.io/badge/Version-v3.6.5-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.7-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -42,7 +42,7 @@
 - **郵件收發**：多信箱管理、郵件搜尋、撰寫與回覆、驗證碼擷取；相容 Resend、QueenSMTP、SendFlare。
 - **網域與篩選**：在後台管理多個網域，支援寄件者允許清單、封鎖清單及關鍵字篩選。
 - **使用者與權限**：角色分級、註冊碼註冊、信箱移轉、限時收件匣分享及工作階段管理。
-- **第三方登入**：支援 NodeLoc、Telegram、GitHub、Google、LinuxDo，綁定既有信箱後即可登入。
+- **第三方登入**：支援 NodeLoc、Telegram、Discord、GitHub、Google、LinuxDo，綁定既有信箱後即可登入。
 - **介面自訂**：6 套登入範本、6 套主題色與 4 種導覽版面，支援行動裝置與中英文介面。
 - **彈性部署**：支援前後端一體部署、獨立前端、多個 Worker 執行個體與收信子 Worker。
 - **API 整合**：透過全域 API Token 查詢郵件，方便串接其他工具。
@@ -117,23 +117,6 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 未設定 `VITE_BASE_URL` 時，首次開啟會跳轉至 `/setup`，引導填寫 Worker 網址。
 
 詳細部署方式可參考上游專案的 [cloud-mail 文件](https://github.com/maillab/cloud-mail)。
-
----
-
-## 📋 版本紀錄
-
-| 版本 | 更新摘要 |
-|---|---|
-| **v3.6.5** | GitHub / Google 登入、統一寄件匣、郵件搜尋及系統設定改版 |
-| **v3.6.x** | OAuth 與品牌改版、限時收件匣分享、SendFlare 與管理體驗改善 |
-| **v3.5.x** | 瀏覽器擴充功能、QueenSMTP 寄信、子 Worker、登入工作階段與驗證碼擷取 |
-| **v3.4.x** | 浮島導覽與多套登入範本 |
-| **v3.3.x** | 寄件者允許清單模式 |
-| **v3.2.x** | 寄件者網域封鎖 |
-| **v3.0 – 3.1** | 前後端分離、多個 Server 與子 Worker |
-| **v2.0.0** | 外觀範本系統 |
-
-完整更新紀錄請見 [Releases](https://github.com/PastKing/xi-mail/releases)。
 
 ---
 

@@ -7,11 +7,17 @@ import {permsToRouter} from "@/perm/perm.js";
 import router from "@/router";
 import {websiteConfig} from "@/request/setting.js";
 import i18n from "@/i18n/index.js";
+import {watch} from 'vue';
 
 export async function init() {
     document.title = '\u200B'
 
     const settingStore = useSettingStore();
+    watch(() => [settingStore.settings.title, settingStore.settings.subtitle], ([title, subtitle]) => {
+        if (typeof title !== 'string' || !title.trim()) return;
+        const suffix = typeof subtitle === 'string' ? subtitle.trim() : '';
+        document.title = suffix ? `${title.trim()} - ${suffix}` : title.trim();
+    }, {immediate:true, flush:'sync'});
     const userStore = useUserStore();
     const accountStore = useAccountStore();
     const serverStore = useServerStore();
@@ -44,7 +50,6 @@ export async function init() {
         setting = s;
         settingStore.settings = setting;
         settingStore.domainList = setting.domainList;
-        document.title = setting.title;
 
         if (user) {
             settingStore.domainList = user.domainList || setting.domainList;
@@ -68,7 +73,6 @@ export async function init() {
             setting = await websiteConfig();
             settingStore.settings = setting;
             settingStore.domainList = setting.domainList;
-            document.title = setting.title;
         } catch {
             if (!serverStore.isStandalone) {
                 serverStore.forceStandalone();

@@ -78,13 +78,14 @@ const oauthService = {
     }
     const validIdentity = providerId === 'google' ? typeof info.id === 'string' && /^[A-Za-z0-9_-]{1,255}$/.test(info.id)
       : /^\d{1,30}$/.test(String(info.id || '')) && (typeof info.id !== 'number' || Number.isSafeInteger(info.id));
-    if (!validIdentity || info.active === false || info.silenced === true)
+    if (!validIdentity || info.active === false || info.silenced === true || (providerId === 'discord' && (info.bot === true || info.system === true)))
       throw new BizError(`此 ${provider.name} 账号无法用于登录`, 403);
     if (provider.trustLevel && (Number(info.trust_level) || 0) < (config.minTrustLevel ?? 0))
       throw new BizError(`${provider.name} 信任级别未达到站点要求`, 403);
     const identity = String(info.id);
     if (intent === 'bind') {
-      await oauthBindingService.bind(c, pending.userId, providerId, identity, String(info.username || info.login || info.name || '').slice(0, 255));
+      const displayName = providerId === 'discord' ? info.global_name || info.username : info.username || info.login || info.name;
+      await oauthBindingService.bind(c, pending.userId, providerId, identity, String(displayName || '').slice(0, 255));
       return { bound: true };
     }
     const binding = await oauthBindingService.findIdentity(c, providerId, identity);

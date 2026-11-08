@@ -59,6 +59,8 @@ const oauthConfigService = {
     }
     if (id === 'telegram' && config.clientId && !/^\d{1,30}$/.test(config.clientId))
       throw new BizError('Telegram Client ID 应为 BotFather 提供的数字 ID', 400);
+    if (id === 'discord' && config.clientId && !/^\d{1,30}$/.test(config.clientId))
+      throw new BizError('Discord Client ID 应为应用的数字 ID', 400);
     if (config.enabled && (!config.clientId || !config.clientSecret || !config.callbackUrl))
       throw new BizError(`启用 ${provider.name} 前请填写 Client ID、Client Secret 和回调地址`, 400);
     await c.env.kv.put(`integration:oauth:${id}`, JSON.stringify(config));

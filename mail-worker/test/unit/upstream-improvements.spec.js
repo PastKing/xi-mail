@@ -15,6 +15,7 @@ import permService from '../../src/service/perm-service';
 import settingService from '../../src/service/setting-service';
 import analysis from '../../src/dao/analysis-dao';
 import { createRegistration } from '../../src/service/registration-service';
+import { EMAIL_LIST_HTML_LEN } from '../../src/lib/email-list-columns';
 
 let db,c,seen;
 function adapter(db) {
@@ -96,6 +97,52 @@ describe('Indexed mailbox queries and safe list previews',()=>{
  });
  it.each([{searchType:'invalid'},{unread:'yes'},{hasCode:'3'},{keyword:'x'.repeat(513)},{startTime:'2026-02-30 00:00:00'}])('rejects invalid filters %j',async filters=>{
   await expect(list(filters)).rejects.toMatchObject({code:400});
+ });
+});
+
+describe('Admin mail loading performance',()=>{
+ it('returns existing mail without waiting for remote sync and registers the work with the request context',async()=>{
+  message(1);
+  let finish;
+  const pending=new Promise(resolve=>{finish=resolve;});
+  subWorkerService.syncAll.mockReturnValue(pending);
+  c.executionCtx={waitUntil:vi.fn()};
+  try {
+   const result=await emailService.allList(c,{type:'receive',size:20});
+   expect(result.list.map(row=>row.emailId)).toEqual([1]);
+   expect(c.executionCtx.waitUntil).toHaveBeenCalledWith(pending);
+  } finally {finish();await pending;}
+ });
+ it('uses ordered and covering indexes for admin pages, totals and polling markers',async()=>{
+  for(let n=1;n<=80;n++)message(n,{type:n%2,is_del:n%3===0?1:0,status:n===80?6:0});
+  const result=await emailService.allList(c,{type:'receive',size:4});
+  expect(result.list.map(row=>row.emailId)).toEqual([78,76,74,72]);expect(result.total).toBe(39);
+  const queries=seen.filter(q=>q.text.startsWith('select')&&q.text.includes('from "email"')&&!q.text.includes('sqlite_'));
+  expect(queries.length).toBe(3);
+  for(const query of queries){
+   const plan=db.prepare('EXPLAIN QUERY PLAN '+query.text).all(...query.args).map(row=>row.detail).join(';');
+   expect(plan).toContain('idx_email_admin_type');
+   expect(plan).not.toContain('TEMP B-TREE');
+   if(query.text.includes('count(*)'))expect(plan).toContain('COVERING INDEX');
+  }
+  seen=[];
+  const next=await emailService.allList(c,{type:'receive',emailId:72,size:4,skipStats:'1'});
+  expect(next.list.map(row=>row.emailId)).toEqual([70,68,66,64]);
+  expect(next.total).toBeNull();expect(next.latestEmail).toBeNull();
+  expect(seen.filter(q=>q.text.startsWith('select'))).toHaveLength(1);
+  const deleted=await emailService.allList(c,{type:'delete',size:4});
+  expect(deleted.list.map(row=>row.emailId)).toEqual([78,75,72,69]);
+ });
+ it('bounds HTML preview reads and parsing without truncating the full message',async()=>{
+  const content='<script>hidden()</script><p>Large readable body '+ 'z'.repeat(2*1024*1024)+'</p>';
+  message(1,{text:'',content});
+  const parser=vi.spyOn((await import('../../src/utils/email-utils')).default,'htmlToText');
+  const result=await emailService.allList(c,{type:'receive',size:20});
+  expect(parser).toHaveBeenCalled();expect(parser.mock.calls[0][0].length).toBeLessThanOrEqual(EMAIL_LIST_HTML_LEN);
+  expect(result.list[0].text).toContain('Large readable body');expect(result.list[0].text).toHaveLength(300);
+  expect(result.list[0].text).not.toContain('hidden()');expect(result.list[0].content).toBeNull();
+  expect(JSON.stringify(result).length).toBeLessThan(2000);
+  expect((await emailService.content(c,{emailId:1},1)).content).toBe(content);
  });
 });
 

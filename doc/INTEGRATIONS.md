@@ -42,6 +42,7 @@ Telegram 邮件查看链接是独立的随机凭证，24 小时后失效，删�
 |---|---|---|
 | NodeLoc | [应用管理](https://www.nodeloc.com/oauth-provider/applications) | `/oauth/nodeloc` |
 | Telegram | [BotFather](https://t.me/BotFather) → Login Widget | `/oauth/telegram` |
+| Discord | [Developer Portal](https://discord.com/developers/applications) → OAuth2 | `/oauth/discord` |
 | GitHub | [Developer settings](https://github.com/settings/developers) → OAuth Apps | `/oauth/github` |
 | Google | [Google Auth Platform](https://console.cloud.google.com/auth/clients) → Web 应用客户端 | `/oauth/google` |
 | LinuxDo | [LinuxDo Connect](https://connect.linux.do/) | `/oauth/linuxdo` |
@@ -50,6 +51,7 @@ Telegram 邮件查看链接是独立的随机凭证，24 小时后失效，删�
 
 - NodeLoc 只需申请 `openid profile`，不需要邮箱权限。
 - Telegram 使用 OIDC 授权码与 PKCE，身份令牌签名由服务端验证。
+- Discord 使用授权码与 PKCE，仅请求 `identify`，不需要创建 Bot 或邀请进服务器。
 - GitHub 使用授权码与 PKCE，只获取登录身份；Google 使用 OIDC 与 PKCE，校验签名、受众和 nonce，不申请 Gmail 权限。
 - Google 应用若处于测试模式，须先将登录者加入测试用户；公开使用时应按 Google 控制台要求配置受众与发布状态。
 - NodeLoc、LinuxDo 可设置最低信任级别。

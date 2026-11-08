@@ -206,7 +206,16 @@ const subWorkerService = {
 		}
 	},
 
-	// 在查询邮件前调用：把所有子 Worker 的新邮件按收信规则同步进主库，失败不影响正常查询
+	// Admin lists can show stored mail while remote workers synchronize. Keep the
+	// task alive after the HTTP response, rather than waiting for network timeouts.
+	async syncInBackground(c) {
+		let execution;
+		try { execution = c.executionCtx; } catch { /* Non-Worker callers may not have a context. */ }
+		if (execution?.waitUntil) execution.waitUntil(this.syncAll(c));
+		else await this.syncAll(c);
+	},
+
+	// 把所有子 Worker 的新邮件按收信规则同步进主库，失败不影响正常查询
 	async syncAll(c) {
 		try {
 			if (Date.now() - lastSyncAt < SYNC_INTERVAL_MS) return;

@@ -3,6 +3,7 @@ const KvConst = {
 	SETTING: 'setting:',
 	SEND_CHANNELS: 'setting:send_channels',
 	WECOM: 'setting:wecom',
+	WEBSITE_SUBTITLE: 'website:subtitle',
 	SEND_DAY_COUNT: 'send_day_count:',
 	PUBLIC_KEY: "public_key:",
 	GLOBAL_TOKEN: 'global:token',

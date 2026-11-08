@@ -1,8 +1,10 @@
 <template>
  <div class="personal-mail-page">
   <emailScroll ref="scroll" :get-email-list="getEmailList" :email-delete="deleteItems" :star-add="starAdd" :star-cancel="starCancel" :star-success="addStar" :cancel-success="cancelStar" :time-sort="timeSort" show-status type="outbox" @jump="openItem">
-   <template #first><button class="xi-icon-button" :aria-label="$t('sortByTime')" @click="changeSort"><Icon :icon="timeSort ? 'mingcute:sort-ascending-line' : 'mingcute:sort-descending-line'" width="18" height="18" /></button></template>
-   <template #tools><MailSearchBar v-model="searchFilters" :show-unread="false" @search="refresh" /></template>
+   <template #tools>
+    <MailSearchBar v-model="searchFilters" :show-unread="false" @search="refresh" />
+    <el-tooltip :content="$t('sortByTime')" placement="top"><button type="button" class="xi-icon-button" :aria-label="$t('sortByTime')" @click="changeSort"><Icon :icon="timeSort ? 'mingcute:sort-ascending-line' : 'mingcute:sort-descending-line'" width="18" height="18" /></button></el-tooltip>
+   </template>
    <template #name="{email}">{{ email.isDraft ? email.name || '('+$t('noRecipient')+')' : email.name }}</template>
    <template #subject="{email}"><span v-if="email.isDraft" class="outbox-draft-label">{{ $t('draftLabel') }}</span>{{ email.subject || '('+$t('noSubject')+')' }}</template>
   </emailScroll>

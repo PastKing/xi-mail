@@ -762,7 +762,7 @@ const emailService = {
 		const skipStats = !!emailId && (params.skipStats === '1' || params.skipStats === true);
 		if (!emailId) {
 
-			await subWorkerService.syncAll(c);
+			await subWorkerService.syncInBackground(c);
 
 			if (timeSort) {
 				emailId = 0;

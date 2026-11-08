@@ -16,7 +16,7 @@ const googleKeys = await generateKeyPair('RS256');
 const googleJwk = { ...await exportJWK(googleKeys.publicKey), kid: 'google-test', alg:'RS256', use:'sig' };
 
 async function configureProvider(id) {
-  await oauthConfig.save(c, { [id + 'Switch']: true, [id + 'ClientId']: id === 'telegram' ? '123456789' : id + '-client',
+  await oauthConfig.save(c, { [id + 'Switch']: true, [id + 'ClientId']: id === 'telegram' ? '123456789' : id === 'discord' ? '123456789012345678' : id + '-client',
     [id + 'ClientSecret']: `${id}-fixture-secret`, [id + 'CallbackUrl']: `https://mail.example.com/oauth/${id}` }, id);
 }
 function mockTelegram(overrides = {}, signingKey = telegramKeys.privateKey) {
@@ -66,6 +66,21 @@ function mockGitHub(info={}) {
     return Response.json({id:789,login:'github-login',name:'Display Name',...info});
   }));
 }
+function mockDiscord(info={}) {
+  vi.stubGlobal('fetch',vi.fn(async (url,options) => {
+    if (url==='https://discord.com/api/oauth2/token') {
+      expect(options.headers.Authorization).toBe('Basic '+btoa('123456789012345678:discord-fixture-secret'));
+      expect(options.body.get('grant_type')).toBe('authorization_code');
+      expect(options.body.get('redirect_uri')).toBe('https://mail.example.com/oauth/discord');
+      expect(options.body.get('code_verifier')).toMatch(/^[a-f0-9]{64}$/);
+      expect(options.body.has('client_secret')).toBe(false);
+      return Response.json({access_token:'discord-fixture-access',token_type:'Bearer',scope:'identify'});
+    }
+    expect(url).toBe('https://discord.com/api/v10/users/@me');
+    expect(options.headers.Authorization).toBe('Bearer discord-fixture-access');
+    return Response.json({id:'80351110224678912',username:'discord-user',global_name:'Discord User',...info});
+  }));
+}
 async function authorizeTelegram(intent = 'bind') {
   const flow = await oauthService.authorize(c, intent, 'telegram');
   telegramNonce = new URL(flow.authorizationUrl).searchParams.get('nonce');
@@ -105,7 +120,7 @@ beforeEach(async () => {
 });
 
 describe.skipIf(!DatabaseSync)('OAuth provider integrations', () => {
-  it.each(['github','google'])('configures %s independently, without exposing secrets',async id=>{
+  it.each(['github','google','discord'])('configures %s independently, without exposing secrets',async id=>{
     await configureProvider(id); await oauthConfig.save(c,{[id+'ClientSecret']:''},id);
     expect((await oauthConfig.get(c,id)).clientSecret).toBe(id+'-fixture-secret');
     await expect(oauthConfig.save(c,{[id+'CallbackUrl']:'https://mail.example.com/oauth/other'},id)).rejects.toMatchObject({code:400});
@@ -119,6 +134,46 @@ describe.skipIf(!DatabaseSync)('OAuth provider integrations', () => {
     expect(url.searchParams.get('nonce')).toBeNull();
     await oauthService.finish(c,{code:'fixture',state:flow.state},'bind','github');
     expect(await bindings.findIdentity(c,'github','789')).toMatchObject({userId:10,displayName:'github-login'});
+  });
+  it('uses Discord identify-only authorization with PKCE and binds the exact snowflake ID',async()=>{
+    await configureProvider('discord');mockDiscord();
+    const flow=await oauthService.authorize(c,'bind','discord'),url=new URL(flow.authorizationUrl);
+    expect(url.origin+url.pathname).toBe('https://discord.com/oauth2/authorize');
+    expect(url.searchParams.get('scope')).toBe('identify');expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(url.searchParams.has('nonce')).toBe(false);expect(url.searchParams.get('redirect_uri')).toBe('https://mail.example.com/oauth/discord');
+    expect(await oauthService.finish(c,{code:'fixture',state:flow.state},'bind','discord')).toEqual({bound:true});
+    expect(await bindings.findIdentity(c,'discord','80351110224678912')).toMatchObject({userId:10,displayName:'Discord User'});
+    await expect(oauthService.finish(c,{code:'fixture',state:flow.state},'bind','discord')).rejects.toMatchObject({code:400});
+  });
+  it('requires an explicit Discord binding, never matches the returned email, and then logs into the bound mailbox',async()=>{
+    await configureProvider('discord');mockDiscord({email:'user10@example.com'});
+    const login=vi.spyOn(loginService,'login').mockResolvedValue('session-token');
+    let flow=await oauthService.authorize(c,'login','discord');
+    await expect(oauthService.finish(c,{code:'fixture',state:flow.state},'login','discord')).rejects.toMatchObject({code:403});
+    expect(login).not.toHaveBeenCalled();
+    await bindings.bind(c,10,'discord','80351110224678912','Discord User');
+    vi.spyOn(userService,'selectByIdIncludeDel').mockResolvedValue({userId:10,email:'user10@example.com'});
+    flow=await oauthService.authorize(c,'login','discord');
+    expect(await oauthService.finish(c,{code:'fixture',state:flow.state},'login','discord')).toEqual({token:'session-token'});
+    expect(login).toHaveBeenCalledWith(c,{email:'user10@example.com'},true);
+  });
+  it('rejects Discord binding from a changed session before exchanging the code',async()=>{
+    await configureProvider('discord');mockDiscord();
+    const flow=await oauthService.authorize(c,'bind','discord');
+    await expect(oauthService.finish(context(10,'another-session'),{code:'fixture',state:flow.state},'bind','discord')).rejects.toMatchObject({code:403});
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it.each([{id:9007199254740992},{id:'not-an-id'},{bot:true},{system:true}])('rejects invalid Discord identities %j',async info=>{
+    await configureProvider('discord');mockDiscord(info);
+    const flow=await oauthService.authorize(c,'bind','discord');
+    await expect(oauthService.finish(c,{code:'fixture',state:flow.state},'bind','discord')).rejects.toMatchObject({code:403});
+  });
+  it('uses the Discord username when no display name is set and supports unbinding',async()=>{
+    await configureProvider('discord');mockDiscord({global_name:null});
+    const flow=await oauthService.authorize(c,'bind','discord');
+    await oauthService.finish(c,{code:'fixture',state:flow.state},'bind','discord');
+    expect(await bindings.findIdentity(c,'discord','80351110224678912')).toMatchObject({displayName:'discord-user'});
+    await oauthService.remove(c,10,'discord');expect(await bindings.findIdentity(c,'discord','80351110224678912')).toBeFalsy();
   });
   it('verifies Google signatures/nonce and binds the OIDC subject rather than the email address',async()=>{
     await configureProvider('google'); mockGoogle({email:'someone@example.com',email_verified:true});
@@ -164,11 +219,11 @@ describe.skipIf(!DatabaseSync)('OAuth provider integrations', () => {
     await expect(oauthConfig.save(c, { [id + 'CallbackUrl']: 'https://mail.example.com/oauth/linuxdo' }, id)).rejects.toMatchObject({ code: 400 });
   });
   it('keeps all provider secrets out of administrative and public settings', async () => {
-    await configureProvider('telegram'); await configureProvider('nodeloc');
+    await configureProvider('telegram'); await configureProvider('nodeloc'); await configureProvider('discord');
     values.set('setting:', JSON.stringify({ aiCode: 0, aiModel: 'test', queenTokens: {}, sendProviders: {},
       emailPrefixFilter: '', subWorkerDomains: [], managedDomains: '[]' }));
     const settings = await settingService.query(c);
-    expect(settings).toMatchObject({ telegramSwitch: true, nodelocSwitch: true, telegramHasSecret: true, nodelocHasSecret: true });
+    expect(settings).toMatchObject({ telegramSwitch: true, nodelocSwitch: true, discordSwitch: true, telegramHasSecret: true, nodelocHasSecret: true, discordHasSecret: true });
     expect(JSON.stringify(settings)).not.toContain('fixture-secret');
     expect(Object.keys(settings).filter(key => key.endsWith('ClientSecret'))).toEqual([]);
   });

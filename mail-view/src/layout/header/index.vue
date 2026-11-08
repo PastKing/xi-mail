@@ -5,9 +5,9 @@
       <span class="breadcrumb-item">{{ $t(route.meta.title) }}</span>
     </div>
 
-    <div v-perm="'email:send'" class="compose-btn" @click="openSend">
-      <Icon icon="mingcute:edit-2-line" width="15" height="15" />
-    </div>
+    <button v-perm="'email:send'" type="button" class="compose-btn" :aria-label="$t('composeMail')" :title="$t('composeMail')" @click="openSend">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15.8 3.2 1-1a2.2 2.2 0 0 1 3.1 0l1.9 1.9a2.2 2.2 0 0 1 0 3.1l-1 1-5-5Zm-1.4 1.4 5 5L8.6 20.4l-5.7 1.3 1.3-5.7L14.4 4.6Z" /></svg>
+    </button>
 
     <div class="toolbar">
       <button class="tool-btn lang-btn" @click="toggleLang" :aria-label="settingStore.lang === 'zh' ? 'Switch to English' : '切换为中文'">
@@ -26,9 +26,9 @@
       </button>
 
       <el-dropdown ref="userinfoRef" @visible-change="e => userInfoShow = e" popper-class="detail-dropdown">
-        <button class="avatar-btn" @click="userInfoHide">
+        <button type="button" class="avatar-btn" :aria-label="$t('accountMenu')" @click="userInfoHide">
           <div class="avatar-circle">
-            {{ formatName(userStore.user.email) }}
+            <UserAvatar :seed="avatarSeed" :size="32" />
           </div>
           <Icon class="chevron" icon="mingcute:down-small-fill" width="16" height="16" />
         </button>
@@ -36,7 +36,8 @@
           <el-dropdown-menu class="user-dropdown-menu">
             <div class="user-panel">
             <div class="panel-avatar">
-              {{ formatName(userStore.user.email) }}
+              <UserAvatar :seed="avatarSeed" :size="48" />
+              <button type="button" class="avatar-shuffle" :aria-label="$t('avatarShuffle')" :title="$t('avatarShuffleHint')" @click.stop="shuffleAvatar"><Icon icon="mingcute:refresh-2-line" width="13" height="13" /></button>
             </div>
             <div class="panel-name">{{ userStore.user.name }}</div>
             <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
@@ -94,7 +95,9 @@ import {useEmailStore} from '@/store/email.js';
 import {useAccountStore} from '@/store/account.js';
 import {useWriterStore} from '@/store/writer.js';
 import {useRoute} from "vue-router";
-import {computed, ref} from "vue";
+import {computed, ref, watch} from "vue";
+import UserAvatar from '@/components/UserAvatar.vue';
+import {avatarHash} from '@/utils/avatar.js';
 import {useSettingStore} from "@/store/setting.js";
 import {hasPerm} from "@/perm/perm.js"
 import {useI18n} from "vue-i18n";
@@ -106,7 +109,20 @@ import {saveLang} from "@/request/my.js"
 const {t} = useI18n();
 const route = useRoute();
 const settingStore = useSettingStore();
+const serverStore = useServerStore();
 const userStore = useUserStore();
+const avatarVariant = ref('');
+const avatarOwner = computed(() => `${serverStore.activeServerId || 'local'}:${userStore.user.displayId || userStore.user.userId || userStore.user.email || 'guest'}`);
+const avatarKey = computed(() => `xi-mail:avatar:${avatarHash(avatarOwner.value).toString(36)}`);
+const avatarSeed = computed(() => `${avatarOwner.value}:${avatarVariant.value}`);
+watch(avatarKey, key => {
+  try { avatarVariant.value = localStorage.getItem(key) || ''; } catch { avatarVariant.value = ''; }
+}, {immediate:true});
+function shuffleAvatar() {
+  const bytes = crypto.getRandomValues(new Uint32Array(2));
+  avatarVariant.value = [...bytes].map(value => value.toString(36)).join('-');
+  try { localStorage.setItem(avatarKey.value, avatarVariant.value); } catch {}
+}
 const uiStore = useUiStore();
 const logoutLoading = ref(false)
 const userInfoShow = ref(false)
@@ -200,7 +216,6 @@ function changeAside() { uiStore.asideShow = !uiStore.asideShow }
 
 function clickLogout() {
   logoutLoading.value = true
-  const serverStore = useServerStore()
   logout().then(() => {
     serverStore.clearToken(serverStore.activeServerId)
     useEmailStore().$reset(); useAccountStore().$reset(); useWriterStore().$reset(); userStore.$reset();
@@ -212,9 +227,6 @@ function clickLogout() {
   })
 }
 
-function formatName(email) {
-  return email[0]?.toUpperCase() || ''
-}
 </script>
 
 <style>
@@ -298,29 +310,27 @@ function formatName(email) {
   width: 32px;
   height: 32px;
   border-radius: var(--xi-radius);
-  background: var(--xi-gradient);
-  color: #fff;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--el-color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 2px 8px rgba(61, 139, 132, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: background-color 0.15s ease;
   flex-shrink: 0;
 
+  svg { width: 20px; height: 20px; fill: currentColor; }
+
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 6px 20px rgba(61, 139, 132, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: var(--el-fill-color-light);
   }
 
   &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(61, 139, 132, 0.25);
+    background: var(--el-color-primary-light-9);
   }
+  &:focus-visible { outline: 2px solid var(--el-color-primary-light-5); outline-offset: 3px; }
 }
 
 .toolbar {
@@ -384,15 +394,10 @@ function formatName(email) {
   width: 32px;
   height: 32px;
   border-radius: var(--xi-radius);
-  background: var(--xi-gradient);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .chevron {
@@ -414,21 +419,18 @@ function formatName(email) {
 }
 
 .panel-avatar {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: var(--xi-radius-lg);
-  background: var(--xi-gradient);
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 6px;
-  box-shadow: 
-    0 4px 12px rgba(61, 139, 132, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
+.avatar-shuffle { position:absolute; right:-6px; bottom:-4px; display:flex; align-items:center; justify-content:center; width:22px; height:22px; padding:0; border:1px solid var(--el-border-color-light); border-radius:50%; background:var(--el-bg-color-overlay); color:var(--el-text-color-secondary); cursor:pointer; }
+.avatar-shuffle:hover { color:var(--el-color-primary); border-color:var(--el-color-primary); }
+.avatar-shuffle:focus-visible { outline:2px solid var(--el-color-primary); outline-offset:2px; }
 
 .panel-name {
   font-weight: 600;
@@ -465,7 +467,7 @@ function formatName(email) {
   gap: 5px;
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--regular-text-color);
   letter-spacing: 0.3px;
   margin-top: 4px;
   margin-bottom: 2px;

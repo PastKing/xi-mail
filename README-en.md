@@ -8,7 +8,7 @@
 
 A fork of [cloud-mail](https://github.com/maillab/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.5-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.7-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -42,7 +42,7 @@ Try it at [mail.azx.us](https://mail.azx.us) using invite code `viewUser` (limit
 - **Mail**: multiple mailboxes, compose and reply, code extraction; Resend, QueenSMTP and SendFlare sending.
 - **Domains and filtering**: manage domains in the dashboard, with sender allowlists, blocklists and keyword filters.
 - **Users and permissions**: tiered roles, invitation codes, mailbox transfers, expiring inbox-sharing links and session management.
-- **Provider sign-in**: connect NodeLoc, Telegram, GitHub, Google or LinuxDo to an existing mailbox.
+- **Provider sign-in**: connect NodeLoc, Telegram, Discord, GitHub, Google or LinuxDo to an existing mailbox.
 - **Appearance**: six login templates, six color themes and four navigation layouts, with mobile support and English/Chinese UI.
 - **Flexible deployment**: deploy together or with a standalone frontend; connect multiple Workers and receiving sub-workers.
 - **API integration**: query mail with a global API token for use in other tools.
@@ -117,23 +117,6 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 Without `VITE_BASE_URL`, the first visit redirects to `/setup` so the Worker address can be entered manually.
 
 For a more detailed walkthrough, see the upstream [cloud-mail docs](https://github.com/maillab/cloud-mail).
-
----
-
-## 📋 Release history
-
-| Version | Summary |
-|---------|---------|
-| **v3.6.5** | GitHub / Google sign-in, unified Outbox, mail search and redesigned settings |
-| **v3.6.x** | OAuth and branding, expiring inbox sharing, SendFlare and management improvements |
-| **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |
-| **v3.4.x** | Floating Island navigation and login templates |
-| **v3.3.x** | Sender whitelist mode |
-| **v3.2.x** | Sender-domain blocking |
-| **v3.0 – 3.1** | Frontend/backend split, multi-server, sub-worker |
-| **v2.0.0** | Appearance template system |
-
-Full changelog: [Releases](https://github.com/PastKing/xi-mail/releases).
 
 ---
 

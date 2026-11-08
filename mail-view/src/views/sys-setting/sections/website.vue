@@ -90,7 +90,14 @@
           <div class="title-item"><span>{{ $t('websiteTitle') }}</span></div>
           <div class="email-title">
             <el-input v-model="editTitle" :aria-label="$t('websiteTitle')" :placeholder="$t('websiteTitle')" @keyup.enter="saveTitle" />
-            <el-button type="primary" :loading="settingLoading" @click="saveTitle">{{ $t('save') }}</el-button>
+            <el-button type="primary" :loading="titleSaving" :disabled="settingLoading && !titleSaving" @click="saveTitle">{{ $t('save') }}</el-button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div><span>{{ $t('websiteSubtitle') }}</span><el-tooltip :content="$t('websiteSubtitleDesc')"><Icon icon="mingcute:information-line" width="18" height="18" /></el-tooltip></div>
+          <div class="email-title">
+            <el-input v-model="editSubtitle" :aria-label="$t('websiteSubtitle')" :placeholder="$t('websiteSubtitlePlaceholder')" :maxlength="100" @keyup.enter="saveSubtitle" />
+            <el-button type="primary" :loading="subtitleSaving" :disabled="settingLoading && !subtitleSaving" @click="saveSubtitle">{{ $t('save') }}</el-button>
           </div>
         </div>
       </div>
@@ -112,8 +119,9 @@ defineOptions({
 const {t, locale} = useI18n()
 const {setting, settingLoading, editSetting, change, beforeChange, onSettingsLoaded, onSettingsDirty} = useSysSetting()
 
-const editTitle = ref('')
-let titleBaseline
+const editTitle = ref(''), editSubtitle = ref('')
+const titleSaving = ref(false), subtitleSaving = ref(false)
+let titleBaseline, subtitleBaseline
 
 const regKeyEnabled = computed(() => setting.value.regKey === 0 || setting.value.regKey === 2)
 
@@ -128,13 +136,34 @@ onSettingsLoaded(() => {
     editTitle.value = setting.value.title
     titleBaseline = editTitle.value
   }
+  if (subtitleBaseline === undefined || editSubtitle.value === subtitleBaseline) {
+    editSubtitle.value = setting.value.subtitle || ''
+    subtitleBaseline = editSubtitle.value
+  }
 })
-onSettingsDirty(() => titleBaseline !== undefined && editTitle.value !== titleBaseline, () => { editTitle.value = setting.value.title;titleBaseline = editTitle.value })
+onSettingsDirty(() => (titleBaseline !== undefined && editTitle.value !== titleBaseline) || (subtitleBaseline !== undefined && editSubtitle.value !== subtitleBaseline), () => {
+  editTitle.value = setting.value.title;titleBaseline = editTitle.value
+  editSubtitle.value = setting.value.subtitle || '';subtitleBaseline = editSubtitle.value
+})
 
 async function saveTitle() {
+  if (settingLoading.value) return
   const saved = editTitle.value
-  const ok = await editSetting({title:saved})
-  if (ok) titleBaseline = saved
+  titleSaving.value = true
+  try {
+    if (await editSetting({title:saved})) titleBaseline = saved
+  } finally { titleSaving.value = false }
+}
+async function saveSubtitle() {
+  if (settingLoading.value) return
+  const saved = editSubtitle.value.trim()
+  subtitleSaving.value = true
+  try {
+    if (await editSetting({subtitle:saved})) {
+      subtitleBaseline = saved
+      editSubtitle.value = saved
+    }
+  } finally { subtitleSaving.value = false }
 }
 </script>
 
@@ -144,17 +173,14 @@ async function saveTitle() {
   display: flex;
   gap: 12px;
   align-items: center;
+  width: 320px;
+  max-width: 100%;
+  min-width: 0;
 
-  span {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-    background: var(--el-fill-color-light);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-family: inherit;
+  .el-input {
+    flex: 1;
+    width: 0;
+    min-width: 0;
   }
 
   .el-button {

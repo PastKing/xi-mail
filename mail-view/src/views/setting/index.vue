@@ -282,105 +282,15 @@ function submitPwd() {
     > div:first-child { color: var(--el-text-color-secondary); font-size: 12px; }
     > div:last-child { min-width: 0; }
   }
-  .update-pwd {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .title {
-    font-size: 16px;
-    font-weight: 650;
-    letter-spacing: -0.01em;
-  }
-
-  .container {
-    font-size: 13.5px;
-    display: grid;
-    gap: 20px;
-    margin-bottom: 40px;
-
-    .item {
-      display: grid;
-      grid-template-columns: 90px minmax(0, 1fr);
-      gap: 24px;
-      position: relative;
-      .user-name {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        span:first-child {
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-      }
-
-      .edit-name-input {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        .el-input {
-          flex: 1;
-          min-width: 0;
-        }
-      }
-
-      .edit-name {
-        color: var(--el-color-primary);
-        padding-left: 10px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: opacity 0.15s;
-
-        &:hover { opacity: 0.8; }
-      }
-
-      @media (max-width: 767px) {
-        gap: 12px;
-      }
-
-      div:first-child {
-        font-weight: 550;
-        color: var(--el-text-color-secondary);
-      }
-
-      div:last-child {
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-
-      .display-id-value {
-        font-family: 'SF Mono', 'Fira Code', monospace;
-        font-size: 12.5px;
-        color: var(--el-text-color-secondary);
-        letter-spacing: 0.5px;
-      }
-
-      .copyable {
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        transition: color 0.15s ease;
-
-        .copy-icon { opacity: 0; transition: opacity 0.15s ease; flex-shrink: 0; }
-
-        &:hover {
-          color: var(--el-color-primary);
-          .copy-icon { opacity: 1; }
-        }
-      }
-    }
-  }
-
-  .del-email {
-    font-size: 13.5px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding-top: 24px;
-    border-top: 1px solid var(--el-border-color-lighter);
+  .user-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .user-name > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .edit-name { color: var(--el-color-primary); cursor: pointer; font-weight: 500; white-space: nowrap; font-size: 12px; flex-shrink: 0; }
+  .edit-name-input { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .edit-name-input .el-input { min-width: 0; flex: 1; }
+  .display-id-value { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: inherit; letter-spacing: .5px; }
+  .copyable { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; overflow-wrap: anywhere;
+    .copy-icon { opacity: 0; flex-shrink: 0; }
+    &:hover { color: var(--el-color-primary); .copy-icon { opacity: 1; } }
   }
   .container.oauth-connections { gap: 8px; }
   .oauth-description { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.8; margin: 0; }
