@@ -67,5 +67,11 @@ admin = "admin@example.com"
 # google_callback_url = "https://your-frontend.example.com/oauth/google"
 # Store google_client_secret with `npx wrangler secret put google_client_secret`.
 
+# Optional Discord login; can also be configured under System settings > OAuth.
+# discord_switch = "false"
+# discord_client_id = "<YOUR_DISCORD_APPLICATION_ID>"
+# discord_callback_url = "https://your-frontend.example.com/oauth/discord"
+# Store discord_client_secret with `npx wrangler secret put discord_client_secret`.
+
 # [build]
 # command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"

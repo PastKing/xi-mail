@@ -42,6 +42,7 @@ Select a provider in **System Settings → OAuth Integration**, enter its Client
 |---|---|---|
 | NodeLoc | [Applications](https://www.nodeloc.com/oauth-provider/applications) | `/oauth/nodeloc` |
 | Telegram | [BotFather](https://t.me/BotFather) → Login Widget | `/oauth/telegram` |
+| Discord | [Developer Portal](https://discord.com/developers/applications) → OAuth2 | `/oauth/discord` |
 | GitHub | [Developer settings](https://github.com/settings/developers) → OAuth Apps | `/oauth/github` |
 | Google | [Google Auth Platform](https://console.cloud.google.com/auth/clients) → Web application client | `/oauth/google` |
 | LinuxDo | [LinuxDo Connect](https://connect.linux.do/) | `/oauth/linuxdo` |

@@ -16,12 +16,12 @@
         <el-tooltip :content="$t('refresh')" placement="top">
           <button type="button" class="xi-icon-button reload" :aria-label="$t('refresh')" @click="refresh"><Icon icon="mingcute:refresh-2-line" width="18" height="18" /></button>
         </el-tooltip>
-        <button type="button" v-perm="'email:delete'" class="xi-icon-button selection-action" :aria-label="$t('delete')"
-              v-if="getSelectedMailsIds().length > 0"
-              @click="handleDelete"><Icon icon="mingcute:delete-2-line" width="18" height="18" /></button>
-        <button type="button" v-perm="'email:delete'" class="xi-icon-button selection-action" :aria-label="$t('markAsRead')"
-              v-if="getSelectedMailsIds().length > 0 && showUnread"
-              @click="handleRead"><Icon icon="mingcute:mail-open-line" width="18" height="18" /></button>
+        <el-tooltip v-if="getSelectedMailsIds().length > 0 && hasPerm('email:delete')" :content="$t('delete')" placement="top" :trigger-keys="[]">
+          <button type="button" class="xi-icon-button selection-action" :aria-label="$t('delete')" @click="handleDelete"><Icon icon="mingcute:delete-2-line" width="18" height="18" /></button>
+        </el-tooltip>
+        <el-tooltip v-if="getSelectedMailsIds().length > 0 && showUnread && hasPerm('email:delete')" :content="$t('markAsRead')" placement="top" :trigger-keys="[]">
+          <button type="button" class="xi-icon-button selection-action" :aria-label="$t('markAsRead')" @click="handleRead"><Icon icon="mingcute:mail-open-line" width="18" height="18" /></button>
+        </el-tooltip>
         <el-dropdown v-if="props.type === 'all-email'" class="mail-overflow" trigger="click" placement="bottom-end">
           <button type="button" class="xi-icon-button" :aria-label="$t('moreNavigation')"><Icon icon="mingcute:more-1-line" width="18" height="18" /></button>
           <template #dropdown><el-dropdown-menu>

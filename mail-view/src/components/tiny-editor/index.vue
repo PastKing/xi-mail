@@ -44,6 +44,8 @@ const showLoading = ref(false);
 const uiStore = useUiStore();
 const settingStore = useSettingStore();
 let keepContent = null;
+let focusRequested = false;
+let focusSource = null;
 
 onMounted(() => {
   initTinyMCE();
@@ -54,6 +56,7 @@ onBeforeUnmount(() => {
 });
 
 watch(() => props.defValue, (newValue) => {
+  if (!isInitialized.value) { keepContent = newValue; return; }
   if (editor.value && editor.value.getContent() !== newValue) {
     editor.value.setContent(newValue);
   }
@@ -75,9 +78,9 @@ const language = computed(() => {
 })
 
 function clearEditor() {
-  if (editor.value) {
+  if (isInitialized.value && editor.value) {
     editor.value.setContent('');
-  }
+  } else keepContent = '';
 }
 
 function initTinyMCE() {
@@ -98,7 +101,6 @@ function initEditor() {
     selector: `#${props.editorId}`,
     statusbar: false,
     height: "100%",
-    auto_focus: true,
     //relative_urls: false,  //阻止 img标签域名和网站域名相同 自动把链接转换相对路径
     //remove_script_host: false, // 阻止删除 URL 中的域名
     forced_root_block: 'div',
@@ -128,9 +130,11 @@ function initEditor() {
       });
 
       ed.on('init', () => {
+        if (editor.value !== ed) return;
         ed.setContent(keepContent ?? props.defValue);
         keepContent = null;
         isInitialized.value = true;
+        nextTick(focusIfReady);
       });
       ed.on('input change', () => {
         const content = ed.getContent();
@@ -141,7 +145,6 @@ function initEditor() {
         emit('focus', focus);
       })
     },
-    autofocus: true,
     branding: false,
     file_picker_types: 'image',
     image_dimensions: false,
@@ -237,17 +240,24 @@ async function pickImages(ed) {
 }
 
 function focus() {
-  nextTick(() => {
-    editor.value.focus()
-  })
+  focusRequested = true;
+  focusSource = document.activeElement;
+  nextTick(focusIfReady);
+}
+function focusIfReady() {
+  if (!focusRequested || !isInitialized.value || !editor.value) return;
+  focusRequested = false;
+  if (document.activeElement === focusSource || document.activeElement === document.body) editor.value.focus();
 }
 
 function getContent() {
-  return editor.value.getContent()
+  return isInitialized.value && editor.value ? editor.value.getContent() : keepContent ?? props.defValue;
 }
 
 
 function destroyEditor() {
+  isInitialized.value = false;
+  focusRequested = false;
   if (editor.value) {
     editor.value.destroy();
     editor.value = null;

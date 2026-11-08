@@ -42,6 +42,7 @@ Telegram 郵件檢視連結使用獨立的隨機憑證，24 小時後失效，�
 |---|---|---|
 | NodeLoc | [應用程式管理](https://www.nodeloc.com/oauth-provider/applications) | `/oauth/nodeloc` |
 | Telegram | [BotFather](https://t.me/BotFather) → Login Widget | `/oauth/telegram` |
+| Discord | [Developer Portal](https://discord.com/developers/applications) → OAuth2 | `/oauth/discord` |
 | GitHub | [Developer settings](https://github.com/settings/developers) → OAuth Apps | `/oauth/github` |
 | Google | [Google Auth Platform](https://console.cloud.google.com/auth/clients) → 網頁應用程式用戶端 | `/oauth/google` |
 | LinuxDo | [LinuxDo Connect](https://connect.linux.do/) | `/oauth/linuxdo` |

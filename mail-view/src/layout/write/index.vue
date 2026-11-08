@@ -3,41 +3,25 @@
     <div class="write-box">
       <div class="title">
         <div class="title-left">
-          <span class="title-text">
-            <Icon icon="mingcute:quill-pen-line" width="26" height="26"/>
-          </span>
-          <span class="sender-label">{{ $t('sender') }}:</span>
-          <el-select
-            v-model="form.accountId"
-            class="sender-select"
-            popper-class="sender-select-popper"
-            @change="changeSender"
-          >
-            <template #label="{ label }">
-              <span class="sender-selected-label">{{ label }}</span>
-            </template>
-            <el-option
-              v-for="item in senderOptions"
-              :key="item.accountId"
-              :value="item.accountId"
-              :label="item.email"
-            >
-              <div class="sender-option">
-                <span class="sender-option-name">{{ item.name || item.email }}</span>
-                <span v-if="item.name && item.name !== item.email" class="sender-option-email">{{ item.email }}</span>
-              </div>
-            </el-option>
-          </el-select>
-          <el-tooltip v-if="internalOnly" :content="$t('senderInternalOnlyDesc')">
-            <span class="sender-internal-tag">{{ $t('senderInternalOnly') }}</span>
-          </el-tooltip>
+          <span class="title-text"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15.8 3.2 1-1a2.2 2.2 0 0 1 3.1 0l1.9 1.9a2.2 2.2 0 0 1 0 3.1l-1 1-5-5Zm-1.4 1.4 5 5L8.6 20.4l-5.7 1.3 1.3-5.7L14.4 4.6Z" /></svg></span>
+          <span>{{ form.sendType === 'reply' ? $t('reply') : form.sendType === 'forward' ? $t('forward') : $t('composeMail') }}</span>
         </div>
-        <div @click="close" style="cursor: pointer;">
+        <button type="button" class="xi-icon-button" :aria-label="$t('close')" :title="$t('close')" @click="close">
           <Icon icon="mingcute:close-line" width="20" height="20"/>
-        </div>
+        </button>
       </div>
       <div class="container">
-        <el-input-tag  @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
+        <div class="sender-row">
+          <span class="sender-label">{{ $t('sender') }}</span>
+          <el-select v-model="form.accountId" class="sender-select" popper-class="sender-select-popper" filterable :filter-method="filterSenders" :aria-label="$t('sender')" :placeholder="$t('senderSearchPlaceholder')" :loading="accountsLoading" :no-match-text="$t('senderNoMatches')" @visible-change="senderVisibleChange" @change="changeSender">
+            <template #label="{label}"><span class="sender-selected"><span class="sender-selected-label" :title="form.sendEmail">{{ form.sendEmail || label }}</span><span v-if="form.name && form.name !== form.sendEmail" class="sender-selected-name">{{ form.name }}</span></span></template>
+            <el-option v-for="item in filteredSenderOptions" :key="item.accountId" :value="item.accountId" :label="item.email">
+              <div class="sender-option"><Icon icon="mingcute:mail-line" width="18" height="18" /><div class="sender-option-text"><span class="sender-option-email">{{ item.email }}</span><span v-if="item.name && item.name !== item.email" class="sender-option-name">{{ item.name }}</span></div><Icon v-if="form.accountId === item.accountId" class="sender-option-check" icon="mingcute:check-line" width="18" height="18" /></div>
+            </el-option>
+          </el-select>
+          <el-tooltip v-if="internalOnly" :content="$t('senderInternalOnlyDesc')"><span class="sender-internal-tag">{{ $t('senderInternalOnly') }}</span></el-tooltip>
+        </div>
+        <el-input-tag class="recipient-field" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
           <template #prefix>
             <div class="item-title" >{{ $t('recipient') }}</div>
             <el-select
@@ -65,15 +49,11 @@
             </div>
           </template>
         </el-input-tag>
-        <el-input v-model="form.subject" :placeholder="t('subject')" />
+        <el-input class="subject-field" v-model="form.subject" :aria-label="t('subject')" :placeholder="t('subject')" />
         <tinyEditor :def-value="defValue" ref="editor" @change="change" @focus="focusChange" />
         <div class="button-item">
-          <div class="att-add" @click="chooseFile">
-            <Icon icon="mingcute:attachment-2-line" width="22" height="22"/>
-          </div>
-          <div class="att-clear" @click="clearContent">
-            <Icon icon="mingcute:eraser-line" width="22" height="22"/>
-          </div>
+          <button type="button" class="xi-icon-button att-add" :aria-label="$t('addAttachment')" :title="$t('addAttachment')" @click="chooseFile"><Icon icon="mingcute:attachment-2-line" width="18" height="18" /></button>
+          <button type="button" class="xi-icon-button att-clear" :aria-label="$t('clear')" :title="$t('clear')" @click="clearContent"><Icon icon="mingcute:eraser-line" width="18" height="18" /></button>
           <div class="att-list">
             <div class="att-item" v-for="(item,index) in form.attachments" :key="index">
               <Icon v-bind="getIconByName(item.filename)"/>
@@ -186,11 +166,22 @@ const form = reactive({
 const selectRecipientList = ref([])
 const accountOptions = ref([])
 const accountsLoaded = ref(false)
+const accountsLoading = ref(false)
+const senderQuery = ref('')
 
 // 只列出能对外发件的邮箱；一个都没有时保留全部邮箱，此时只能发给站内邮箱
 const sendableAccounts = computed(() => accountOptions.value.filter(item => item.canSend))
 const internalOnly = computed(() => accountsLoaded.value && sendableAccounts.value.length === 0)
 const senderOptions = computed(() => sendableAccounts.value.length > 0 ? sendableAccounts.value : accountOptions.value)
+const filteredSenderOptions = computed(() => {
+  const query = senderQuery.value.trim().toLowerCase()
+  return senderOptions.value.filter(item => `${item.email || ''} ${item.name || ''}`.toLowerCase().includes(query))
+})
+function filterSenders(query) { senderQuery.value = query }
+function senderVisibleChange(visible) {
+  if (!visible) senderQuery.value = ''
+  else if (!accountsLoaded.value) loadAccounts()
+}
 
 const contacts = computed(() => writerStore.sendRecipientRecord.map(item => ({email: item})))
 
@@ -246,6 +237,8 @@ function selectStatusChange(status) {
 }
 
 async function loadAccounts() {
+  if (accountsLoading.value) return
+  accountsLoading.value = true
   accountsLoaded.value = false
   try {
     // 先用当前账户填充，保证选择框立即有值显示
@@ -268,6 +261,7 @@ async function loadAccounts() {
     }
   }
   accountsLoaded.value = true
+  accountsLoading.value = false
 
   // 当前邮箱不能对外发件时，默认换成第一个能发的邮箱
   const sendable = sendableAccounts.value
@@ -706,37 +700,47 @@ async function close() {
   min-width: 0 !important;
 }
 
-.sender-select-popper {
-  min-width: 260px !important;
-  max-width: min(420px, 90vw) !important;
+.el-popper.sender-select-popper {
+  width: min(420px, calc(100vw - 32px)) !important;
+  min-width: 0 !important;
+  max-width: calc(100vw - 32px) !important;
+  box-sizing: border-box;
+}
+.el-select-dropdown.sender-select-popper {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
 }
 
 .sender-select-popper .el-select-dropdown__item {
   height: auto;
-  padding: 8px 12px;
+  min-height: 46px;
+  padding: 9px 12px;
 }
 
 .sender-option {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 10px;
   line-height: 1.4;
 }
+.sender-option > svg { flex-shrink: 0; color: var(--el-text-color-secondary); }
+.sender-option-text { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
+.sender-option .sender-option-check { color: var(--el-color-primary); }
 
 .sender-option-name {
-  font-size: 13px;
-  color: var(--el-text-color-primary);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .sender-option-email {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 </style>
 <style scoped lang="scss">
@@ -749,17 +753,18 @@ async function close() {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
+  background: rgb(15 23 42 / 18%);
 
   .write-box {
     background: var(--el-bg-color);
-    width: min(1367px, calc(100% - 80px));
+    width: min(1040px, calc(100% - 48px));
     box-shadow: var(--el-box-shadow-light);
     border: 1px solid var(--el-border-color-light);
-    transition: var(--el-transition-duration);
-    padding: 15px;
-    border-radius: 8px;
+    padding: 16px;
+    border-radius: 12px;
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
     @media (max-width: 1024px) {
       width: 100%;
@@ -770,18 +775,21 @@ async function close() {
     }
 
     @media (min-width: 1025px) {
-      height: min(800px, calc(100vh - 60px));
+      height: min(760px, calc(100vh - 48px));
     }
 
     .title {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      font-size: 15px;
+      font-weight: 600;
 
       .title-left {
         align-items: center;
         display: flex;
-        gap: 6px;
+        gap: 9px;
         min-width: 0;
         flex: 1;
       }
@@ -790,87 +798,38 @@ async function close() {
         flex-shrink: 0;
         display: flex;
         align-items: center;
-      }
-
-      .sender-label {
-        flex-shrink: 0;
-        color: var(--el-text-color-regular);
-        font-size: 13px;
-        @media (max-width: 500px) {
-          display: none;
-        }
-      }
-
-      .sender-select {
-        flex: 1;
-        min-width: 100px;
-        max-width: 380px;
-
-        :deep(.el-select__wrapper) {
-          min-height: 28px;
-          padding: 2px 8px;
-          box-shadow: none;
-          background: var(--el-fill-color-light);
-          border-radius: 6px;
-
-          &:hover, &.is-focused {
-            box-shadow: 0 0 0 1px var(--el-color-primary);
-          }
-        }
-
-        :deep(.el-select__selected-item) {
-          font-size: 13px;
-          color: var(--el-text-color-primary);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        :deep(.el-select__placeholder) {
-          font-size: 13px;
-          color: var(--el-text-color-regular);
-        }
-
-        @media (max-width: 500px) {
-          max-width: none;
-        }
-      }
-
-      .sender-selected-label {
-        font-size: 13px;
-        color: var(--el-text-color-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .sender-internal-tag {
-        flex-shrink: 0;
-        font-size: 12px;
-        line-height: 20px;
-        padding: 0 6px;
-        border-radius: 4px;
-        color: var(--el-color-warning);
-        background: var(--el-color-warning-light-9);
-        cursor: default;
-      }
-
-      & > div:last-child {
-        display: flex;
-        align-items: center;
+        color: var(--el-color-primary);
+        svg { width: 18px; height: 18px; fill: currentColor; }
       }
     }
 
+    .sender-row { display:flex; align-items:center; gap:8px; min-width:0; min-height:40px; padding:0 10px; border:1px solid var(--el-border-color); border-radius:var(--el-border-radius-base); }
+    .sender-label { width:52px; flex-shrink:0; color:var(--el-text-color-secondary); font-size:13px; }
+    .sender-select { flex:1; min-width:0; width:0; }
+    .sender-select :deep(.el-select__wrapper) { min-height:38px; padding:0; box-shadow:none; background:transparent; }
+    .sender-select :deep(.el-select__selected-item) { min-width:0; font-size:13px; }
+    .sender-row:focus-within { border-color:var(--el-color-primary); }
+    .sender-selected { display:flex; align-items:center; min-width:0; gap:10px; }
+    .sender-selected-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--el-text-color-primary); }
+    .sender-selected-name { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--el-text-color-secondary); font-size:12px; }
+    .sender-internal-tag { flex-shrink:0; font-size:11px; line-height:22px; padding:0 6px; border-radius:4px; color:var(--el-color-warning); background:var(--el-color-warning-light-9); }
+    .item-title { min-width:52px; color:var(--el-text-color-secondary); font-size:13px; }
+    .recipient-field :deep(.el-input-tag__wrapper), .subject-field :deep(.el-input__wrapper) { min-height:40px; }
+    @media(max-width:500px) { .sender-selected-name { display:none; } .sender-label { width:44px; } .item-title { min-width:44px; } }
+
     .container {
       height: 100%;
+      min-height: 0;
       display: grid;
-      grid-template-rows: auto auto 1fr auto;
-      gap: 15px;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+      gap: 12px;
 
 
       .button-item {
         display: grid;
-        grid-template-columns: auto auto 1fr auto;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
 
         .att-add {
           cursor: pointer;
@@ -878,15 +837,13 @@ async function close() {
 
         .att-clear {
           cursor: pointer;
-          margin-left: 10px;
         }
 
         .att-list {
           display: grid;
           gap: 5px;
           grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-          padding-left: 10px;
-          padding-right: 10px;
+          min-width: 0;
           max-height: 110px;
           overflow-y: auto;
           @media (max-width: 450px) {

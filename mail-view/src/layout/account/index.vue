@@ -150,7 +150,7 @@
 
     <MailShareDialog v-model="shareShow" :account="shareAccount" />
     <!-- Add dialog -->
-    <el-dialog v-model="showAdd" :title="$t('addAccount')">
+    <el-dialog v-model="showAdd" :title="$t('addAccount')" append-to-body class="add-account-dialog">
       <div class="add-form">
         <div class="add-field">
           <label class="field-label">{{ $t('emailAccount') }}</label>
@@ -179,18 +179,11 @@
             <el-option v-for="item in domainList" :key="item" :label="item" :value="item"/>
           </el-select>
         </div>
-        <div class="email-preview" v-if="addForm.email">
-          <Icon icon="mingcute:mail-line" width="13" height="13" />
+        <button type="button" class="email-preview" v-if="addForm.email" :aria-label="$t('copy') + ' ' + addForm.email + addForm.suffix" :title="$t('clickToCopy')" @click="copyAccount(addForm.email + addForm.suffix)">
+          <Icon icon="mingcute:mail-line" width="14" height="14" />
           <span class="email-preview-text">{{ addForm.email }}{{ addForm.suffix }}</span>
-          <el-tooltip :content="$t('clickToCopy')" placement="top" :show-after="200">
-            <Icon
-              icon="mingcute:copy-2-line"
-              width="14" height="14"
-              class="email-preview-copy"
-              @click="copyAccount(addForm.email + addForm.suffix)"
-            />
-          </el-tooltip>
-        </div>
+          <Icon icon="mingcute:copy-2-line" width="14" height="14" class="email-preview-copy" />
+        </button>
         <el-button class="btn" type="primary" @click="submit" :loading="addLoading">{{ $t('add') }}</el-button>
       </div>
       <div
@@ -536,6 +529,9 @@ function submit() {
 <style>
 path[fill="#ffdda1"] { fill: #ffdd7d; }
 </style>
+<style>
+.add-account-dialog.el-dialog { width:min(400px, calc(100vw - 40px)) !important; margin-inline:auto !important; }
+</style>
 <style scoped lang="scss">
 .account-box {
   border-right: 1px solid var(--el-border-color-lighter) !important;
@@ -751,6 +747,13 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
   color: var(--el-color-primary);
   font-family: monospace;
   border: 1px solid var(--el-border-color-lighter);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { border-color: var(--el-color-primary-light-5); background: var(--el-color-primary-light-9); }
+  &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+  > svg { flex-shrink: 0; }
 
   .email-preview-text {
     flex: 1;
