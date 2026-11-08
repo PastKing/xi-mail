@@ -1,6 +1,7 @@
 const KvConst = {
 	AUTH_INFO: 'auth-uid:',
 	SETTING: 'setting:',
+	WEBSITE_SUBTITLE: 'website:subtitle',
 	SEND_DAY_COUNT: 'send_day_count:',
 	PUBLIC_KEY: "public_key:",
 	GLOBAL_TOKEN: 'global:token',

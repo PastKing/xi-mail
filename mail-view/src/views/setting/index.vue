@@ -286,7 +286,7 @@ function submitPwd() {
   .edit-name { color: var(--el-color-primary); cursor: pointer; font-weight: 500; white-space: nowrap; font-size: 12px; flex-shrink: 0; }
   .edit-name-input { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .edit-name-input .el-input { min-width: 0; flex: 1; }
-  .display-id-value { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: var(--el-text-color-secondary); letter-spacing: .5px; }
+  .display-id-value { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: inherit; letter-spacing: .5px; }
   .copyable { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; overflow-wrap: anywhere;
     .copy-icon { opacity: 0; flex-shrink: 0; }
     &:hover { color: var(--el-color-primary); .copy-icon { opacity: 1; } }

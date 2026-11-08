@@ -8,7 +8,7 @@
 
 A fork of [cloud-mail](https://github.com/maillab/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.5-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.6-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -124,6 +124,7 @@ For a more detailed walkthrough, see the upstream [cloud-mail docs](https://gith
 
 | Version | Summary |
 |---------|---------|
+| **v3.6.6** | Faster mail loading, UI refinements, site subtitles and random avatars |
 | **v3.6.5** | GitHub / Google sign-in, unified Outbox, mail search and redesigned settings |
 | **v3.6.x** | OAuth and branding, expiring inbox sharing, SendFlare and management improvements |
 | **v3.5.x** | Browser extension, QueenSMTP sending, sub-workers, sessions and code extraction |

@@ -1,6 +1,6 @@
 // Public setting labels only; never index configured values or credentials.
 export const SETTINGS_SEARCH_KEYS = {
- website:['websiteReg','loginDomain','regKey','regKeyHint','regKeyHintEn','regKeyLink','websiteTitle'],
+ website:['websiteReg','loginDomain','regKey','regKeyHint','regKeyHintEn','regKeyLink','websiteTitle','websiteSubtitle'],
  security:['autoBan','banMessage','emailKeywordBlacklist','senderDomainBlacklist','syncDelete','autoCleanEmail','newEmailNotify','globalToken'],
  registration:['addAccount','multipleEmail','emailPrefix','randomPrefixLength','receiveEmail','autoRefresh','sendEmail','noRecipientTitle','sendProvider'],
  domain:['domainList','domainMapping'],

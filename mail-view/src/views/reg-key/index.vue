@@ -2,24 +2,25 @@
   <div class="reg-key">
     <div class="header-actions">
       <el-tooltip :content="$t('addItem')" placement="top">
-        <Icon class="icon" icon="mingcute:add-line" width="18" height="18" @click="openAdd"/>
+        <button type="button" class="xi-icon-button" :aria-label="$t('addItem')" @click="openAdd"><Icon icon="mingcute:add-line" width="18" height="18" /></button>
       </el-tooltip>
       <div class="search">
         <el-input
             v-model="params.code"
             class="search-input"
             :placeholder="$t('searchRegKeyDesc')"
+            @keyup.enter="search"
         >
         </el-input>
       </div>
       <el-tooltip :content="$t('searchAction')" placement="top">
-        <Icon class="icon" icon="mingcute:search-line" @click="search" width="18" height="18"/>
+        <button type="button" class="xi-icon-button" :aria-label="$t('searchAction')" @click="search"><Icon icon="mingcute:search-line" width="18" height="18" /></button>
       </el-tooltip>
       <el-tooltip :content="$t('refresh')" placement="top">
-        <Icon class="icon" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
+        <button type="button" class="xi-icon-button" :aria-label="$t('refresh')" @click="refresh"><Icon icon="mingcute:refresh-2-line" width="18" height="18" /></button>
       </el-tooltip>
       <el-tooltip :content="$t('clearUnused')" placement="top">
-        <Icon class="icon" icon="mingcute:broom-line" width="18" height="18" @click="clearNotUse"/>
+        <button type="button" class="xi-icon-button" :aria-label="$t('clearUnused')" @click="clearNotUse"><Icon icon="mingcute:broom-line" width="18" height="18" /></button>
       </el-tooltip>
     </div>
 
@@ -51,7 +52,7 @@
             </div>
             <div class="info-right">
               <el-dropdown class="setting">
-                <Icon icon="mingcute:settings-3-line" width="20" height="20" color="#909399"/>
+                <button type="button" class="xi-icon-button" :aria-label="$t('moreNavigation')"><Icon icon="mingcute:settings-3-line" width="18" height="18" /></button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item @click="copyCode(item.code)">{{ $t('copy') }}</el-dropdown-item>
@@ -72,7 +73,7 @@
       <div class="container">
         <el-input v-model="addForm.code" :placeholder="$t('regKey')">
           <template #suffix>
-            <Icon @click.stop="genCode" class="gen-code" icon="mingcute:refresh-2-line" width="20" height="20"/>
+            <button type="button" class="xi-icon-button" :aria-label="$t('regenerate')" @click.stop="genCode"><Icon icon="mingcute:refresh-2-line" width="18" height="18" /></button>
           </template>
         </el-input>
         <el-select v-model="addForm.roleId" :placeholder="$t('roleDesc')">
@@ -526,22 +527,14 @@ function openAdd() {
   cursor: pointer;
 }
 
-.gen-code {
-  color: #606266;
-  cursor: pointer;
-}
-
 .header-actions {
   padding: 10px 16px;
   display: flex;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
   align-items: center;
   border-bottom: 1px solid var(--el-border-color-lighter);
   font-size: 18px;
-  @media (max-width: 767px) {
-    gap: 15px;
-  }
 
   .search-input {
     width: min(200px, calc(100vw - 140px));

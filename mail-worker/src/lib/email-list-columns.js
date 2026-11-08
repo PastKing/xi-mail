@@ -3,11 +3,12 @@ import email from '../entity/email';
 import emailUtils from '../utils/email-utils';
 
 export const EMAIL_LIST_TEXT_LEN = 300;
+export const EMAIL_LIST_HTML_LEN = 32 * 1024;
 
 // List responses carry plain summaries; full HTML is fetched only when a message is opened.
 export function applyMailPreviews(list) {
 	for (const item of list) {
-		item.text = (emailUtils.formatText(item.text) || emailUtils.htmlToText(item.content)).replace(/\s+/g, ' ').trim().slice(0, EMAIL_LIST_TEXT_LEN);
+		item.text = (emailUtils.formatText(item.text) || emailUtils.htmlToText(item.content?.slice(0, EMAIL_LIST_HTML_LEN))).replace(/\s+/g, ' ').trim().slice(0, EMAIL_LIST_TEXT_LEN);
 		item.content = null;
 	}
 }
@@ -45,6 +46,6 @@ export const emailBriefColumns = {
 	unread: email.unread,
 	createTime: email.createTime,
 	isDel: email.isDel,
-	content: sql`CASE WHEN trim(coalesce(${email.text}, '')) != '' THEN NULL ELSE ${sqlStripWhitespace(email.content)} END`.as('content'),
+	content: sql`CASE WHEN trim(coalesce(${email.text}, '')) != '' THEN NULL ELSE ${sqlStripWhitespace(sql`substr(${email.content}, 1, ${EMAIL_LIST_HTML_LEN})`)} END`.as('content'),
 	text: sql`substr(coalesce(${email.text}, ''), 1, ${EMAIL_LIST_TEXT_LEN})`.as('text'),
 };

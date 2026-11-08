@@ -10,16 +10,12 @@
                :time-sort="params.timeSort"
                :email-read="emailRead"
                :show-unread="true"
-               actionLeft="4px"
                @jump="jumpContent"
   >
-    <template #tools><MailSearchBar v-model="searchFilters" @search="applySearch" /></template>
-    <template #first>
+    <template #tools>
+      <MailSearchBar v-model="searchFilters" @search="applySearch" />
       <el-tooltip :content="$t('sortByTime')" placement="top">
-        <Icon class="icon" @click="changeTimeSort" icon="mingcute:sort-descending-line"
-              v-if="params.timeSort === 0" width="18" height="18"/>
-        <Icon class="icon" @click="changeTimeSort" icon="mingcute:sort-ascending-line" v-else
-              width="18" height="18"/>
+        <button type="button" class="xi-icon-button" :aria-label="$t('sortByTime')" @click="changeTimeSort"><Icon :icon="params.timeSort ? 'mingcute:sort-ascending-line' : 'mingcute:sort-descending-line'" width="18" height="18" /></button>
       </el-tooltip>
     </template>
 

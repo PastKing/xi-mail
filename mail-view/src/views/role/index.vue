@@ -1,8 +1,8 @@
 <template>
   <div class="perm-box">
     <div class="header-actions">
-      <Icon class="icon" icon="mingcute:add-line" width="18" height="18" @click="openAddRole"/>
-      <Icon class="icon" icon="mingcute:refresh-2-line" width="18" height="18" @click="refresh"/>
+      <el-tooltip :content="$t('addItem')" placement="bottom" :trigger-keys="[]"><button type="button" class="xi-icon-button" :aria-label="$t('addItem')" @click="openAddRole"><Icon icon="mingcute:add-line" width="18" height="18" /></button></el-tooltip>
+      <el-tooltip :content="$t('refresh')" placement="bottom" :trigger-keys="[]"><button type="button" class="xi-icon-button" :aria-label="$t('refresh')" @click="refresh"><Icon icon="mingcute:refresh-2-line" width="18" height="18" /></button></el-tooltip>
     </div>
     <el-scrollbar class="perm-scrollbar">
       <div class="loading" :class="tableLoading ? 'loading-show' : 'loading-hide'"
@@ -564,7 +564,7 @@ window.onresize = () => {
   padding: 10px 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   font-size: 18px;
 
@@ -578,12 +578,6 @@ window.onresize = () => {
     }
   }
 
-  .icon {
-    cursor: pointer;
-    color: var(--el-text-color-secondary);
-    transition: color 0.15s;
-    &:hover { color: var(--el-text-color-primary); }
-  }
 }
 
 .warning {

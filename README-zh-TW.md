@@ -8,7 +8,7 @@
 
 衍生自 [cloud-mail](https://github.com/maillab/cloud-mail)，重新設計介面並持續擴充功能
 
-[![Version](https://img.shields.io/badge/Version-v3.6.5-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.6-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -124,6 +124,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 | 版本 | 更新摘要 |
 |---|---|
+| **v3.6.6** | 最佳化郵件載入與介面，支援網站副標題和隨機頭像 |
 | **v3.6.5** | GitHub / Google 登入、統一寄件匣、郵件搜尋及系統設定改版 |
 | **v3.6.x** | OAuth 與品牌改版、限時收件匣分享、SendFlare 與管理體驗改善 |
 | **v3.5.x** | 瀏覽器擴充功能、QueenSMTP 寄信、子 Worker、登入工作階段與驗證碼擷取 |

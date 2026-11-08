@@ -132,6 +132,8 @@ const settingService = {
 		settingRow.domainList = domainList;
 
 		settingRow.sendflareTokens = await sendflareService.tokens(c);
+		const subtitle = await c.env.kv.get(KvConst.WEBSITE_SUBTITLE);
+		settingRow.subtitle = typeof subtitle === 'string' ? subtitle : '';
 		const oauthConfigs = await Promise.all(OAUTH_PROVIDERS.map(provider => oauthConfigService.get(c, provider.id)));
 		settingRow.hasResendWebhookSecret = (await webhookConfig.get(c)).length > 0;
 		OAUTH_PROVIDERS.forEach((provider, index) => {
@@ -208,6 +210,14 @@ const settingService = {
 	},
 
 	async set(c, params) {
+		const hasSubtitle = Object.hasOwn(params, 'subtitle');
+		let subtitle;
+		if (hasSubtitle) {
+			if (typeof params.subtitle !== 'string' || params.subtitle.length > 100 || /[\x00-\x1f\x7f]/.test(params.subtitle))
+				throw new BizError('Invalid website subtitle', 400);
+			subtitle = params.subtitle.trim();
+			delete params.subtitle;
+		}
 		await webhookConfig.save(c, params);
 		delete params.resendWebhookSecret;
 		delete params.hasResendWebhookSecret;
@@ -277,6 +287,7 @@ const settingService = {
 		params.queenTokens = JSON.stringify(queenTokens);
 		params.sendProviders = JSON.stringify(sendProviders);
 		await orm(c).update(setting).set({ ...params }).returning().get();
+		if (hasSubtitle) await c.env.kv.put(KvConst.WEBSITE_SUBTITLE, subtitle);
 		if (sendflareInput !== undefined) await sendflareService.saveTokens(c, sendflareInput);
 		await this.refresh(c);
 	},
@@ -350,6 +361,7 @@ const settingService = {
 		return {
 			register: settingRow.register,
 			title: settingRow.title,
+			subtitle: settingRow.subtitle || '',
 			manyEmail: settingRow.manyEmail,
 			addEmail: settingRow.addEmail,
 			autoRefresh: settingRow.autoRefresh,
