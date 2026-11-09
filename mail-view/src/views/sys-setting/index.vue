@@ -84,6 +84,7 @@ const sections = computed(() => {
     { id: 'oauth',        routeName: 'sys-setting-oauth',        icon: 'mingcute:key-2-line',      label: 'oauthIntegration' },
     { id: 'sub-workers',  routeName: 'sys-setting-sub-workers',  icon: 'mingcute:server-line',   label: 'subWorkerManage' },
     { id: 'appearance',   routeName: 'sys-setting-appearance',   icon: 'mingcute:palette-line',  label: 'appearance' },
+    { id: 'language',     routeName: 'sys-setting-language',     icon: 'mingcute:translate-2-line', label: 'languageSettings' },
   ]
   if (serverStore.isStandalone) {
     list.push({ id: 'servers', routeName: 'sys-setting-servers', icon: 'mingcute:cloud-line', label: 'serverManage' })
@@ -93,7 +94,7 @@ const sections = computed(() => {
 })
 
 const groupSpecs = [
-  {id:'site',label:'settingsGroupSite',description:'settingsGroupSiteDesc',items:[['website','websiteSetting','settingsWebsiteDesc'],['appearance','appearance','settingsAppearanceDesc'],['integration','settingsNoticeTitle','settingsNoticeDesc','noticePopup'],['oauth','oauthIntegration','settingsOAuthDesc']]},
+  {id:'site',label:'settingsGroupSite',description:'settingsGroupSiteDesc',items:[['website','websiteSetting','settingsWebsiteDesc'],['appearance','appearance','settingsAppearanceDesc'],['language','languageSettings','languageSettingsDesc'],['integration','settingsNoticeTitle','settingsNoticeDesc','noticePopup'],['oauth','oauthIntegration','settingsOAuthDesc']]},
   {id:'mail',label:'settingsGroupMail',description:'settingsGroupMailDesc',items:[['registration','settingsAddressTitle','settingsAddressDesc'],['domain','domainManagement','settingsDomainDesc'],['registration','sendProvider','settingsSendingDesc','sendProvider'],['integration','resendWebhookTitle','settingsWebhookDesc','resendWebhookTitle'],['integration','forwardingRules','settingsForwardDesc','forwardingRules']]},
   {id:'security',label:'settingsGroupSecurity',description:'settingsGroupSecurityDesc',items:[['security','settingsFilterTitle','settingsFilterDesc','senderDomainBlacklist'],['security','settingsAccessTitle','settingsAccessDesc','autoBan'],['security','settingsRetentionTitle','settingsRetentionDesc','autoCleanEmail'],['integration','signUpVerification','settingsVerifyDesc','signUpVerification']]},
   {id:'service',label:'settingsGroupService',description:'settingsGroupServiceDesc',items:[['integration','settingsStorageTitle','settingsStorageDesc','s3Configuration'],['sub-workers','subWorkerManage','settingsWorkersDesc'],['servers','serverManage','settingsServersDesc'],['about','about','settingsAboutDesc']]},

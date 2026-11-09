@@ -8,7 +8,7 @@
 
 二次开发自 [cloud-mail](https://github.com/maillab/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.6.7-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.8-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -43,7 +43,7 @@
 - **域名与过滤**：后台管理多个域名，支持发件人黑白名单和关键词过滤。
 - **用户与权限**：角色分级、注册码注册、邮箱转移、限时收件箱分享与会话管理。
 - **第三方登录**：支持 NodeLoc、Telegram、Discord、GitHub、Google、LinuxDo，绑定已有邮箱后即可登录。
-- **界面定制**：6 套登录模板、6 套主题色、4 种导航布局，适配手机与中英文。
+- **界面定制**：6 套登录模板、6 套主题色、4 种导航布局；中文源文案、后台管理多语言，支持独立邮件翻译。
 - **灵活部署**：支持一体部署、独立前端、多 Worker 实例与收信子 Worker。
 - **API 集成**：通过全局 API Token 查询邮件，方便接入其他工具。
 

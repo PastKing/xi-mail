@@ -141,6 +141,27 @@ describe.skipIf(!DatabaseSync)('Outbound sender identity', () => {
     expect(sql.prepare('SELECT send_email,resend_email_id FROM email').get()).toEqual({send_email:'sender@allowed.example',resend_email_id:'sendflare:flare-one'});
     expect(deliver).not.toHaveBeenCalled();
   });
+  it.each([
+    [{ success: true, code: 0, data: [{ emailId: 'first' }, { emailId: 'second' }] }, 'sendflare:first,second'],
+    [{ success: true, code: 0, requestId: 'batch-receipt', data: null }, 'sendflare:request:batch-receipt'],
+  ])('persists an accepted two-recipient send exactly once, including a request receipt: %j', async (response, expectedId) => {
+    mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};
+    settings.sendflareTokens = { 'allowed.example': 'local-flare-token' };
+    const request = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(response));
+    const recipients = ['first@external.example', 'second@external.example'];
+    const result = await emailService.send(c, { ...params(), receiveEmail: recipients }, 10);
+    expect(request).toHaveBeenCalledOnce();
+    expect(request.mock.calls[0][0]).toBe('https://api.sendflare.com/v1/batchSend');
+    expect(JSON.parse(request.mock.calls[0][1].body).to).toEqual(recipients);
+    const row = sql.prepare('SELECT send_email,resend_email_id,recipient,status FROM email').get();
+    expect(row.send_email).toBe('sender@allowed.example');
+    expect(row.resend_email_id).toBe(expectedId);
+    expect(JSON.parse(row.recipient).map(item => item.address)).toEqual(recipients);
+    expect(row.status).toBe(1);
+    expect(result).toHaveLength(1);
+    expect(sql.prepare('SELECT COUNT(*) AS count FROM email').get().count).toBe(1);
+    expect(deliver).not.toHaveBeenCalled();
+  });
 });
 
 describe.skipIf(!DatabaseSync)('Mailbox ownership and availability', () => {

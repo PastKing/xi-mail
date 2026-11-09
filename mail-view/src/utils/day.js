@@ -16,24 +16,16 @@ export function fromNow(date) {
     const diffMinutes = now.diff(d, 'minute');
     const diffHours = now.diff(d, 'hour');
     const isToday = now.isSame(d, 'day');
-    if (settingStore.lang === 'en') {
-
-        if (isToday) {
-            if (diffSeconds < 60) return `Just now`;
-            if (diffMinutes < 60) return `${diffMinutes} min ago`;
-            if (diffHours < 2) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-            return d.format('hh:mm A');
+    if (settingStore.lang && settingStore.lang !== 'zh') {
+        const lang=settingStore.lang;
+        if(isToday){
+            const relative=new Intl.RelativeTimeFormat(lang,{numeric:'auto'});
+            if(diffSeconds<60)return relative.format(0,'second');
+            if(diffMinutes<60)return relative.format(-diffMinutes,'minute');
+            if(diffHours<2)return relative.format(-diffHours,'hour');
+            return new Intl.DateTimeFormat(lang,{hour:'numeric',minute:'2-digit'}).format(d.toDate());
         }
-
-        if (now.subtract(1, 'day').isSame(d, 'day')) {
-            return d.format('MMM D');
-        }
-
-        return d.year() === now.year()
-            ? d.format('MMM D')
-            : d.format('YYYY/MM/DD');
-
-
+        return new Intl.DateTimeFormat(lang,{...(d.year()!==now.year()?{year:'numeric'}:{}),month:'short',day:'numeric'}).format(d.toDate());
     } else {
 
         if (isToday) {
@@ -71,12 +63,10 @@ export function formatDetailDate(time) {
 
     const isSameYear = now.year() === d.year();
 
-    if (settingStore.lang === 'en') {
-        return isSameYear
-            ? d.format('ddd, MMM D, h:mm A')
-            : d.format('ddd, MMM D, YYYY, h:mm A');
+    if (settingStore.lang && settingStore.lang !== 'zh') {
+        return new Intl.DateTimeFormat(settingStore.lang,{...(isSameYear?{}:{year:'numeric'}),weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d.toDate());
     } else {
-        return d.format('YYYY年M月D日 ddd AH:mm');
+        return d.locale('zh-cn').format('YYYY年M月D日 ddd HH:mm');
     }
 }
 

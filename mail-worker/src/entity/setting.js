@@ -58,7 +58,6 @@ export const setting = sqliteTable('setting', {
 	senderFilterMode: integer('sender_filter_mode').default(0).notNull(),
 	senderDomainWhitelist: text('sender_domain_whitelist').default('').notNull(),
 	regKeyHint: text('reg_key_hint').default('').notNull(),
-	regKeyHintEn: text('reg_key_hint_en').default('').notNull(),
 	regKeyLink: text('reg_key_link').default('').notNull(),
 	managedDomains: text('managed_domains').default('').notNull(),
 	colorTheme: text('color_theme').default('indigo').notNull(),

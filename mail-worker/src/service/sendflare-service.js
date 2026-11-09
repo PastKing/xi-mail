@@ -1,6 +1,14 @@
 import BizError from '../error/biz-error';
 
 const TOKEN_KEY = 'integration:sendflare:tokens';
+
+function deliveryIds(data) {
+	const values = Array.isArray(data) ? data
+		: data?.emailIds || data?.emilIds || data?.ids || [data];
+	return [...new Set((Array.isArray(values) ? values : [values]).map(item =>
+		typeof item === 'string' ? item : item?.emailId || item?.emilId || item?.id
+	).filter(id => typeof id === 'string' && id.trim() && id.length <= 256 && !/[\x00-\x1f\x7f,]/.test(id)))];
+}
 const sendflareService = {
 	async tokens(c) {
 		return (await c.env.kv.get(TOKEN_KEY, { type: 'json' })) || {};
@@ -47,17 +55,41 @@ const sendflareService = {
 				headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=utf-8' },
 				body: JSON.stringify(body),
 				signal: AbortSignal.timeout(15000),
-				redirect: 'error',
+				// Workers only supports follow/manual. Never forward this token to a redirect target.
+				redirect: 'manual',
 			});
-			result = await response.json();
 		} catch {
 			throw new BizError('SendFlare: delivery result unknown; check the provider before retrying', 502);
 		}
-		const ids = Array.isArray(result.data)
-			? result.data.filter((id) => typeof id === 'string' && id)
-			: [result.data?.emailId || result.data?.emilId].filter((id) => typeof id === 'string' && id);
-		if (!response.ok || result.success !== true || !ids.length)
-			throw new BizError('SendFlare: sending failed; check the provider dashboard', 502);
+		if (response.status >= 300 && response.status < 400) {
+			await response.body?.cancel();
+			throw new BizError(`SendFlare: unexpected redirect (HTTP ${response.status}); request was not repeated`, 502);
+		}
+		try {
+			result = await response.json();
+		} catch {
+			throw new BizError(`SendFlare: invalid response (HTTP ${response.status}); check the provider before retrying`, 502);
+		}
+		if (result?.success === false || (typeof result?.code === 'number' && result.code !== 0)) {
+			const message = typeof result.message === 'string'
+				? result.message.replaceAll(token, '[redacted]').replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 240)
+				: 'request rejected';
+			const code = typeof result.code === 'number' ? `, code ${result.code}` : '';
+			throw new BizError(`SendFlare: ${message} (HTTP ${response.status}${code})`, 502);
+		}
+		if (!response.ok || result?.success !== true)
+			throw new BizError(`SendFlare: delivery result unknown (HTTP ${response.status}); check the provider before retrying`, 502);
+		const ids = deliveryIds(result.data);
+		// A successful batch can be acknowledged without per-message IDs. Persist the
+		// provider request receipt (or an explicitly local acceptance marker) instead
+		// of rejecting an accepted send and inviting duplicate delivery.
+		if (!ids.length && batch) {
+			const requestId = typeof result.requestId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(result.requestId)
+				? result.requestId : null;
+			return requestId ? `request:${requestId}` : `accepted:${crypto.randomUUID()}`;
+		}
+		if (!ids.length)
+			throw new BizError('SendFlare: response missing delivery ID; check the provider before retrying', 502);
 		return ids.join(',');
 	},
 };

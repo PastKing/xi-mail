@@ -253,6 +253,7 @@ import {Icon} from "@iconify/vue";
 import {loginUserInfo} from "@/request/my.js";
 import {permsToRouter} from "@/perm/perm.js";
 import {useI18n} from "vue-i18n";
+import {registrationHint} from '@/i18n/language.js';
 import {startOAuth} from '@/utils/oauth.js';
 import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 import {useServerStore} from "@/store/server.js";
@@ -270,8 +271,7 @@ const refinedTemplate = computed(() => ['editorial', 'window', 'grid'].includes(
 const currentRegKeyHint = computed(() => {
   const s = settingStore.settings;
   if (!s) return '';
-  if (settingStore.lang === 'en' && s.regKeyHintEn) return s.regKeyHintEn;
-  return s.regKeyHint || '';
+  return registrationHint(s.regKeyHint || '');
 });
 const activeServerSelect = ref(serverStore.activeServerId);
 function onServerChange(id) {

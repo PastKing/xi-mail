@@ -47,6 +47,7 @@ const sysSettingSections = [
     'oauth',
     'sub-workers',
     'appearance',
+    'language',
     'servers',
     'about'
 ]

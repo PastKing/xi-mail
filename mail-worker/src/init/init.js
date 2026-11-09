@@ -45,7 +45,6 @@ const dbInit = {
 		await this.v3_7DB(c);
 		await this.v3_8DB(c);
 		await this.v3_9DB(c);
-		await this.v4_0DB(c);
 		await this.v4_1DB(c);
 		await this.v4_2DB(c);
 		await this.v4_3DB(c);
@@ -197,12 +196,6 @@ const dbInit = {
 					create_time DATETIME DEFAULT CURRENT_TIMESTAMP
 				)
 			`).run();
-		} catch (e) {}
-	},
-
-	async v4_0DB(c) {
-		try {
-			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN reg_key_hint_en TEXT NOT NULL DEFAULT '';`).run();
 		} catch (e) {}
 	},
 

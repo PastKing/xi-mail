@@ -19,6 +19,9 @@
       <el-tooltip v-if="emailStore.contentData.showReply && hasPerm('email:send')" :content="$t('forward')" :trigger-keys="[]">
         <button type="button" class="xi-icon-button" :aria-label="$t('forward')" @click="openForward"><Icon icon="mingcute:share-forward-line" width="18" height="18"/></button>
       </el-tooltip>
+      <el-tooltip v-if="settingStore.settings.translation?.mailTranslation!==false" :content="$t('mailTranslation')" :trigger-keys="[]">
+        <button type="button" class="xi-icon-button" :aria-label="$t('mailTranslation')" :aria-expanded="showTranslation" @click="showTranslation=!showTranslation"><Icon icon="mingcute:translate-2-line" width="18" height="18"/></button>
+      </el-tooltip>
     </div>
     <div></div>
     <el-scrollbar class="scrollbar">
@@ -27,7 +30,7 @@
           {{ email.subject }}
         </div>
         <div class="content">
-          <div class="email-info">
+          <div class="email-info" :class="{'is-translating':showTranslation}">
             <div>
               <div class="send"><span class="send-source">{{$t('from')}}</span>
                 <div class="send-name">
@@ -49,9 +52,11 @@
             <el-alert v-if="email.status === 5" :closable="false" :title="$t('delayed')" class="email-msg" type="warning" show-icon />
           </div>
           <el-scrollbar class="htm-scrollbar" :class="email.attList.length === 0 ? 'bottom-distance' : ''">
-            <el-skeleton v-if="contentLoading" class="content-skeleton" :rows="6" animated />
-            <ShadowHtml class="shadow-html" :html="formatImage(email.content)" v-else-if="email.content" />
-            <pre v-else class="email-text" >{{email.text}}</pre>
+            <MailTranslation :open="showTranslation" :email-id="email.emailId" :format-html="formatImage" @close="showTranslation=false">
+              <el-skeleton v-if="contentLoading" class="content-skeleton" :rows="6" animated />
+              <ShadowHtml class="shadow-html" :html="formatImage(email.content)" v-else-if="email.content" />
+              <pre v-else class="email-text">{{email.text}}</pre>
+            </MailTranslation>
           </el-scrollbar>
           <div class="att" v-if="email.attList.length > 0">
             <div class="att-title">
@@ -110,6 +115,7 @@ import {useUiStore} from "@/store/ui.js";
 import {useI18n} from "vue-i18n";
 import {EmailUnreadEnum} from "@/enums/email-enum.js";
 import {hasPerm} from '@/perm/perm.js';
+import MailTranslation from '@/components/MailTranslation.vue';
 
 const uiStore = useUiStore();
 const settingStore = useSettingStore();
@@ -120,6 +126,7 @@ const email = emailStore.contentData.email
 const showPreview = ref(false)
 const srcList = reactive([])
 const contentLoading = ref(false)
+const showTranslation = ref(false)
 
 const { t } = useI18n()
 watch(() => accountStore.currentAccountId, () => {
@@ -381,6 +388,9 @@ const handleDelete = () => {
       padding-bottom: 8px;
       @media (max-width: 1024px) {
         margin-bottom: 15px;
+      }
+      &.is-translating {
+        margin-bottom: 0;
       }
       .date {
         color: var(--regular-text-color);

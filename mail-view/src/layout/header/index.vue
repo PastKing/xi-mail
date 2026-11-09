@@ -10,9 +10,7 @@
     </button>
 
     <div class="toolbar">
-      <button class="tool-btn lang-btn" @click="toggleLang" :aria-label="settingStore.lang === 'zh' ? 'Switch to English' : '切换为中文'">
-        <span class="lang-label">{{ settingStore.lang === 'zh' ? 'EN' : '中' }}</span>
-      </button>
+      <LanguageSwitcher />
 
       <button v-if="uiStore.dark" class="tool-btn" @click="openDark($event)" aria-label="Light mode">
         <Icon icon="mingcute:sun-fill" width="18" height="18" />
@@ -101,10 +99,8 @@ import {avatarHash} from '@/utils/avatar.js';
 import {useSettingStore} from "@/store/setting.js";
 import {hasPerm} from "@/perm/perm.js"
 import {useI18n} from "vue-i18n";
-import {setExtend} from "@/utils/day.js"
-import i18n from "@/i18n/index.js"
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import {useServerStore} from "@/store/server.js"
-import {saveLang} from "@/request/my.js"
 
 const {t} = useI18n();
 const route = useRoute();
@@ -203,14 +199,6 @@ function switchDark(nextIsDark, root) {
   uiStore.dark = nextIsDark
 }
 
-function toggleLang() {
-  const next = settingStore.lang === 'zh' ? 'en' : 'zh'
-  settingStore.lang = next
-  i18n.global.locale.value = next
-  setExtend(next === 'zh' ? 'zh-cn' : 'en')
-  saveLang(next).catch(() => {})
-}
-
 function openSend() { uiStore.writerRef.open() }
 function changeAside() { uiStore.asideShow = !uiStore.asideShow }
 
@@ -297,6 +285,10 @@ function clickLogout() {
 }
 
 .breadcrumb-item {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  line-height: 20px;
   font-weight: 600;
   font-size: 15px;
   color: var(--el-text-color-primary);

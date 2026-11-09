@@ -5,6 +5,7 @@ import userContext from '../security/user-context';
 import sessionService from '../service/session-service';
 import oauthService from '../service/oauth-service';
 import { OAUTH_PROVIDERS } from '../const/oauth-providers';
+import translationService from '../service/translation-service';
 
 app.get('/my/oauth', async c => c.json(result.ok(await oauthService.list(c, userContext.getUserId(c)))));
 for (const provider of OAUTH_PROVIDERS) {
@@ -33,7 +34,7 @@ app.delete('/my/delete', async (c) => {
 
 app.put('/my/lang', async (c) => {
 	const { lang } = await c.req.json();
-	if (lang && (lang === 'zh' || lang === 'en')) {
+	if ((await translationService.config(c)).languages.includes(lang)) {
 		await userService.updateLang(c, userContext.getUserId(c), lang);
 	}
 	return c.json(result.ok());

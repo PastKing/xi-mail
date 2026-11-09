@@ -17,11 +17,10 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { Icon } from '@iconify/vue';
 import { useI18n } from 'vue-i18n';
 import zh from '@/i18n/zh.js';
-import en from '@/i18n/en.js';
 import { SETTINGS_SEARCH_KEYS, SETTINGS_SEARCH_ALIASES } from '@/config/settings-search.js';
 const props = defineProps({sections:{type:Array,required:true}}), emit = defineEmits(['select']);
 const {t} = useI18n(), query = ref(''), opened = ref(false), activeIndex = ref(0);
-const translated = key => [key,zh[key] || '',en[key] || ''].join(' ');
+const translated = key => [key,zh[key] || '',t(key)].join(' ');
 const results = computed(() => {
  const terms = query.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
  if (!terms.length) return [];
