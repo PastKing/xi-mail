@@ -8,6 +8,8 @@ import router from "@/router";
 import {websiteConfig} from "@/request/setting.js";
 import i18n from "@/i18n/index.js";
 import {watch} from 'vue';
+import {activateLanguage} from '@/i18n/language.js';
+import {initialLanguage} from '@/i18n/preference.js';
 
 export async function init() {
     document.title = '\u200B'
@@ -25,11 +27,10 @@ export async function init() {
     serverStore.init();
 
     const token = location.pathname === '/share' ? null : serverStore.getToken();
-    if (!settingStore.lang) {
-        let lang = navigator.language.split('-')[0]
-        lang = lang === 'zh' ? lang : 'en'
-        settingStore.lang = lang
-    }
+    let storedLanguage='';
+    try{storedLanguage=localStorage.getItem('xi-mail:language')||'';}catch{}
+    let accountLanguage='';
+    settingStore.lang='zh';
 
     i18n.global.locale.value = settingStore.lang
 
@@ -58,8 +59,7 @@ export async function init() {
             userStore.user = user;
 
             if (user.lang) {
-                settingStore.lang = user.lang;
-                i18n.global.locale.value = user.lang;
+                accountLanguage=user.lang;
             }
 
             const routers = permsToRouter(user.permKeys);
@@ -83,6 +83,10 @@ export async function init() {
         }
     }
 
+    const requested=initialLanguage({account:accountLanguage,stored:storedLanguage,
+        browser:navigator.languages?.length?navigator.languages:[navigator.language],
+        supported:settingStore.settings.translation?.languages||[{id:'zh',serviceId:'zh-Hans'}]});
+    try {await activateLanguage(requested,{persist:false});} catch {await activateLanguage('zh',{persist:false});}
     removeLoading();
 }
 

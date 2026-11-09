@@ -28,6 +28,30 @@
 
 ## 系统功能
 
+### 邮件收发与阅读
+
+| 收件箱 | 统一发件箱 |
+|:---:|:---:|
+| ![收件箱与多邮箱列表](images/features/inbox.png) | ![已发送邮件与草稿在同一列表展示](images/features/outbox.png) |
+| **写信窗口** | **邮件正文翻译** |
+| ![写信与发件人选择](images/features/compose.png) | ![保留排版与链接的邮件翻译](images/features/mail-translation.png) |
+
+发件箱同时展示已发送邮件与草稿；邮件译文在正文原位显示，可随时切回原文。以上邮件均为演示数据。
+
+### 语言与收件箱分享
+
+| 语言管理与一键更新译文 | 限时收件箱分享 |
+|:---:|:---:|
+| ![语言管理与一键更新译文](images/features/languages.png) | ![无需登录的限时分享收件箱](images/features/inbox-sharing.png) |
+
+### 系统设置布局
+
+| 设置总览 | 单页展开 |
+|:---:|:---:|
+| ![按用途分类的系统设置总览](images/features/settings-overview.png) | ![支持页内展开和全部收起的设置布局](images/features/settings-single.png) |
+
+### 登录集成与管理
+
 | OAuth 集成 | 个人账号绑定 |
 |:---:|:---:|
 | ![OAuth 集成](images/oauth-setting.png) | ![个人账号绑定](images/oauth-accounts.png) |

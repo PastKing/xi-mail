@@ -2,6 +2,7 @@ import app from './hono';
 import '../security/security'
 
 import '../api/email-api';
+import '../api/translation-api';
 import '../api/user-api';
 import '../api/login-api';
 import '../api/setting-api';

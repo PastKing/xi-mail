@@ -1,13 +1,14 @@
 // Public setting labels only; never index configured values or credentials.
 export const SETTINGS_SEARCH_KEYS = {
- website:['websiteReg','loginDomain','regKey','regKeyHint','regKeyHintEn','regKeyLink','websiteTitle','websiteSubtitle'],
+ website:['websiteReg','loginDomain','regKey','regKeyHint','regKeyLink','websiteTitle','websiteSubtitle'],
  security:['autoBan','banMessage','emailKeywordBlacklist','senderDomainBlacklist','syncDelete','autoCleanEmail','newEmailNotify','globalToken'],
  registration:['addAccount','multipleEmail','emailPrefix','randomPrefixLength','receiveEmail','autoRefresh','sendEmail','noRecipientTitle','sendProvider'],
  domain:['domainList','domainMapping'],
  integration:['workersAi','aiModel','aiCodeEnable','s3Configuration','storageType','tgBot','otherEmail','forwardingRules','signUpVerification','addEmailVerification','noticeTitle','noticePopup','popUp','resendWebhookTitle'],
- oauth:['oauthIntegration'], 'sub-workers':['subWorkerManage'], appearance:['colorTheme','layoutMode','loginTemplate'],servers:['serverManage'],about:['about'],
+ oauth:['oauthIntegration'], 'sub-workers':['subWorkerManage'], appearance:['colorTheme','layoutMode','loginTemplate'],language:['languageSettings','interfaceLanguages','mailTranslation'],servers:['serverManage'],about:['about'],
 };
 export const SETTINGS_SEARCH_ALIASES = {
+ languageSettings:['语言 翻译 多语言 国旗 English 日本語 Edge'],
  senderDomainBlacklist:['senderDomainWhitelist','senderDomainWhitelistDesc','senderFilterModeDesc'],
  emailPrefix:['mustNotContain','mustNotContainDesc'],
  autoCleanEmail:['autoCleanExclude'],

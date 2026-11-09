@@ -10,6 +10,7 @@ import { t } from '../i18n/i18n'
 import app from '../hono/hono';
 
 const publicExact = [
+	'/translation/pack',
 	'/mail-share/read',
 	'/mail-share/content',
 	'/mail-share/attachment',
@@ -22,6 +23,7 @@ const publicExact = [
 const publicTrees = ['/oss/', '/init/', '/telegram/', '/oauth/', '/admin/'];
 
 const requirePerms = [
+	'/translation/config', '/translation/save', '/translation/generate', '/translation/catalog/refresh', '/translation/register',
 	'/mail-share/',
 	'/transfer/', '/my/oauth',
 	'/email/send',
@@ -94,8 +96,8 @@ const premKey = {
 	'user:delete': ['/user/delete','/user/deleteAccount', '/user/restore', '/user/batchRestore'],
 	'all-email:query': ['/allEmail/list','/allEmail/latest'],
 	'all-email:delete': ['/allEmail/delete','/allEmail/batchDelete'],
-	'setting:query': ['/setting/query', '/setting/globalToken', '/setting/wecom/query', '/sub-worker/list'],
-	'setting:set': ['/setting/set', '/setting/setBackground','/setting/deleteBackground', '/setting/globalToken/enabled', '/setting/globalToken/generate', '/setting/resendToken', '/setting/wecom/set', '/setting/wecom/test', '/sub-worker/'],
+	'setting:query': ['/setting/query', '/setting/globalToken', '/setting/wecom/query', '/sub-worker/list', '/translation/config'],
+	'setting:set': ['/setting/set', '/setting/setBackground','/setting/deleteBackground', '/setting/globalToken/enabled', '/setting/globalToken/generate', '/setting/resendToken', '/setting/wecom/set', '/setting/wecom/test', '/sub-worker/', '/translation/save', '/translation/generate', '/translation/catalog/refresh', '/translation/register'],
 	'analysis:query': ['/analysis/echarts'],
 	'reg-key:add': ['/regKey/add'],
 	'reg-key:query': ['/regKey/list','/regKey/history', '/role/selectUse'],

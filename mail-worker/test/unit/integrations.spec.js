@@ -83,6 +83,7 @@ describe('SendFlare provider', () => {
 		const [url, options] = remote.mock.calls[0],
 			body = JSON.parse(options.body);
 		expect(url).toBe('https://api.sendflare.com/v1/send');
+		expect(options.redirect).toBe('manual');
 		expect(body.from).toBe('owned@local.example');
 		expect(body.attachments).toEqual([{ filename: 'file.txt', content: 'dGVzdA==', contentType: 'text/plain', disposition: 'attachment' }]);
 	});
@@ -101,6 +102,32 @@ describe('SendFlare provider', () => {
 		expect(body.to).toHaveLength(2);
 		expect(body.header['In-Reply-To']).toBe('<thread>');
 		expect(body.attachments[0].disposition).toBe('inline');
+	});
+	it.each([
+		[{ emailId: 'one' }, { emilId: 'two' }],
+		{ emailIds: ['one', 'two'] },
+	])('accepts batch delivery IDs returned as objects or a named list: %j', async data => {
+		remote.mockResolvedValue(Response.json({ success: true, code: 0, data }));
+		await expect(flare.send('token', { ...form(), to: ['one@example.test', 'two@example.test'] })).resolves.toBe('one,two');
+		expect(remote).toHaveBeenCalledOnce();
+	});
+	it.each([0, undefined])('keeps the receipt of an explicitly accepted batch with code %j and no delivery IDs', async code => {
+		remote.mockResolvedValue(Response.json({ success: true, code, requestId: 'batch-request', data: null }));
+		await expect(flare.send('token', { ...form(), to: ['one@example.test', 'two@example.test'] })).resolves.toBe('request:batch-request');
+		expect(remote).toHaveBeenCalledOnce();
+	});
+	it('uses an explicitly local marker if an accepted batch omits all provider identifiers', async () => {
+		remote.mockResolvedValue(Response.json({ success: true, code: 0, data: [] }));
+		await expect(flare.send('token', { ...form(), to: ['one@example.test', 'two@example.test'] })).resolves.toMatch(/^accepted:[a-f0-9-]{36}$/);
+		expect(remote).toHaveBeenCalledOnce();
+	});
+	it.each([
+		{ success: false, code: 100030, requestId: 'rejected-request', data: null },
+		{ code: 0, requestId: 'unconfirmed-request', data: null },
+	])('does not treat an unconfirmed or rejected batch as accepted: %j', async result => {
+		remote.mockResolvedValue(Response.json(result));
+		await expect(flare.send('token', { ...form(), to: ['one@example.test', 'two@example.test'] })).rejects.toMatchObject({ code: 502 });
+		expect(remote).toHaveBeenCalledOnce();
 	});
 	it('does not retry uncertain delivery or accept an HTTP failure as success', async () => {
 		remote.mockRejectedValue(new Error('timeout'));
@@ -121,6 +148,27 @@ describe('SendFlare provider', () => {
 		expect(emailService.resolveSendProvider(setting, 'local.example', true)).toEqual({ type: 'sendflare', token: 'sf' });
 		await flare.saveTokens(c, { 'local.example': '' });
 		expect(await flare.tokens(c)).toEqual({});
+	});
+	it('rejects redirects without following or retrying with the API token', async () => {
+		remote.mockResolvedValue(new Response(null, { status: 307, headers: { Location: 'https://other.example/collect' } }));
+		await expect(flare.send('token', form())).rejects.toThrow('unexpected redirect (HTTP 307)');
+		expect(remote).toHaveBeenCalledOnce();
+	});
+	it('reports provider rejection details and redacts the API token', async () => {
+		remote.mockResolvedValue(Response.json({ success: false, code: 100030, message: 'The sending domain is invalid' }));
+		await expect(flare.send('private-token', form())).rejects.toThrow('The sending domain is invalid (HTTP 200, code 100030)');
+		remote.mockResolvedValue(Response.json({ success: false, code: 100029, message: 'Invalid signature private-token\r\n' }));
+		await expect(flare.send('private-token', form())).rejects.toThrow('Invalid signature [redacted]');
+	});
+	it.each([200, 502])('reports non-JSON HTTP %i separately from transport failures', async status => {
+		remote.mockResolvedValue(new Response('<html>gateway error</html>', { status }));
+		await expect(flare.send('token', form())).rejects.toThrow(`invalid response (HTTP ${status})`);
+		expect(remote).toHaveBeenCalledOnce();
+	});
+	it.each([null, {}, { success: true, data: null }])('treats malformed success data as uncertain without retrying: %j', async value => {
+		remote.mockResolvedValue(Response.json(value));
+		await expect(flare.send('token', form())).rejects.toMatchObject({ code: 502 });
+		expect(remote).toHaveBeenCalledOnce();
 	});
 });
 
@@ -146,6 +194,11 @@ describe('Role boundaries for personal integrations', () => {
 		['/transfer/create', 'POST'],
 		['/transfer/accept', 'PUT'],
 		['/my/oauth', 'GET'],
+		['/translation/config', 'GET'],
+		['/translation/generate', 'POST'],
+		['/translation/save', 'POST'],
+		['/translation/register', 'POST'],
+		['/translation/catalog/refresh', 'POST'],
 	])('denies direct %s calls without role permission', async (path, method) => {
 		expect(await call(path, method, method === 'GET' ? undefined : {})).toMatchObject({ code: 403 });
 		expect(remote).not.toHaveBeenCalled();
@@ -153,6 +206,15 @@ describe('Role boundaries for personal integrations', () => {
 	it('settings read permission does not grant token generation', async () => {
 		permissions = ['setting:query'];
 		expect(await call('/setting/globalToken/generate', 'POST', {})).toMatchObject({ code: 403 });
+	});
+	it('settings read permission can inspect languages but cannot generate or enable them', async () => {
+		permissions = ['setting:query'];
+		expect(await call('/translation/config')).toMatchObject({code:200,data:{languages:['zh']}});
+		expect(await call('/translation/generate','POST',{language:'en'})).toMatchObject({code:403});
+		expect(await call('/translation/save','POST',{languages:['zh'],mailTranslation:false})).toMatchObject({code:403});
+		expect(await call('/translation/register','POST',{code:'fr-CA'})).toMatchObject({code:403});
+		expect(await call('/translation/catalog/refresh','POST',{})).toMatchObject({code:403});
+		expect(remote).not.toHaveBeenCalled();
 	});
 	it('installs role controls idempotently without automatically granting them to users', async () => {
 		await Promise.all([ensureFeaturePermissions(c), ensureFeaturePermissions(c)]);

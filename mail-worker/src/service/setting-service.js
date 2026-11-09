@@ -16,6 +16,7 @@ import oauthConfigService from './oauth-config-service';
 import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import webhookConfig from './resend-webhook-config-service';
 import sendflareService from './sendflare-service';
+import translationService from './translation-service';
 
 const SEND_PROVIDERS = ['cloudflare', 'resend', 'queensmtp', 'sendflare'];
 
@@ -156,6 +157,7 @@ const settingService = {
 		settingRow.domainList = domainList;
 
 		settingRow.sendflareTokens = await sendflareService.tokens(c);
+		settingRow.translation = await translationService.publicConfig(c);
 		const subtitle = await c.env.kv.get(KvConst.WEBSITE_SUBTITLE);
 		settingRow.subtitle = typeof subtitle === 'string' ? subtitle : '';
 		const oauthConfigs = await Promise.all(OAUTH_PROVIDERS.map(provider => oauthConfigService.get(c, provider.id)));
@@ -189,6 +191,7 @@ const settingService = {
 			await this.query(c),
 			verifyRecordService.selectListByIP(c)
 		]);
+		delete settingRow.regKeyHintEn;
 
 
 		if (!showSiteKey) {
@@ -267,6 +270,8 @@ const settingService = {
 		const settingData = await this.query(c);
 		const sendflareInput = params.sendflareTokens;
 		delete params.sendflareTokens;
+		delete params.translation;
+		delete params.regKeyHintEn;
 		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
 		Object.keys(resendTokens).forEach(domain => {
 			if (!resendTokens[domain]) delete resendTokens[domain];
@@ -400,6 +405,7 @@ const settingService = {
 			register: settingRow.register,
 			title: settingRow.title,
 			subtitle: settingRow.subtitle || '',
+			translation: settingRow.translation,
 			manyEmail: settingRow.manyEmail,
 			addEmail: settingRow.addEmail,
 			autoRefresh: settingRow.autoRefresh,
@@ -425,7 +431,6 @@ const settingService = {
 			minEmailPrefix: settingRow.minEmailPrefix,
 			randomPrefixLength: settingRow.randomPrefixLength,
 			regKeyHint: settingRow.regKeyHint || '',
-			regKeyHintEn: settingRow.regKeyHintEn || '',
 			regKeyLink: settingRow.regKeyLink || '',
 			colorTheme: settingRow.colorTheme || 'indigo',
 			loginTemplate: normalizeLoginTemplate(settingRow.loginTemplate),

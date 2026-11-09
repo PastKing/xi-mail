@@ -28,6 +28,30 @@ Full sidebar and top-bar navigation are also available from Appearance settings.
 
 ## Features
 
+### Mail and reading
+
+| Inbox | Unified Outbox |
+|:---:|:---:|
+| ![Inbox and multiple mailboxes](images/features/inbox.png) | ![Sent messages and drafts in one list](images/features/outbox.png) |
+| **Compose** | **Mail translation** |
+| ![Compose window and sender selection](images/features/compose.png) | ![Translated mail with formatting and links preserved](images/features/mail-translation.png) |
+
+The Outbox combines sent messages and drafts. Translations appear in place, with an option to return to the original message. All messages shown above use demo data.
+
+### Languages and inbox sharing
+
+| Language management and bulk updates | Expiring inbox sharing |
+|:---:|:---:|
+| ![Language management and one-click translation updates](images/features/languages.png) | ![An expiring shared inbox without sign-in](images/features/inbox-sharing.png) |
+
+### System settings layouts
+
+| Settings overview | Expandable single page |
+|:---:|:---:|
+| ![System settings grouped by purpose](images/features/settings-overview.png) | ![Inline settings with expand and collapse controls](images/features/settings-single.png) |
+
+### Sign-in integrations and administration
+
 | OAuth Integration | Connected accounts |
 |:---:|:---:|
 | ![OAuth Integration](images/oauth-setting.png) | ![Connected accounts](images/oauth-accounts.png) |

@@ -12,6 +12,7 @@ dist-ssr
 dist
 chrome-plug
 /test/
+/translation-dump/
 
 .vscode/*
 !.vscode/extensions.json

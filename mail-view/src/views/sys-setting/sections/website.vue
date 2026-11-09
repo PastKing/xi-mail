@@ -54,23 +54,6 @@
         </div>
         <div class="setting-item" v-if="regKeyEnabled">
           <div>
-            <span>{{ $t('regKeyHintEn') }}</span>
-            <el-tooltip effect="dark" :content="$t('regKeyHintEnDesc')">
-              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
-            </el-tooltip>
-          </div>
-          <div class="forward">
-            <el-input
-              v-model="setting.regKeyHintEn"
-              :placeholder="$t('regKeyHintEnPlaceholder')"
-              style="width: 200px;"
-              clearable
-              @change="change"
-            />
-          </div>
-        </div>
-        <div class="setting-item" v-if="regKeyEnabled">
-          <div>
             <span>{{ $t('regKeyLink') }}</span>
             <el-tooltip effect="dark" :content="$t('regKeyLinkDesc')">
               <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
