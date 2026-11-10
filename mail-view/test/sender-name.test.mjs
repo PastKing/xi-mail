@@ -3,6 +3,14 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {computed, ref} from 'vue';
 
+test('composer renders sender name as a full-width field without a save button', () => {
+  const source = readFileSync(new URL('../src/layout/write/index.vue', import.meta.url), 'utf8');
+  assert.match(source, /class="sender-name-field recipient-field"/);
+  assert.match(source, /<template #prefix><div class="item-title">\{\{ \$t\('senderName'\) \}\}<\/div><\/template>/);
+  assert.match(source, /@blur="saveSenderName\(false\)"/);
+  assert.doesNotMatch(source, /<el-button[^>]*@click="saveSenderName\(\)"/);
+});
+
 test('composer saves names per sender, keeps failed edits, and clears only the selected name', async () => {
   const source = readFileSync(new URL('../src/layout/write/index.vue', import.meta.url), 'utf8');
   const handlers = source.slice(source.indexOf('function changeSender('), source.indexOf('const openSelect ='));

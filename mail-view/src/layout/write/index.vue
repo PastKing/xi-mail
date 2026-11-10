@@ -21,11 +21,9 @@
           </el-select>
           <el-tooltip v-if="internalOnly" :content="$t('senderInternalOnlyDesc')"><span class="sender-internal-tag">{{ $t('senderInternalOnly') }}</span></el-tooltip>
         </div>
-        <div class="sender-name-controls">
-          <label for="compose-sender-name" :title="$t('composeSenderNameHint')">{{ $t('senderName') }}</label>
-          <el-input id="compose-sender-name" v-model="form.name" :placeholder="$t('senderNamePlaceholder')" :title="$t('composeSenderNameHint')" :maxlength="30" clearable size="small" :disabled="senderNameLoading || accountsLoading" @keyup.enter="saveSenderName()" />
-          <el-button size="small" :loading="senderNameLoading" :disabled="accountsLoading" @click="saveSenderName()">{{ $t('save') }}</el-button>
-        </div>
+        <el-input id="compose-sender-name" class="sender-name-field recipient-field" v-model="form.name" :placeholder="$t('senderNamePlaceholder')" :title="$t('composeSenderNameHint')" :maxlength="30" clearable :disabled="senderNameLoading || accountsLoading" @blur="saveSenderName(false)">
+          <template #prefix><div class="item-title">{{ $t('senderName') }}</div></template>
+        </el-input>
         <el-input-tag class="recipient-input recipient-field" @paste="pasteRecipients" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
           <template #prefix>
             <div class="item-title" >{{ $t('recipient') }}</div>
@@ -868,9 +866,6 @@ async function close() {
     }
 
     .sender-row { display:flex; align-items:center; gap:8px; min-width:0; min-height:40px; padding:0 10px; border:1px solid var(--el-border-color); border-radius:var(--el-border-radius-base); }
-    .sender-name-controls { display:flex; align-items:center; min-width:0; gap:8px; }
-    .sender-name-controls label { flex-shrink:0; color:var(--el-text-color-secondary); font-size:13px; }
-    .sender-name-controls .el-input { min-width:0; flex:1; }
     .sender-label { width:52px; flex-shrink:0; color:var(--el-text-color-secondary); font-size:13px; }
     .sender-select { flex:1; min-width:0; width:0; }
     .sender-select :deep(.el-select__wrapper) { min-height:38px; padding:0; box-shadow:none; background:transparent; }
@@ -881,7 +876,7 @@ async function close() {
     .sender-selected-name { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--el-text-color-secondary); font-size:12px; }
     .sender-internal-tag { flex-shrink:0; font-size:11px; line-height:22px; padding:0 6px; border-radius:4px; color:var(--el-color-warning); background:var(--el-color-warning-light-9); }
     .item-title { min-width:52px; color:var(--el-text-color-secondary); font-size:13px; }
-    .recipient-field :deep(.el-input-tag__wrapper), .subject-field :deep(.el-input__wrapper) { min-height:40px; }
+    .recipient-field :deep(.el-input-tag__wrapper), .recipient-field :deep(.el-input__wrapper), .subject-field :deep(.el-input__wrapper) { min-height:40px; }
     @media(max-width:500px) { .sender-selected-name { display:none; } .sender-label { width:44px; } .item-title { min-width:44px; } }
 
     .container {
