@@ -111,22 +111,23 @@
         <div class="settings-inline-field">
       <p>{{ $t('domainMappingDesc') }}</p>
       <div class="mapping-list">
+        <div class="mapping-columns" aria-hidden="true"><span>{{ $t('sourceDomain') }}</span><span>{{ $t('displayDomain') }}</span></div>
         <div v-for="(val, key) in domainMappingData" :key="key" class="mapping-row">
-          <el-tag size="small" type="info" class="mapping-source">{{ key }}</el-tag>
-          <Icon icon="mingcute:arrow-right-line" width="14" height="14" style="flex-shrink: 0; color: var(--el-text-color-secondary);" />
-          <el-input v-model="domainMappingData[key]" :placeholder="$t('displayDomain')" style="flex: 1;" />
+          <span class="mapping-source" :title="key">{{ key }}</span>
+          <Icon class="mapping-arrow" icon="mingcute:arrow-right-line" width="16" height="16" />
+          <el-input v-model="domainMappingData[key]" :aria-label="$t('displayDomain') + ' ' + key" :placeholder="$t('displayDomain')" />
           <el-button type="danger" link :aria-label="$t('delete') + ' ' + key" @click="delete domainMappingData[key]">
             <Icon icon="mingcute:delete-2-line" width="16" height="16"/>
           </el-button>
         </div>
-        <div class="mapping-row">
+        <div class="mapping-row mapping-row--new">
           <el-select popper-class="sys-setting-popper"
               v-model="newMappingSource"
               filterable
               allow-create
               default-first-option
+              :aria-label="$t('sourceDomain')"
               :placeholder="$t('sourceDomain')"
-              style="flex: 1;"
           >
             <el-option
                 v-for="d in systemDomains"
@@ -136,8 +137,8 @@
                 :disabled="!!domainMappingData[d]"
             />
           </el-select>
-          <Icon icon="mingcute:arrow-right-line" width="14" height="14" style="flex-shrink: 0; color: var(--el-text-color-secondary);" />
-          <el-input v-model="newMappingDisplay" :placeholder="$t('displayDomain')" style="flex: 1;" />
+          <Icon class="mapping-arrow" icon="mingcute:arrow-right-line" width="16" height="16" />
+          <el-input v-model="newMappingDisplay" :aria-label="$t('displayDomain')" :placeholder="$t('displayDomain')" />
           <el-button type="primary" link :aria-label="$t('add')" @click="addDomainMapping">
             <Icon icon="mingcute:add-line" width="16" height="16"/>
           </el-button>
@@ -490,22 +491,54 @@ async function saveDomainMapping() {
 .mapping-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  width: 100%;
+  max-width: 680px;
 }
 
-.mapping-row {
-  display: flex;
+.mapping-row, .mapping-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) var(--settings-control-height, 32px);
   align-items: center;
   gap: 8px;
   min-width: 0;
-  > .el-select, > .el-input { min-width: 0; }
+  > .el-select, > .el-input { min-width: 0; width: 100%; }
+  > .el-button { margin: 0; width: var(--settings-control-height, 32px); height: var(--settings-control-height, 32px); }
 }
+.mapping-columns {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  > span:last-child { grid-column: 3; }
+}
+.mapping-arrow { color: var(--el-text-color-secondary); }
 
 .mapping-source {
-  min-width: 100px;
-  max-width: 40%;
+  display: block;
+  min-width: 0;
+  padding: 0 11px;
+  height: var(--settings-control-height, 32px);
+  line-height: var(--settings-control-height, 32px);
+  box-sizing: border-box;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  color: var(--el-text-color-regular);
+  font-size: 14px;
   overflow: hidden;
-  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .mapping-columns { display: none; }
+  .mapping-row {
+    grid-template-columns: minmax(0, 1fr) var(--settings-control-height, 36px);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--el-border-color-extra-light);
+    > .mapping-source, > .el-select, > .el-input { grid-column: 1; }
+    > .el-button { grid-column: 2; grid-row: 1 / span 2; }
+  }
+  .mapping-arrow { display: none; }
 }
 
 :deep(.mapping-dialog.el-dialog) {

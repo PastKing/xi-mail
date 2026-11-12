@@ -16,6 +16,22 @@ test('account options follow role restrictions and preserve configured order', (
   assert.deepEqual(domains, ['@iemao.com', '@ntun.cn', '@other.example']);
 });
 
+test('account options follow upstream blacklist policies and reject malformed policies', () => {
+  const domains = ['@iemao.com', '@ntun.cn', '@other.example'];
+  const user = { role: { availDomain: JSON.stringify({ version: 1, mode: 'blacklist', domains: ['NTUN.CN'] }) } };
+  assert.deepEqual(availableAccountDomains(domains, user), ['@iemao.com', '@other.example']);
+  user.role.availDomain = JSON.stringify({ version: 1, mode: 'blacklist', domains: [] });
+  assert.deepEqual(availableAccountDomains(domains, user), domains);
+  user.role.availDomain = ' @IEMAO.COM , ntun.cn ';
+  assert.deepEqual(availableAccountDomains(domains, user), domains.slice(0, 2));
+  user.role.availDomain = ['ntun.cn'];
+  assert.deepEqual(availableAccountDomains(domains, user), ['@ntun.cn']);
+  for (const policy of ['{broken', '[]', '{"version":2,"mode":"blacklist","domains":[]}', '{"version":1,"mode":"unknown","domains":[]}', '{"version":1,"mode":"blacklist","domains":["bad"]}']) {
+    user.role.availDomain = policy;
+    assert.deepEqual(availableAccountDomains(domains, user), []);
+  }
+});
+
 test('component clears stale selections when user permissions or configured domains change', async () => {
   const state = reactive({ domains: ['@iemao.com', '@ntun.cn'], user: {} });
   const domainList = computed(() => availableAccountDomains(state.domains, state.user));
@@ -42,6 +58,10 @@ test('component clears stale selections when user permissions or configured doma
     state.user = { type: 0 };
     await nextTick();
     assert.equal(addForm.suffix, '@ntun.cn');
+    state.domains = ['@iemao.com', '@ntun.cn'];
+    state.user = { role: { availDomain: JSON.stringify({ version: 1, mode: 'blacklist', domains: ['ntun.cn'] }) } };
+    await nextTick();
+    assert.equal(addForm.suffix, '@iemao.com');
   } finally {
     stop();
   }

@@ -42,7 +42,7 @@
                 width="15" height="15"
               />
             </div>
-            <span class="row-email">{{ item.email }}</span>
+            <span class="row-email" :title="item.email">{{ item.email }}</span>
             <Icon
               v-if="item.sort > 0 && item.accountId !== userStore.user.account?.accountId"
               icon="mingcute:pin-fill"
@@ -53,12 +53,12 @@
           <div class="row-actions" @click.stop>
             <el-tooltip :content="$t('copy')" placement="top">
               <button type="button" class="xi-icon-button" :aria-label="$t('copy')" @click.stop="copyAccount(item.email)">
-                <Icon icon="mingcute:copy-2-line" width="18" height="18" />
+                <Icon icon="mingcute:copy-2-line" width="16" height="16" />
               </button>
             </el-tooltip>
             <el-dropdown trigger="click" placement="bottom-end">
               <button type="button" class="xi-icon-button" :aria-label="$t('moreNavigation')">
-                <Icon icon="mingcute:more-1-line" width="18" height="18" />
+                <Icon icon="mingcute:more-1-line" width="16" height="16" />
               </button>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -175,7 +175,7 @@
         </div>
         <div class="add-field">
           <label class="field-label">{{ $t('select') }}</label>
-          <el-select v-model="addForm.suffix" style="width: 100%" :disabled="domainList.length === 0">
+          <el-select v-model="addForm.suffix" filterable :aria-label="$t('selectEmailSuffix')" style="width: 100%" :disabled="domainList.length === 0">
             <el-option v-for="item in domainList" :key="item" :label="item" :value="item"/>
           </el-select>
         </div>
@@ -643,11 +643,13 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
 
     .row-email {
       font-size: 12.5px;
+      min-width: 0;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       color: var(--el-text-color-regular);
-      line-height: 1;
+      line-height: 1.5;
+      padding-block: 1px;
     }
 
     .pin-flag {

@@ -9,6 +9,7 @@ import flare from '../../src/service/sendflare-service';
 import emailService from '../../src/service/email-service';
 import userService from '../../src/service/user-service';
 import roleService from '../../src/service/role-service';
+import {writeRoleDomainPolicy} from '../../src/service/role-domain-policy';
 import transfer from '../../src/service/account-transfer-service';
 import rate from '../../src/service/security-rate-limit-service';
 
@@ -73,6 +74,72 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	db.close();
 });
+
+describe('Recent management endpoint authorization', () => {
+	async function request(path='/allEmail/senderStatistics', options={}) {
+		const auth={tokens:[],sessions:{},user:{userId:10,email:'user@local.example'},refreshTime:new Date().toISOString()};
+		sessionService.add(c,auth,'boundary-fixture','password');
+		if(options.session==='revoked'){auth.tokens=[];auth.sessions={};}
+		if(options.session==='expired')auth.sessions['boundary-fixture'].expireTime=new Date(Date.now()-1000).toISOString();
+		await sessionService.save(c,10,auth);
+		let token=await jwt.generateToken(c,{userId:10,token:'boundary-fixture',...(options.claims||{})});
+		if(options.auth==='missing')token='';
+		if(options.auth==='forged')token=token.slice(0,-6)+'AAAAAA';
+		if(options.auth==='share')token='a'.repeat(64);
+		const method=options.method||'GET';
+		const response=await worker.fetch(new Request('https://local.example/api'+path,{
+			method,headers:{Authorization:token,'Content-Type':'application/json',...(options.headers||{})},
+			...(method==='GET'?{}:{body:JSON.stringify(options.body||{})}),
+		}),c.env,{});
+		const text=await response.text();
+		let body;
+		try{body=JSON.parse(text);}catch{body={code:response.status};}
+		return {body,headers:response.headers};
+	}
+	it.each(['missing','forged','share'])('rejects %s credentials before reading mail',async auth=>{
+		const prepare=vi.spyOn(c.env.db,'prepare');
+		expect((await request(undefined,{auth})).body.code).toBe(401);
+		expect(prepare).not.toHaveBeenCalled();
+	});
+	it.each(['revoked','expired'])('rejects a %s session even with a valid signed JWT',async session=>{
+		expect((await request(undefined,{session})).body.code).toBe(401);
+	});
+	it.each([[],['email:query'],['analysis:query'],['all-email:delete'],['role:query'],['setting:query']])('does not treat unrelated role permissions as statistics access: %j',async (...keys)=>{
+		// Vitest expands the row array into arguments.
+		permissions=keys;
+		const prepare=vi.spyOn(c.env.db,'prepare');
+		expect((await request()).body.code).toBe(403);
+		expect(prepare).not.toHaveBeenCalled();
+	});
+	it('ignores client-supplied admin identity, permission claims and target user IDs',async()=>{
+		const result=await request('/allEmail/senderStatistics?userId=1&roleId=0&isAdmin=true&permKeys=*',{
+			headers:{'x-admin-auth':'admin@local.example','X-User-Id':'1'},
+			claims:{email:'admin@local.example',role:'admin',permKeys:['*']},
+		});
+		expect(result.body.code).toBe(403);
+		expect(permService.userPermKeys).toHaveBeenCalledWith(expect.anything(),10);
+	});
+	it.each(['/allEmail/senderStatistics/','/allEmail//senderStatistics','/allEmail/%73enderStatistics','/all%45mail/senderStatistics','/ALLEMAIL/senderStatistics','/allEmail/senderStatistics;ignored'])('does not bypass authorization through path variation %s',async path=>{
+		expect([401,403,404,405]).toContain((await request(path)).body.code);
+	});
+	it('allows intentional global statistics only with all-mail query permission',async()=>{
+		permissions=['all-email:query'];
+		db.exec(`ALTER TABLE email ADD COLUMN send_email TEXT;
+			ALTER TABLE email ADD COLUMN type INTEGER;
+			ALTER TABLE email ADD COLUMN status INTEGER;
+			ALTER TABLE email ADD COLUMN is_del INTEGER;
+			ALTER TABLE email ADD COLUMN create_time TEXT;
+			INSERT INTO email VALUES(1,1,99,'sender@example.test',0,0,0,'2026-11-12 00:00:00');`);
+		const result=await request('/allEmail/senderStatistics?type=receive');
+		expect(result.body).toMatchObject({code:200,data:{totalMessages:1,senderCount:1,list:[{address:'sender@example.test',total:1}]}});
+		expect(result.headers.get('Cache-Control')).toBe('no-store');
+	});
+	it.each([['/role/set','PUT'],['/regKey/add','POST'],['/allEmail/delete?emailIds=1','DELETE']])('read-only global mail access cannot mutate through %s',async(path,method)=>{
+		permissions=['all-email:query'];
+		expect((await request(path,{method})).body.code).toBe(403);
+	});
+});
+
 describe('SendFlare provider', () => {
 	const form = () => ({ from: 'owned@local.example', to: ['one@outside.example'], subject: 'Test', html: '<p>Body</p>', attachments: [] });
 	it('uses the official single-send API, owned sender and normal attachment payload', async () => {
@@ -191,6 +258,7 @@ describe('Role boundaries for personal integrations', () => {
 	}
 	it.each([
 		['/transfer/pending', 'GET'],
+		['/allEmail/senderStatistics', 'GET'],
 		['/transfer/create', 'POST'],
 		['/transfer/accept', 'PUT'],
 		['/my/oauth', 'GET'],
@@ -246,11 +314,17 @@ describe('Mailbox transfer ownership and quota', () => {
 		expect(db.prepare('SELECT user_id FROM attachments').get().user_id).toBe(20);
 		await expect(transfer.accept(c, 1, 20)).rejects.toMatchObject({ name: 'BizError' });
 	});
-	it.each(['quota', 'domain', 'permission', 'stale-owner', 'already-target'])(
+	it('accepts a transfer when the recipient blacklist excludes a different suffix', async () => {
+		roleService.selectById.mockResolvedValue({ accountCount: 5, availDomain: writeRoleDomainPolicy(['other.example'], 'blacklist') });
+		await transfer.accept(c, 1, 20);
+		expect(db.prepare('SELECT user_id FROM account WHERE account_id=1').get().user_id).toBe(20);
+	});
+	it.each(['quota', 'domain', 'blacklisted-domain', 'permission', 'stale-owner', 'already-target'])(
 		'preserves all ownership when blocked by %s',
 		async (mode) => {
 			if (mode === 'quota') roleService.selectById.mockResolvedValue({ accountCount: 1, availDomain: 'local.example' });
 			if (mode === 'domain') roleService.selectById.mockResolvedValue({ accountCount: 5, availDomain: 'other.example' });
+			if (mode === 'blacklisted-domain') roleService.selectById.mockResolvedValue({ accountCount: 5, availDomain: writeRoleDomainPolicy(['local.example'], 'blacklist') });
 			if (mode === 'permission') permissions = [];
 			if (mode === 'stale-owner') db.exec('UPDATE account SET user_id=30 WHERE account_id=1');
 			if (mode === 'already-target') db.exec('UPDATE account SET user_id=20 WHERE account_id=1');

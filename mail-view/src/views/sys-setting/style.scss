@@ -87,6 +87,22 @@
 .sys-setting-section .settings-inline-field p { margin:7px 0 11px; font-size:12px; line-height:1.6; color:var(--el-text-color-secondary); }
 .sys-setting-section .settings-inline-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
 .sys-setting-section .settings-inline-actions .el-button + .el-button { margin-left:0; }
+.sys-setting-section .el-select.settings-compact-select {
+  width: 112px !important;
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+.sys-setting-section .el-select.refresh-interval-select { width: 96px !important; }
+.sys-setting-section .el-input-number.settings-number-input {
+  width: 112px;
+  flex: 0 0 112px;
+  max-width: 100%;
+}
+.sys-setting-section .setting-item.setting-item--compact {
+  flex-direction: row;
+  align-items: center;
+  > div:last-child { width: auto; }
+}
 .sys-setting-section .settings-action { min-width:64px; }
 .sys-setting .settings-entry-content .settings-card { border:0; border-top:1px solid var(--el-border-color-lighter); border-radius:0; margin:0; }
 .sys-setting .settings-entry-content .card-title { padding:14px 4px 8px; }
@@ -210,7 +226,7 @@
         width: 100%;
 
         .el-input,
-        .el-select {
+        .el-select:not(.settings-compact-select) {
           width: 100% !important;
         }
       }

@@ -79,3 +79,64 @@ test('provider changes use the unified sendProviders mapping', async () => {
     sendProviders: { 'cloudflare.example': 'cloudflare' },
   }]);
 });
+
+function tokenEditor({ active = 'resend', confirm = async () => {}, saved = true } = {}) {
+  const setting = ref({
+    sendProviders: { 'first.example': active },
+    sendflareTokens: { 'first.example': 'existing-token' },
+  });
+  const tokenForm = {
+    service: 'sendflare', originalService: 'resend', domain: 'first.example', token: ' replacement-token ',
+  };
+  const settingLoading = ref(false);
+  const tokenDialogShow = ref(true);
+  const updates = [];
+  const providers = source.slice(source.indexOf('const providers = ['), source.indexOf('const tokenForm ='));
+  const handlers = source.slice(source.indexOf('async function saveToken()'), source.indexOf('function resetEmailPrefix()'));
+  const editor = new Function(
+    'tokenForm', 'setting', 'settingLoading', 'tokenDialogShow', 'editSetting', 'ElMessageBox', 't',
+    `${providers}\n${handlers}\nreturn { saveToken, deleteToken };`,
+  )(tokenForm, setting, settingLoading, tokenDialogShow, async payload => {
+    updates.push(payload);
+    return saved;
+  }, { confirm }, key => key);
+  return { ...editor, tokenForm, settingLoading, tokenDialogShow, updates };
+}
+
+test('switching token services updates the unified selection without replacing explicit Cloudflare', async () => {
+  for (const active of ['resend', 'cloudflare', '']) {
+    const editor = tokenEditor({ active });
+    await editor.saveToken();
+    assert.deepEqual(editor.updates, [{
+      sendflareTokens: { 'first.example': 'replacement-token' },
+      resendTokens: { 'first.example': '' },
+      ...(active === 'resend' ? { sendProviders: { 'first.example': 'sendflare' } } : {}),
+    }]);
+    assert.equal(editor.tokenForm.token, '');
+    assert.equal(editor.tokenDialogShow.value, false);
+  }
+});
+
+test('cancelled token overwrite and in-progress settings writes do not submit changes', async () => {
+  const editor = tokenEditor({ confirm: async () => { throw new Error('cancelled'); } });
+  await editor.saveToken();
+  assert.deepEqual(editor.updates, []);
+  assert.equal(editor.tokenDialogShow.value, true);
+  editor.settingLoading.value = true;
+  await editor.saveToken();
+  await editor.deleteToken();
+  assert.deepEqual(editor.updates, []);
+});
+
+test('failed token writes retain the replacement for retry', async () => {
+  const editor = tokenEditor({ saved: false });
+  await editor.saveToken();
+  assert.equal(editor.tokenForm.token, ' replacement-token ');
+  assert.equal(editor.tokenDialogShow.value, true);
+});
+
+test('deleting after an unsaved service change still removes only the original token', async () => {
+  const editor = tokenEditor({ active: 'cloudflare' });
+  await editor.deleteToken();
+  assert.deepEqual(editor.updates, [{ resendTokens: { 'first.example': '' } }]);
+});

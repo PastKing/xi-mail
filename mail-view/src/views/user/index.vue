@@ -245,10 +245,14 @@
         </div>
       </div>
     </el-scrollbar>
-    <el-dialog class="dialog" v-model="setPwdShow" :title="$t('changePassword')" @closed="resetUserForm">
+    <el-dialog class="dialog" v-model="setPwdShow" :title="$t('changePassword')" width="min(420px, calc(100vw - 32px))" @closed="resetUserForm">
       <div class="dialog-box">
-        <el-input v-model="userForm.password" type="password" :placeholder="$t('newPassword')" autocomplete="off">
-        </el-input>
+        <div class="password-input-row">
+          <el-input v-model="userForm.password" type="password" show-password :placeholder="$t('newPassword')" autocomplete="new-password" :disabled="settingLoading"/>
+          <el-tooltip :content="$t('randomPassword')" placement="top" :trigger-keys="[]">
+            <button type="button" class="xi-icon-button" :aria-label="$t('randomPassword')" :disabled="settingLoading" @click="userForm.password=createRandomPassword()"><Icon icon="mingcute:refresh-2-line" width="16" height="16"/></button>
+          </el-tooltip>
+        </div>
         <el-button class="btn" type="primary" :loading="settingLoading" @click="updatePwd"
         >{{ $t('save') }}
         </el-button>
@@ -265,7 +269,7 @@
         </el-button>
       </div>
     </el-dialog>
-    <el-dialog v-model="showAdd" :title="$t('addUser')">
+    <el-dialog v-model="showAdd" :title="$t('addUser')" width="min(420px, calc(100vw - 32px))">
       <div class="add-user-form">
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('emailAccount') }}</label>
@@ -273,13 +277,18 @@
         </div>
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('select') }}</label>
-          <el-select v-model="addForm.suffix" style="width: 100%">
+          <el-select v-model="addForm.suffix" filterable :aria-label="$t('selectEmailSuffix')" style="width: 100%">
             <el-option v-for="item in domainList" :key="item" :label="item" :value="item"/>
           </el-select>
         </div>
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('password') }}</label>
-          <el-input type="password" v-model="addForm.password" :placeholder="$t('password')" show-password />
+          <div class="password-input-row">
+            <el-input type="password" v-model="addForm.password" :placeholder="$t('password')" show-password autocomplete="new-password" :disabled="addLoading"/>
+            <el-tooltip :content="$t('randomPassword')" placement="top" :trigger-keys="[]">
+              <button type="button" class="xi-icon-button" :aria-label="$t('randomPassword')" :disabled="addLoading" @click="addForm.password=createRandomPassword()"><Icon icon="mingcute:refresh-2-line" width="16" height="16"/></button>
+            </el-tooltip>
+          </div>
         </div>
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('perm') }}</label>
@@ -287,9 +296,17 @@
             <el-option v-for="item in roleList" :label="item.name" :value="item.roleId" :key="item.roleId"/>
           </el-select>
         </div>
-        <div class="add-user-preview" v-if="addForm.email">
-          <Icon icon="mingcute:mail-line" width="13" height="13" />
-          <span>{{ addForm.email }}{{ addForm.suffix }}</span>
+        <div class="add-user-preview" v-if="addForm.email||addForm.password">
+          <button v-if="addForm.email" type="button" class="add-user-preview-row" :aria-label="$t('copy')+' '+$t('emailAccount')" :title="$t('clickToCopy')" @click="copyCredential(addForm.email+addForm.suffix)">
+            <Icon icon="mingcute:mail-line" width="14" height="14"/>
+            <span class="credential-copy"><small>{{ $t('emailAccount') }}</small><span class="credential-value">{{ addForm.email }}{{ addForm.suffix }}</span></span>
+            <Icon icon="mingcute:copy-2-line" width="14" height="14"/>
+          </button>
+          <button v-if="addForm.password" type="button" class="add-user-preview-row" :aria-label="$t('copy')+' '+$t('password')" :title="$t('clickToCopy')" @click="copyCredential(addForm.password)">
+            <Icon icon="mingcute:lock-line" width="14" height="14"/>
+            <span class="credential-copy"><small>{{ $t('password') }}</small><span class="credential-value">{{ addForm.password }}</span></span>
+            <Icon icon="mingcute:copy-2-line" width="14" height="14"/>
+          </button>
         </div>
         <el-button class="btn" type="primary" @click="submit" :loading="addLoading">{{ $t('add') }}</el-button>
       </div>
@@ -497,6 +514,7 @@ import {useRoleStore} from "@/store/role.js";
 import {useUserStore} from "@/store/user.js";
 import {useI18n} from 'vue-i18n';
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
+import {createRandomPassword} from '@/utils/password.js';
 
 defineOptions({
   name: 'user'
@@ -830,6 +848,15 @@ function resetAddForm() {
 
 function openAdd() {
   showAdd.value = true
+}
+
+async function copyCredential(value) {
+  try {
+    await navigator.clipboard.writeText(value)
+    ElMessage({message:t('copySuccessMsg'),type:'success',plain:true})
+  } catch {
+    ElMessage({message:t('copyFailMsg'),type:'error',plain:true})
+  }
 }
 
 function submit() {
@@ -1384,6 +1411,10 @@ function adjustWidth() {
   min-height: 0;
 }
 
+.password-input-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.password-input-row .el-input { flex: 1; min-width: 0; }
+.password-input-row .xi-icon-button:disabled { opacity: .5; cursor: wait; }
+
 .details {
   padding: 0 10px 10px 10px;
   display: grid;
@@ -1454,7 +1485,7 @@ function adjustWidth() {
 
 .dialog {
   .dialog-box {
-    .el-button {
+    > .el-button {
       width: 100%;
       margin-top: 15px;
     }
@@ -1482,16 +1513,20 @@ function adjustWidth() {
 
 .add-user-preview {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
+  flex-direction: column;
   background: var(--el-fill-color-light);
   border-radius: var(--el-border-radius-base);
-  font-size: 12.5px;
-  color: var(--el-color-primary);
-  font-family: monospace;
   border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
 }
+.add-user-preview-row { display:flex;align-items:center;gap:9px;min-width:0;width:100%;padding:8px 10px;border:0;background:transparent;color:var(--el-text-color-secondary);font:inherit;text-align:start;cursor:pointer; }
+.add-user-preview-row+.add-user-preview-row { border-top:1px solid var(--el-border-color-lighter); }
+.add-user-preview-row:hover { background:var(--el-color-primary-light-9);color:var(--el-color-primary); }
+.add-user-preview-row:focus-visible { outline:2px solid var(--el-color-primary-light-5);outline-offset:-2px; }
+.add-user-preview-row>svg { flex-shrink:0; }
+.credential-copy { display:flex;flex-direction:column;gap:2px;flex:1;min-width:0; }
+.credential-copy small { font-size:11px;line-height:1.4; }
+.credential-value { font:12.5px/1.5 monospace;color:var(--el-text-color-primary);white-space:pre-wrap;overflow-wrap:anywhere; }
 
 .loading {
   position: absolute;

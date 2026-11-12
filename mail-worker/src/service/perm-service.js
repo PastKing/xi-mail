@@ -8,6 +8,15 @@ import { permConst } from '../const/entity-const';
 import { t } from '../i18n/i18n'
 import { ensureFeaturePermissions } from './feature-permission-service';
 
+export function orderPermissionGroups(groups) {
+	const mail = groups.find(item => item.name === '邮件');
+	if (!mail) return groups;
+	const linked = ['邮箱转移', '邮箱分享'].flatMap(name => groups.filter(item => item.name === name));
+	const ordered = groups.filter(item => !linked.includes(item));
+	ordered.splice(ordered.indexOf(mail) + 1, 0, ...linked);
+	return ordered;
+}
+
 const permService = {
 	async tree(c) {
 		await ensureFeaturePermissions(c);
@@ -18,11 +27,12 @@ const permService = {
 			cItem.name = t('perms.' + cItem.name)
 		})
 
-		pList.forEach(pItem => {
+		const ordered = orderPermissionGroups(pList);
+		ordered.forEach(pItem => {
 			pItem.name = t('perms.' + pItem.name)
 			pItem.children = cList.filter(cItem => cItem.pid === pItem.permId)
 		})
-		return pList;
+		return ordered;
 	},
 
 	async userPermKeys(c, userId) {

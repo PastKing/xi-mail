@@ -69,26 +69,47 @@
         <el-empty v-if="!regKeyFirst" :image-size="isMobile ? 120 : null" :description="$t('noCodeFound')"/>
       </div>
     </el-scrollbar>
-    <el-dialog v-model="showAdd" :title="$t('addRegKey')">
-      <div class="container">
-        <el-input v-model="addForm.code" :placeholder="$t('regKey')">
+    <el-dialog v-model="showAdd" class="invite-create-dialog" :title="$t('addRegKey')" @closed="resetForm" :close-on-click-modal="!addLoading" :close-on-press-escape="!addLoading" :show-close="!addLoading">
+      <el-form class="invite-create-form" label-position="top" :disabled="addLoading" @submit.prevent="submit">
+        <el-form-item :label="$t('regKey')">
+        <el-input v-model="addForm.code" :aria-label="$t('regKey')" :maxlength="128" :placeholder="$t('regKey')" autocomplete="off">
           <template #suffix>
-            <button type="button" class="xi-icon-button" :aria-label="$t('regenerate')" @click.stop="genCode"><Icon icon="mingcute:refresh-2-line" width="18" height="18" /></button>
+            <el-tooltip :content="$t('regenerate')" :trigger-keys="[]"><button type="button" class="xi-icon-button" :disabled="addLoading" :aria-label="$t('regenerate')" @click.stop="genCode"><Icon icon="mingcute:refresh-2-line" width="16" height="16" /></button></el-tooltip>
           </template>
         </el-input>
-        <el-select v-model="addForm.roleId" :placeholder="$t('roleDesc')">
+        </el-form-item>
+        <div class="invite-form-grid">
+        <el-form-item :label="$t('roleDesc')">
+        <el-select v-model="addForm.roleId" :aria-label="$t('roleDesc')" filterable :placeholder="$t('roleDesc')">
           <el-option v-for="item in roleList" :label="item.name" :value="item.roleId" :key="item.roleId"/>
         </el-select>
+        </el-form-item>
+        <el-form-item :label="$t('inviteUses')">
+          <el-input-number v-model="addForm.count" :aria-label="$t('inviteUses')" controls-position="right" :precision="0" :min="1" :max="99999" />
+        </el-form-item>
+        </div>
+        <el-form-item :label="$t('validUntil')">
         <el-date-picker
             v-model="addForm.expireTime"
             type="date"
+            value-format="YYYY-MM-DD"
+            popper-class="invite-date-popper"
+            :aria-label="$t('validUntil')"
+            :disabled-date="disabledExpiry"
             :placeholder="$t('validUntil')"
         />
-        <el-input-number v-model="addForm.count" :min="1" :max="99999"/>
-        <el-button class="btn" type="primary" @click="submit" :loading="addLoading"
+        <div class="invite-expiry-presets"><el-button v-for="days in [7,30,90]" :key="days" size="small" :type="addForm.expireTime === expiryAfter(days) ? 'primary' : 'default'" plain @click="setExpiry(days)">{{ $t('inviteQuickExpiry',{days}) }}</el-button></div>
+        <p class="invite-form-hint">{{ $t('inviteExpiryHint') }}</p>
+        </el-form-item>
+        <div class="invite-preview">
+          <span class="invite-form-hint">{{ $t('invitePreview') }}</span>
+          <button type="button" :disabled="!addForm.code.trim()" :aria-label="$t('inviteCopyCode')" @click="copyCode(addForm.code.trim())"><span>{{ addForm.code.trim() || '—' }}</span><Icon icon="mingcute:copy-line" width="16" /></button>
+          <span class="invite-form-hint">{{ roleList.find(item=>item.roleId === addForm.roleId)?.name || '—' }} · {{ $t('inviteUses') }} {{ addForm.count || '—' }} · {{ addForm.expireTime || '—' }}</span>
+        </div>
+        <el-button class="invite-submit" type="primary" native-type="submit" :loading="addLoading"
         >{{ $t('add') }}
         </el-button>
-      </div>
+      </el-form>
     </el-dialog>
     <el-dialog class="history-list" v-model="showRegKeyHistory" :title="$t('useHistory')">
       <div class="loading" :class="historyLoading ? 'loading-show' : 'loading-hide'">
@@ -155,6 +176,7 @@ getList(true)
 roleSelectUse().then(list => {
   roleList.length = 0
   roleList.push(...list)
+  if (showAdd.value && !addForm.roleId) addForm.roleId = list.find(role=>role.isDefault)?.roleId ?? list[0]?.roleId ?? null
 })
 
 watch(() => roleStore.refresh, () => {
@@ -308,15 +330,18 @@ function clearNotUse() {
 }
 
 function submit() {
+  if (addLoading.value) return
+  const code = addForm.code.trim()
 
-  if (!addForm.code) {
+  if (!code) {
     ElMessage({
-      message: $('emptyRegKeyMsg'),
+      message: t('emptyRegKeyMsg'),
       type: "error",
       plain: true
     })
     return
   }
+  if (code.length > 128 || /[\s\x00-\x1f\x7f]/.test(code)) { ElMessage.error(t('inviteInvalidCode'));return }
 
   if (!addForm.roleId) {
     ElMessage({
@@ -335,10 +360,11 @@ function submit() {
     })
     return
   }
+  if (addForm.expireTime < dayjs().tz('Asia/Shanghai').format('YYYY-MM-DD')) { ElMessage.error(t('inviteInvalidExpiry'));return }
 
-  if (!addForm.count) {
+  if (!Number.isInteger(addForm.count) || addForm.count < 1 || addForm.count > 99999) {
     ElMessage({
-      message: t('emptyCountMsg'),
+      message: t('inviteInvalidCount'),
       type: "error",
       plain: true
     })
@@ -346,7 +372,7 @@ function submit() {
   }
 
   addLoading.value = true
-  regKeyAdd(addForm).then(() => {
+  regKeyAdd({...addForm,code}).then(() => {
     showAdd.value = false
     resetForm()
     ElMessage({
@@ -355,6 +381,8 @@ function submit() {
       plain: true
     })
     getList()
+  }).catch(() => {
+    // The request interceptor displays the error; preserve the form for retry.
   }).finally(() => {
     addLoading.value = false
   })
@@ -378,17 +406,39 @@ function deleteRegKey(regKey) {
 }
 
 function resetForm() {
-  addForm.code = ''
+  Object.assign(addForm,{code:'',count:1,roleId:null,expireTime:null})
 }
 
 function openAdd() {
+  resetForm()
   genCode()
+  addForm.roleId = roleList.find(role=>role.isDefault)?.roleId ?? roleList[0]?.roleId ?? null
+  setExpiry(30)
   showAdd.value = true
 }
+
+function expiryAfter(days) { return dayjs().tz('Asia/Shanghai').add(days,'day').format('YYYY-MM-DD') }
+function setExpiry(days) { addForm.expireTime = expiryAfter(days) }
+function disabledExpiry(date) { return dayjs(date).format('YYYY-MM-DD') < dayjs().tz('Asia/Shanghai').format('YYYY-MM-DD') }
 
 </script>
 
 <style scoped lang="scss">
+.invite-form-grid { display:grid; grid-template-columns:minmax(0,1fr) 112px; gap:12px; }
+.invite-create-form .el-form-item { margin-bottom:16px; }
+.invite-create-form :deep(.el-date-editor.el-input), .invite-form-grid .el-input-number { width:100%; }
+.invite-expiry-presets { display:flex; gap:8px; margin-top:8px; }
+.invite-expiry-presets .el-button { margin:0; }
+.invite-form-hint { margin:6px 0 0; color:var(--el-text-color-secondary); font-size:12px; line-height:1.6; }
+.invite-preview { display:flex; flex-direction:column; gap:5px; padding:10px 12px; border-radius:6px; background:var(--el-fill-color-light); }
+.invite-preview > button { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:0; border:0; color:var(--el-text-color-primary); background:transparent; text-align:left; cursor:pointer; font:inherit; }
+.invite-preview > button span { overflow-wrap:anywhere; min-width:0; }
+.invite-preview svg { flex-shrink:0; color:var(--el-text-color-secondary); }
+.invite-preview > button:focus-visible { outline:2px solid var(--el-color-primary); outline-offset:3px; }
+.invite-submit { width:100%; margin-top:16px; }
+:global(.invite-date-popper.el-popper) { max-width:calc(100vw - 24px); }
+:global(.invite-date-popper .el-date-picker) { width:min(322px, calc(100vw - 24px)); }
+:global(.invite-date-popper .el-picker-panel__content) { width:calc(100% - 36px); }
 .reg-key {
   height: 100%;
   overflow: hidden;
