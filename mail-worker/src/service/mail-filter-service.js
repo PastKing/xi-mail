@@ -26,6 +26,10 @@ export function mailFilterConditions(c, params) {
   if (params.type === 'receive') conditions.push(eq(email.type, emailConst.type.RECEIVE));
   if (params.type === 'delete') conditions.push(eq(email.isDel, isDel.DELETE));
   if (params.type === 'noone') conditions.push(eq(email.status, emailConst.status.NOONE));
+  if (params.senderExact) {
+    if (typeof params.senderExact !== 'string' || params.senderExact.length > 320) throw new BizError('发件地址无效',400);
+    conditions.push(sql`lower(trim(${email.sendEmail})) = ${params.senderExact.trim().toLowerCase()}`);
+  }
   for (const [key, column] of [['userEmail', user.email], ['name', email.name], ['subject', email.subject], ['sendEmail', email.sendEmail], ['toEmail', email.toEmail]]) {
     if (params[key]) conditions.push(sql`${column} COLLATE NOCASE LIKE ${'%' + String(params[key]).slice(0, 512) + '%'}`);
   }

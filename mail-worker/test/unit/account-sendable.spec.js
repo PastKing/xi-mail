@@ -3,6 +3,7 @@ import accountService from '../../src/service/account-service';
 import settingService from '../../src/service/setting-service';
 import userService from '../../src/service/user-service';
 import roleService from '../../src/service/role-service';
+import {writeRoleDomainPolicy} from '../../src/service/role-domain-policy';
 
 const c = { env: { admin: 'admin@a.com' } };
 
@@ -43,5 +44,13 @@ describe('accountService.sendableChecker', () => {
 		vi.restoreAllMocks();
 		mock({ user: { email: 'u@a.com', type: 2 }, role: { sendType: 'ban', availDomain: '' } });
 		expect((await accountService.sendableChecker(c, 1))('x@a.com')).toBe(false);
+	});
+	it('blacklist excludes only chosen domains while enabled senders remain usable', async () => {
+		mock({ user: { email: 'u@a.com', type: 2 }, role: { sendType: 'count', availDomain: writeRoleDomainPolicy(['q.com'], 'blacklist') } });
+		const can = await accountService.sendableChecker(c, 1);
+		expect(can('x@q.com')).toBe(false);
+		expect(can('x@a.com')).toBe(true);
+		expect(can('x@sf.com')).toBe(true);
+		expect(can('x@unconfigured.example')).toBe(false);
 	});
 });

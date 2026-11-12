@@ -7,24 +7,32 @@ import { formatDetailDate, toUtc } from '../utils/date-uitil';
 import userService from './user-service';
 import { t } from '../i18n/i18n.js';
 
+export function normalizeInviteInput(params) {
+	const code = typeof params.code === 'string' ? params.code.trim() : '';
+	if (!code) throw new BizError(t('emptyRegKey'), 400);
+	if (code.length > 128 || /[\s\x00-\x1f\x7f]/.test(code)) throw new BizError(t('invalidInviteCode'), 400);
+	if (!Number.isInteger(params.count) || params.count < 1 || params.count > 99999)
+		throw new BizError(t('invalidInviteCount'), 400);
+	const value = params.expireTime;
+	if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:$|T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$)/.test(value))
+		throw new BizError(t('invalidInviteExpiry'), 400);
+	const dateOnly = value.length === 10;
+	const calendarDay = toUtc(value.slice(0,10) + 'T00:00:00Z');
+	if (!calendarDay.isValid() || calendarDay.format('YYYY-MM-DD') !== value.slice(0,10))
+		throw new BizError(t('invalidInviteExpiry'), 400);
+	const expiry = toUtc(dateOnly ? value + 'T00:00:00+08:00' : value).tz('Asia/Shanghai').startOf('day');
+	if (!expiry.isValid() || (dateOnly && expiry.format('YYYY-MM-DD') !== value)
+		|| expiry.isBefore(toUtc().tz('Asia/Shanghai').startOf('day')))
+		throw new BizError(t('invalidInviteExpiry'), 400);
+	return { code, count: params.count, expireTime: expiry.utc().format('YYYY-MM-DD HH:mm:ss') };
+}
+
 const regKeyService = {
 
 	async add(c, params, userId) {
 
-		let {code,roleId,count,expireTime} = params;
-		code = typeof code === 'string' ? code.trim() : '';
-
-		if (!code) {
-			throw new BizError(t('emptyRegKey'));
-		}
-
-		if (!count) {
-			throw new BizError(t('emptyRegKey'));
-		}
-
-		if (!expireTime) {
-			throw new BizError(t('emptyRegKeyExpire'));
-		}
+		const { code, count, expireTime } = normalizeInviteInput(params);
+		const { roleId } = params;
 
 		const regKeyRow = await orm(c).select().from(regKey).where(eq(regKey.code, code)).get();
 
@@ -38,16 +46,20 @@ const regKeyService = {
 		}
 
 		const userRow = await userService.selectById(c, userId);
+		if (!userRow) throw new BizError(t('unauthorized'), 403);
 		if (userRow.email !== c.env.admin) {
 			const userRoleRow = await roleService.selectById(c, userRow.type);
-			if (userRoleRow && roleRow.level >= userRoleRow.level) {
-				throw new BizError(t('cannotCreateHigherRole'));
+			const creatorLevel = Number(userRoleRow?.level), targetLevel = Number(roleRow.level);
+			if (!userRoleRow || !Number.isFinite(creatorLevel) || creatorLevel <= 0
+				|| !Number.isFinite(targetLevel) || targetLevel <= 0 || targetLevel >= creatorLevel) {
+				throw new BizError(t('cannotCreateHigherRole'), 403);
 			}
 		}
 
-		expireTime = formatDetailDate(expireTime)
-
-		await orm(c).insert(regKey).values({code,roleId,count,userId,expireTime}).run();
+		const inserted = await c.env.db.prepare(`INSERT INTO reg_key(code,role_id,count,user_id,expire_time)
+			SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM reg_key WHERE code=?) RETURNING rege_key_id`)
+			.bind(code,roleId,count,userId,expireTime,code).first();
+		if (!inserted) throw new BizError(t('isExistRegKye'));
 	},
 
 	async delete(c, params) {

@@ -13,6 +13,7 @@ import roleService from '../../src/service/role-service';
 import subWorkerService from '../../src/service/sub-worker-service';
 import bindingService from '../../src/service/oauth-binding-service';
 import attService from '../../src/service/att-service';
+import {senderStatistics} from '../../src/service/sender-statistics-service';
 
 function d1(db) {
   const prepare = (sql, values = []) => ({
@@ -60,6 +61,71 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); sql.close(); });
 const users = params => userService.list(c, { num: 1, size: 15, status: -1, ...params });
 const mails = params => emailService.allList(c, { emailId: 0, size: 20, timeSort: 0, type: 'all', ...params });
+
+describe.skipIf(!DatabaseSync)('Admin sender address statistics',()=>{
+  const statistics = params => senderStatistics(c,{type:'receive',...params});
+  it('groups full sender addresses without merging display names, excluding drafts',async()=>{
+    const result=await statistics({});
+    expect(result).toMatchObject({totalMessages:3,senderCount:2,missingAddress:0,page:1,size:20});
+    expect(result.list).toEqual([
+      {address:'sender@example.org',total:2,lastTime:'2026-11-03 09:00:00'},
+      {address:'elsewhere@example.org',total:1,lastTime:'2026-11-01 09:00:00'},
+    ]);
+  });
+  it('normalizes surrounding spaces and letter case and accounts for missing addresses',async()=>{
+    sql.exec("UPDATE email SET send_email=' SENDER@EXAMPLE.ORG ' WHERE email_id=2");
+    insert('email',{email_id:6,type:0,status:0,send_email:' ',create_time:'2026-11-04 00:00:00'});
+    insert('email',{email_id:7,type:0,status:0,send_email:null,create_time:'2026-11-04 00:00:00'});
+    const result=await statistics({});
+    expect(result).toMatchObject({totalMessages:5,senderCount:2,missingAddress:2});
+    expect(result.list[0]).toMatchObject({address:'sender@example.org',total:2});
+    expect(result.list.reduce((sum,row)=>sum+row.total,0)+result.missingAddress).toBe(result.totalMessages);
+  });
+  it('shares date, code, attachments, state and user filters with the list',async()=>{
+    const filters={userEmail:'active',hasCode:'1',hasAttachments:'0',unread:'1',startTime:'2026-11-03 00:00:00',endTime:'2026-11-04 00:00:00'};
+    const result=await statistics(filters),list=await mails({...filters,type:'receive'});
+    expect(result.totalMessages).toBe(list.total);
+    expect(result).toMatchObject({totalMessages:1,senderCount:1});
+  });
+  it('matches the list deletion scope and can count sent mail independently',async()=>{
+    sql.exec('UPDATE email SET is_del=1 WHERE email_id=1');
+    expect((await statistics({})).totalMessages).toBe(3);
+    expect(await statistics({type:'delete'})).toMatchObject({totalMessages:1,senderCount:1});
+    expect(await statistics({type:'send'})).toMatchObject({totalMessages:1,senderCount:1});
+  });
+  it('paginates address groups with a denominator independent of page size',async()=>{
+    const first=await statistics({size:'1',page:'1'}),second=await statistics({size:'1',page:'2'});
+    expect(first.totalMessages).toBe(3);expect(second.totalMessages).toBe(3);
+    expect(first.senderCount).toBe(2);expect(second.senderCount).toBe(2);
+    expect(first.list[0].address).not.toBe(second.list[0].address);
+  });
+  it('searches literal wildcards and parameterizes untrusted values',async()=>{
+    sql.exec("UPDATE email SET send_email='percent%_tag@example.org' WHERE email_id=1");
+    expect(await statistics({senderKeyword:'%_'})).toMatchObject({totalMessages:1,senderCount:1});
+    expect(await statistics({senderKeyword:"' OR 1=1 --"})).toMatchObject({totalMessages:0,senderCount:0,list:[]});
+  });
+  it('filters an exact address consistently in list, statistics and polling',async()=>{
+    sql.exec("UPDATE email SET send_email='sender@example.org.evil' WHERE email_id=5");
+    const filters={type:'receive',senderExact:'SENDER@example.org'};
+    const result=await statistics(filters),list=await mails(filters);
+    const updates=await emailService.allEmailLatest(c,{...filters,emailId:0});
+    expect(result.totalMessages).toBe(2);expect(list.total).toBe(2);
+    expect(updates.map(row=>row.emailId).sort()).toEqual([1,2]);
+  });
+  it('only reads aggregation fields and skips the user join unless needed',async()=>{
+    const prepare=vi.spyOn(c.env.db,'prepare');
+    const result=await statistics({});
+    const queries=prepare.mock.calls.map(([text])=>text).filter(text=>text.startsWith('select'));
+    expect(queries).toHaveLength(2);
+    expect(queries.every(text=>!text.includes('join "user"'))).toBe(true);
+    expect(JSON.stringify(result)).not.toContain('content');
+    expect(JSON.stringify(result)).not.toContain('subject');
+    expect(queries.every(text=>!text.includes('"email"."content"'))).toBe(true);
+  });
+  it.each([{page:0},{page:'bad'},{size:51},{type:'bad'},{senderKeyword:'x'.repeat(321)},{startTime:'bad'}])('rejects invalid statistics filters %j',async params=>{
+    await expect(statistics(params)).rejects.toMatchObject({code:400});
+  });
+});
 
 describe.skipIf(!DatabaseSync)('Admin user filters and connection metadata', () => {
   it('returns one user per row with ordered, sanitized provider metadata', async () => {

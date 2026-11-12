@@ -19,7 +19,7 @@
 
     >
       <template #first>
-<div class="mail-search-fields">
+<div class="mail-search-fields" :class="{'has-sender-filter':params.senderExact}">
         <el-input
             v-model="searchValue"
             :placeholder="$t('searchByContent')"
@@ -55,6 +55,7 @@
           <el-option key="4" :label="$t('selectDeleted')" value="delete"/>
           <el-option key="4" :label="$t('noRecipientTitle')" value="noone"/>
         </el-select>
+        <div v-if="params.senderExact" class="sender-filter-chip"><el-tag closable :title="params.senderExact" @close="clearSenderFilter">{{ $t('senderExactFilter') }}：{{ params.senderExact }}</el-tag></div>
         </div>
 </template>
 <template #tools>
@@ -78,12 +79,16 @@
             <div class="mail-filter-actions"><el-button size="small" @click="resetFilters">{{ $t('reset') }}</el-button><el-button size="small" type="primary" @click="applyFilters">{{ $t('adminApplyFilters') }}</el-button></div>
           </div>
         </el-popover>
+        <el-tooltip :content="$t('senderStatistics')" placement="top" :trigger-keys="[]">
+          <button type="button" class="mail-tool-button desktop-mail-action" :aria-label="$t('senderStatistics')" @click="openSenderStatistics"><Icon icon="mingcute:chart-bar-line" width="18" height="18" /></button>
+        </el-tooltip>
         <el-tooltip :content="$t('batchDelete')" placement="top">
           <button type="button" class="mail-tool-button desktop-mail-action" :aria-label="$t('batchDelete')" @click="openBathDelete"><Icon icon="mingcute:broom-line" width="18" height="18" /></button>
         </el-tooltip>
       </template>
-<template #more-actions><el-dropdown-item @click="openBathDelete"><Icon icon="mingcute:broom-line" width="18" height="18" />{{ $t('batchDelete') }}</el-dropdown-item></template>
+<template #more-actions><el-dropdown-item @click="openSenderStatistics"><Icon icon="mingcute:chart-bar-line" width="18" height="18" />{{ $t('senderStatistics') }}</el-dropdown-item><el-dropdown-item @click="openBathDelete"><Icon icon="mingcute:broom-line" width="18" height="18" />{{ $t('batchDelete') }}</el-dropdown-item></template>
     </emailScroll>
+    <SenderStatistics v-model="showSenderStatistics" :filters="statisticsFilters" @select="selectSender" />
     <el-dialog v-model="showBathDelete" :title="$t('clearEmail')" width="335"
                @closed="closedClear">
       <div class="clear-email">
@@ -130,6 +135,7 @@ import {toUtc} from "@/utils/day.js";
 import {sleep} from "@/utils/time-utils.js";
 import {useSettingStore} from "@/store/setting.js";
 import { useRoute } from 'vue-router'
+import SenderStatistics from '@/components/SenderStatistics.vue'
 
 defineOptions({
   name: 'all-email'
@@ -143,6 +149,21 @@ const clearTime = ref('')
 const sysEmailScroll = ref({})
 const searchValue = ref('')
 const mySelect = ref()
+const showSenderStatistics = ref(false)
+const statisticsFilters = ref({})
+function openSenderStatistics() {
+  statisticsFilters.value = {...params}
+  showSenderStatistics.value = true
+}
+function selectSender(address) {
+  params.senderExact = address
+  showSenderStatistics.value = false
+  sysEmailScroll.value.refreshList()
+}
+function clearSenderFilter() {
+  params.senderExact = ''
+  sysEmailScroll.value.refreshList()
+}
 const showBathDelete = ref(false)
 const clearLoading = ref(false)
 let stopped = false
@@ -174,6 +195,7 @@ const params = reactive({
   subject: null,
   searchType: 'name',
   sendEmail: null,
+  senderExact: '',
   toEmail: null,
   deliveryStatus: '', unread: '', hasAttachments: '', hasCode: '', startTime: '', endTime: '',
 })
@@ -212,7 +234,7 @@ const selectTitle = computed(() => {
   if (params.searchType === 'sendEmail') return t('sendEmailAddress')
   if (params.searchType === 'toEmail') return t('toEmail')
 })
-const activeFilterCount = computed(() => ['deliveryStatus', 'unread', 'hasAttachments', 'hasCode', 'startTime'].filter(key => params[key] !== '').length)
+const activeFilterCount = computed(() => ['deliveryStatus', 'unread', 'hasAttachments', 'hasCode', 'startTime','senderExact'].filter(key => params[key] !== '').length)
 function openFilters() {
   for (const key of Object.keys(filterDraft)) filterDraft[key] = params[key]
   filterDates.value = appliedFilterDates.value ? [...appliedFilterDates.value] : null
@@ -229,6 +251,7 @@ function applyFilters() {
   search()
 }
 function resetFilters() {
+  params.senderExact = ''
   Object.assign(filterDraft, { deliveryStatus: '', unread: '', hasAttachments: '', hasCode: '' })
   filterDates.value = null
   applyFilters()
@@ -507,6 +530,10 @@ async function latest() {
 }
 
 .mail-search-fields { display: flex; align-items: center; flex: 1 1 240px; gap: 8px; min-width: 0; }
+.mail-search-fields.has-sender-filter { flex-wrap:wrap; }
+.sender-filter-chip { flex-basis:100%; min-width:0; }
+.sender-filter-chip .el-tag { max-width:100%; height:auto; min-height:24px; white-space:normal; }
+.sender-filter-chip :deep(.el-tag__content) { overflow-wrap:anywhere; min-width:0; }
 @media (max-width: 767px) {
   :deep(.admin-mail-toolbar) {
     display: grid;
@@ -523,6 +550,7 @@ async function latest() {
   .mail-search-fields { grid-row: 1; grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 8px; }
   .mail-search-fields .search-input { width: 100%; min-width: 0; max-width: none; }
   .mail-search-fields .status-select { width: 100%; min-width: 104px; }
+  .sender-filter-chip { grid-column:1 / -1; }
   .mail-search-fields .status-select :deep(.el-select__wrapper) { height: 36px; min-height: 36px; }
   .mail-search-fields :deep(.el-input__wrapper), .mail-search-fields :deep(.el-select__wrapper) { min-height: 36px; height: 36px; }
   .mail-tool-button { min-width: 36px; min-height: 36px; }

@@ -102,17 +102,26 @@
                   :placeholder="$t('description')" autocomplete="off"/>
         <el-input-tag class="dialog-input" tag-type="warning" v-model="form.banEmail"
                       @add-tag="banEmailAddTag" type="text" :placeholder="$t('emailInterception')" autocomplete="off"/>
-        <el-select
-            class="dialog-input"
+        <div class="role-domain-policy dialog-input">
+          <div class="role-domain-heading"><span>{{ $t('availableDomains') }}</span>
+            <el-select v-model="form.availDomainMode" :aria-label="$t('roleDomainMode')">
+              <el-option :label="$t('roleDomainWhitelist')" value="whitelist" />
+              <el-option :label="$t('roleDomainBlacklist')" value="blacklist" />
+            </el-select>
+          </div>
+          <p>{{ $t(form.availDomainMode === 'blacklist' ? 'roleDomainBlacklistHint' : 'roleDomainWhitelistHint') }}</p>
+          <el-select
             v-model="form.availDomain"
+            :aria-label="$t('availableDomains')"
             multiple
             filterable
-            allow-create
             default-first-option
+            collapse-tags
+            collapse-tags-tooltip
+            :max-collapse-tags="3"
             :reserve-keyword="false"
-            tag-type="success"
-            :placeholder="$t('availableDomains')"
-            @change="availDomainChange"
+            :tag-type="form.availDomainMode === 'blacklist' ? 'warning' : 'success'"
+            :placeholder="$t(form.availDomainMode === 'blacklist' ? 'roleDomainExcluded' : 'roleDomainAllowed')"
         >
           <el-option
               v-for="item in domainOptions"
@@ -121,6 +130,7 @@
               :value="item.value"
           />
         </el-select>
+        </div>
         <div class="dialog-input labeled-input">
           <span class="input-label">{{ $t('order') }}</span>
           <el-input-number :min="0" :max="9999" v-model.number="form.sort"
@@ -195,7 +205,7 @@ defineOptions({
   name: 'role'
 })
 
-const {domainList} = useSettingStore();
+const settingStore = useSettingStore();
 const {t, locale} = useI18n();
 const userStore = useUserStore();
 const roleStore = useRoleStore();
@@ -225,10 +235,14 @@ const form = reactive({
   sort: 0,
   level: 100,
   isDefault: 0,
-  availDomain: []
+  availDomain: [],
+  availDomainMode: 'whitelist',
 })
 
-let domainOptions = []
+const domainOptions = computed(() => [...new Set([
+  ...(settingStore.domainList || []).map(domain => domain.replace(/^@/, '')),
+  ...form.availDomain,
+])].map(domain => ({label:domain, value:domain})))
 
 const expand = ref(false)
 
@@ -239,21 +253,6 @@ refresh()
 rolePermTree().then(tree => {
   treeList.push(...tree)
 })
-
-domainOptions = domainList.map(domain => {
-  const cleanDomain = domain.replace(/^@/, '');
-  return {label: cleanDomain, value: cleanDomain};
-});
-
-
-function availDomainChange() {
-  const index = form.availDomain.findIndex(domain => {
-    return !domainOptions.map(option => option.value).includes(domain)
-  })
-  if (index > -1) {
-    form.availDomain.splice(index, 1)
-  }
-}
 
 function banEmailAddTag(val) {
   const emails = Array.from(new Set(
@@ -370,6 +369,7 @@ function resetForm() {
   form.accountCount = 0
   form.banEmail = []
   form.availDomain = []
+  form.availDomainMode = 'whitelist'
   tree.value.setCheckedKeys([])
 }
 
@@ -385,8 +385,9 @@ function openRoleSet(role) {
   form.sendType = role.sendType
   form.sendCount = role.sendCount
   form.accountCount = role.accountCount
-  form.banEmail = role.banEmail
-  form.availDomain = role.availDomain
+  form.banEmail = [...(role.banEmail || [])]
+  form.availDomain = [...(role.availDomain || [])]
+  form.availDomainMode = role.availDomainMode || 'whitelist'
   nextTick(() => {
     tree.value.setCheckedKeys(role.permIds)
   })
@@ -453,6 +454,9 @@ window.onresize = () => {
 
 </script>
 <style scoped lang="scss">
+.role-domain-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:14px; color:var(--el-text-color-primary); }
+.role-domain-heading > .el-select { width:112px; flex:0 0 112px; }
+.role-domain-policy > p { margin:7px 0 10px; color:var(--el-text-color-secondary); font-size:12px; line-height:1.6; }
 
 .perm-box {
   height: 100%;

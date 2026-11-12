@@ -10,6 +10,12 @@ import user from '../entity/user';
 import verifyUtils from '../utils/verify-utils';
 import { t } from '../i18n/i18n.js';
 import emailUtils from '../utils/email-utils';
+import { allowsRoleDomain, readRoleDomainPolicy, writeRoleDomainPolicy } from './role-domain-policy';
+
+function encodeDomains(params) {
+	try { return writeRoleDomainPolicy(params.availDomain, params.availDomainMode); }
+	catch { throw new BizError(t('invalidRoleDomains'), 400); }
+}
 
 const roleService = {
 
@@ -31,9 +37,10 @@ const roleService = {
 
 		banEmail = banEmail.join(',');
 
-		availDomain = availDomain.join(',');
+		availDomain = encodeDomains(params);
+		const { availDomainMode, ...values } = params;
 
-		roleRow = await orm(c).insert(role).values({...params, banEmail, availDomain, userId}).returning().get();
+		roleRow = await orm(c).insert(role).values({...values, banEmail, availDomain, userId}).returning().get();
 
 		if (permIds.length === 0) {
 			return;
@@ -55,7 +62,9 @@ const roleService = {
 
 		roleList.forEach(role => {
 			role.banEmail = role.banEmail.split(",").filter(item => item !== "");
-			role.availDomain = role.availDomain.split(",").filter(item => item !== "");
+			const policy = readRoleDomainPolicy(role.availDomain);
+			role.availDomain = policy.domains;
+			role.availDomainMode = policy.mode;
 			role.permIds = permList.filter(perm => perm.roleId === role.roleId).map(perm => perm.permId);
 		});
 
@@ -80,9 +89,10 @@ const roleService = {
 
 		banEmail = banEmail.join(',')
 
-		availDomain = availDomain.join(',')
+		availDomain = encodeDomains(params);
+		const { availDomainMode, ...values } = params;
 
-		await orm(c).update(role).set({...params, banEmail, availDomain}).where(eq(role.roleId, roleId)).run();
+		await orm(c).update(role).set({...values, banEmail, availDomain}).where(eq(role.roleId, roleId)).run();
 		await orm(c).delete(rolePerm).where(eq(rolePerm.roleId, roleId)).run();
 
 		if (permIds.length > 0) {
@@ -160,21 +170,7 @@ const roleService = {
 	},
 
 	hasAvailDomainPerm(availDomain, email) {
-
-		availDomain = availDomain.split(',').filter(item => item !== '');
-
-		if (availDomain.length === 0) {
-			return true
-		}
-
-		const availIndex = availDomain.findIndex(item => {
-			const domain = emailUtils.getDomain(email.toLowerCase());
-			const availDomainItem = item.toLowerCase();
-			console.log(domain,availDomainItem)
-			return domain === availDomainItem
-		})
-
-		return availIndex > -1
+		return allowsRoleDomain(availDomain, email);
 	},
 
 	selectByName(c, roleName) {

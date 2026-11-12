@@ -4,6 +4,10 @@ export function allEmailList(params) {
     return http.get('/allEmail/list', {params: {...params, skipStats: params.emailId ? '1' : undefined}})
 }
 
+export function allEmailSenderStatistics(params) {
+    return http.get('/allEmail/senderStatistics', {params, noMsg:true, timeout:35000})
+}
+
 export function allEmailDelete(emailIds) {
     return http.delete('/allEmail/delete?emailIds=' + emailIds)
 }

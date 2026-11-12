@@ -11,7 +11,7 @@
             </el-tooltip>
           </div>
           <div class="auto-ban-right">
-            <el-input-number v-model="setting.autoBanMonths" @change="change" :min="0" :max="120" :step="1" style="width: 110px;" />
+            <el-input-number class="settings-number-input" controls-position="right" v-model="setting.autoBanMonths" :aria-label="$t('autoBan')" @change="change" :min="0" :max="120" :step="1" />
             <span class="ban-unit">{{ $t('month') }}</span>
           </div>
         </div>
@@ -34,7 +34,7 @@
         </div>
         <div v-if="inArea('filter')" class="settings-inline-field">
           <div class="settings-inline-heading"><span>{{ $t('senderDomainBlacklist') }}</span>
-            <el-select popper-class="sys-setting-popper" v-model="setting.senderFilterMode" :aria-label="$t('settingsFilterDomains')" style="width: 140px" @change="change">
+            <el-select class="settings-compact-select sender-mode-select" popper-class="sys-setting-popper" v-model="setting.senderFilterMode" :aria-label="$t('settingsFilterDomains')" @change="change">
               <el-option :label="$t('senderFilterBlacklist')" :value="0"/><el-option :label="$t('senderFilterWhitelist')" :value="1"/>
             </el-select>
           </div>
@@ -68,7 +68,7 @@
             </el-tooltip>
           </div>
           <div class="auto-ban-right">
-            <el-input-number v-model="setting.autoCleanDays" @change="change" :min="0" :max="3650" :step="1" style="width: 110px;" />
+            <el-input-number class="settings-number-input" controls-position="right" v-model="setting.autoCleanDays" :aria-label="$t('autoCleanEmail')" @change="change" :min="0" :max="3650" :step="1" />
             <span class="ban-unit">{{ $t('day') }}</span>
           </div>
         </div>
