@@ -175,7 +175,7 @@ async function copyEmailCode(code) {
 
 function formatImage(content) {
   content = content || '';
-  const domain = settingStore.settings.r2Domain;
+  const domain = settingStore.settings.objectProxyBase || settingStore.settings.r2Domain;
   return  content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
 }
 

@@ -4,8 +4,8 @@
       <div class="card-title oauth-title">
         <span>{{ $t('oauthIntegration') }}</span>
         <div class="oauth-actions">
-          <el-button @click="resetForm">{{ $t('oauthReset') }}</el-button>
-          <el-button type="primary" :loading="settingLoading" @click="saveOAuth">{{ $t('save') }}</el-button>
+          <el-button :disabled="isSaving(selected+'Switch')" @click="resetForm">{{ $t('oauthReset') }}</el-button>
+          <el-button type="primary" :loading="isSaving(selected+'Switch')" :disabled="isSaving(selected+'Switch')" @click="saveOAuth">{{ $t('save') }}</el-button>
         </div>
       </div>
       <div class="card-content">
@@ -28,11 +28,11 @@
         <div class="oauth-form-grid">
           <div class="oauth-enable-row">
             <div><h3>{{ $t('oauthEnableProvider', { provider: activeProvider.name }) }}</h3><p>{{ $t('oauthEnableProviderNote', { provider: activeProvider.name }) }}</p></div>
-            <el-switch v-model="form.enabled" :aria-label="$t('oauthEnableProvider', { provider: activeProvider.name })" />
+            <el-switch :disabled="isSaving(selected+'Switch')" v-model="form.enabled" :aria-label="$t('oauthEnableProvider', { provider: activeProvider.name })" />
           </div>
-          <label class="oauth-field"><span>Client ID</span><el-input v-model="form.clientId" autocomplete="off" placeholder="Client ID" /></label>
-          <label class="oauth-field"><span>Client Secret</span><el-input v-model="form.clientSecret" type="password" show-password autocomplete="new-password" :placeholder="setting[selected + 'HasSecret'] ? $t('oauthSecretKept') : $t('oauthProviderSecret', { provider: activeProvider.name })" /></label>
-          <label v-if="activeProvider.trustLevel" class="oauth-field"><span>{{ $t('oauthMinTrustLevel') }}</span><el-input-number v-model="form.minTrustLevel" :min="0" :max="4" :step="1" step-strictly /><small>{{ $t('oauthProviderTrust', { provider: activeProvider.name }) }}</small></label>
+          <label class="oauth-field"><span>Client ID</span><el-input :disabled="isSaving(selected+'Switch')" v-model="form.clientId" autocomplete="off" placeholder="Client ID" /></label>
+          <label class="oauth-field"><span>Client Secret</span><el-input :disabled="isSaving(selected+'Switch')" v-model="form.clientSecret" type="password" show-password autocomplete="new-password" :placeholder="setting[selected + 'HasSecret'] ? $t('oauthSecretKept') : $t('oauthProviderSecret', { provider: activeProvider.name })" /></label>
+          <label v-if="activeProvider.trustLevel" class="oauth-field"><span>{{ $t('oauthMinTrustLevel') }}</span><el-input-number :disabled="isSaving(selected+'Switch')" v-model="form.minTrustLevel" :min="0" :max="4" :step="1" step-strictly /><small>{{ $t('oauthProviderTrust', { provider: activeProvider.name }) }}</small></label>
         </div>
         <p class="oauth-policy">{{ $t('oauthAdminPolicy') }}</p>
         </div>
@@ -49,34 +49,29 @@ import { useSysSetting } from '../use-sys-setting.js'
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js'
 
 const { t } = useI18n()
-const { setting, settingLoading, editSetting, onSettingsLoaded, onSettingsDirty } = useSysSetting()
+const { setting, isSaving, editSetting, onSettingsLoaded, onSettingsDirty } = useSysSetting()
 const selected = ref(OAUTH_PROVIDERS[0].id)
 const activeProvider = computed(() => OAUTH_PROVIDERS.find(provider => provider.id === selected.value))
 const callbackUrl = computed(() => window.location.origin + activeProvider.value.callbackPath)
 const drafts = reactive(Object.fromEntries(OAUTH_PROVIDERS.map(provider => [provider.id, {}])))
 const baselines = {}
 const form = computed(() => drafts[selected.value])
-let savingProvider = null
 function resetProvider(id) {
   Object.assign(drafts[id], { enabled: !!setting.value[id + 'Switch'], clientId: setting.value[id + 'ClientId'] || '',
     clientSecret: '', minTrustLevel: setting.value[id + 'MinTrustLevel'] ?? 0 })
   baselines[id] = JSON.stringify(drafts[id])
 }
 function resetForm() { resetProvider(selected.value) }
-onSettingsLoaded(() => {
-  if (savingProvider) resetProvider(savingProvider)
-  else OAUTH_PROVIDERS.forEach(provider => { if (baselines[provider.id] === undefined || JSON.stringify(drafts[provider.id]) === baselines[provider.id]) resetProvider(provider.id) })
+onSettingsLoaded((fields = []) => {
+  OAUTH_PROVIDERS.forEach(provider => { if (fields.includes(provider.id+'Switch') || baselines[provider.id] === undefined || JSON.stringify(drafts[provider.id]) === baselines[provider.id]) resetProvider(provider.id) })
 })
 onSettingsDirty(() => OAUTH_PROVIDERS.some(provider => baselines[provider.id] !== undefined && JSON.stringify(drafts[provider.id]) !== baselines[provider.id]), () => OAUTH_PROVIDERS.forEach(provider => resetProvider(provider.id)))
 async function saveOAuth() {
-  if (settingLoading.value) return
+  if (isSaving(selected.value+'Switch')) return
   const id = selected.value, draft = form.value
-  savingProvider = id
-  try {
     await editSetting({ [id + 'Switch']: draft.enabled, [id + 'ClientId']: (draft.clientId || '').trim(),
       [id + 'ClientSecret']: draft.clientSecret, [id + 'CallbackUrl']: callbackUrl.value,
       ...(activeProvider.value.trustLevel ? { [id + 'MinTrustLevel']: draft.minTrustLevel } : {}) })
-  } finally { savingProvider = null }
 }
 async function moveTab(event, id) {
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return

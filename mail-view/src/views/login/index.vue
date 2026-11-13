@@ -106,13 +106,13 @@
           <div v-if="show === 'login'" key="login" class="fields login-fields">
             <div class="field field-email">
               <label>{{ $t('emailAccount') }}</label>
-              <div class="input-group" :class="{ 'has-suffix': settingStore.settings.loginDomain === 0 && hasDomains }">
+              <div class="input-group" :class="{ 'has-suffix': showLoginSuffix }">
                 <div class="input-main">
                   <Icon class="input-icon" icon="mingcute:mail-line" width="16" height="16" />
                   <input v-model="form.email" type="text" autocomplete="off"
-                    :placeholder="(settingStore.settings.loginDomain === 0 && hasDomains) ? 'username' : $t('emailAccount')" />
+                    :placeholder="(settingStore.settings.loginDomain === 0 && hasDomains) ? $t('loginAccountPlaceholder') : $t('emailAccount')" />
                 </div>
-                <div v-if="settingStore.settings.loginDomain === 0 && hasDomains" class="input-suffix" @click.stop="openSelect">
+                <div v-if="showLoginSuffix" class="input-suffix" @click.stop="openSelect">
                   <span>{{ suffix }}</span>
                   <Icon icon="mingcute:down-line" width="11" height="11" />
                   <el-select v-if="show === 'login'" ref="mySelect" v-model="suffix" class="hidden-select" :popper-class="suffixPopperClass">
@@ -295,6 +295,7 @@ const suffix = ref('');
 const registerForm = reactive({ email: '', password: '', confirmPassword: '', code: null });
 const domainList = computed(() => settingStore.domainList || []);
 const hasDomains = computed(() => domainList.value.length > 0);
+const showLoginSuffix = computed(() => settingStore.settings.loginDomain === 0 && hasDomains.value && !form.email.includes('@'));
 const suffixPopperClass = '';
 const registerLoading = ref(false);
 suffix.value = domainList.value[0] || '';
@@ -337,7 +338,7 @@ async function providerLogin(provider) {
 
 const submit = () => {
   if (!form.email) { ElMessage({ message: t('emptyEmailMsg'), type: 'error', plain: true }); return; }
-  const email = form.email + (settingStore.settings.loginDomain === 0 && hasDomains.value ? suffix.value : '');
+  const email = form.email.trim() + (showLoginSuffix.value ? suffix.value : '');
   if (!isEmail(email)) { ElMessage({ message: t('notEmailMsg'), type: 'error', plain: true }); return; }
   if (!form.password) { ElMessage({ message: t('emptyPwdMsg'), type: 'error', plain: true }); return; }
   loginLoading.value = true;

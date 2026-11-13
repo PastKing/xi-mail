@@ -9,9 +9,11 @@ import flare from '../../src/service/sendflare-service';
 import emailService from '../../src/service/email-service';
 import userService from '../../src/service/user-service';
 import roleService from '../../src/service/role-service';
+import settingService from '../../src/service/setting-service';
 import {writeRoleDomainPolicy} from '../../src/service/role-domain-policy';
 import transfer from '../../src/service/account-transfer-service';
 import rate from '../../src/service/security-rate-limit-service';
+import s3Service from '../../src/service/s3-service';
 
 let db, c, store, permissions, remote;
 function adapter(db) {
@@ -134,9 +136,26 @@ describe('Recent management endpoint authorization', () => {
 		expect(result.body).toMatchObject({code:200,data:{totalMessages:1,senderCount:1,list:[{address:'sender@example.test',total:1}]}});
 		expect(result.headers.get('Cache-Control')).toBe('no-store');
 	});
-	it.each([['/role/set','PUT'],['/regKey/add','POST'],['/allEmail/delete?emailIds=1','DELETE']])('read-only global mail access cannot mutate through %s',async(path,method)=>{
+	it.each([['/role/set','PUT'],['/regKey/add','POST'],['/allEmail/delete?emailIds=1','DELETE'],['/setting/senderDomain/block','POST'],['/setting/s3/test','POST']])('read-only global mail access cannot mutate through %s',async(path,method)=>{
 		permissions=['all-email:query'];
 		expect((await request(path,{method})).body.code).toBe(403);
+	});
+	it('only settings-write permission can append a blocked sender domain',async()=>{
+		permissions=['setting:set'];
+		db.exec("CREATE TABLE setting(sender_domain_blacklist TEXT,sender_filter_mode INTEGER);INSERT INTO setting VALUES('old.example',0)");
+		vi.spyOn(settingService,'refresh').mockResolvedValue(undefined);
+		const result=await request('/setting/senderDomain/block',{method:'POST',body:{domain:'new.example'}});
+		expect(result.body).toMatchObject({code:200,data:{domain:'new.example',senderDomainBlacklist:['old.example','new.example']}});
+		expect(result.headers.get('Cache-Control')).toBe('no-store');
+	});
+	it('requires settings-write permission for a draft S3 probe without saving settings',async()=>{
+		permissions=['setting:set'];
+		vi.spyOn(rate,'consume').mockResolvedValue(undefined);
+		vi.spyOn(s3Service,'testConnection').mockResolvedValue({write:true,read:true,delete:true});
+		const result=await request('/setting/s3/test',{method:'POST',body:{bucket:'draft-bucket'}});
+		expect(result.body).toMatchObject({code:200,data:{write:true,read:true,delete:true}});
+		expect(result.headers.get('Cache-Control')).toBe('no-store');
+		expect(s3Service.testConnection).toHaveBeenCalledWith(expect.anything(),{bucket:'draft-bucket'});
 	});
 });
 

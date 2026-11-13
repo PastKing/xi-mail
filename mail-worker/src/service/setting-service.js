@@ -16,6 +16,7 @@ import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import webhookConfig from './resend-webhook-config-service';
 import sendflareService from './sendflare-service';
 import translationService from './translation-service';
+import {ensureStorageColumns,normalizeStoragePrefix,validateS3Config,objectProxyBase} from './storage-config-service';
 
 const SEND_PROVIDERS = ['resend', 'queensmtp', 'sendflare'];
 
@@ -43,6 +44,7 @@ const settingService = {
 		} catch (e) {
 			// 新增的发件服务字段还没迁移时先补列再读
 			await this.ensureSendColumns(c);
+			await ensureStorageColumns(c);
 			settingRow = await orm(c).select().from(setting).get();
 		}
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
@@ -208,6 +210,8 @@ const settingService = {
 		settingRow.addVerifyOpen = addVerifyOpen
 
 		settingRow.storageType = await r2Service.storageType(c);
+		settingRow.objectProxyBase=objectProxyBase(c,settingRow);
+		if(!settingRow.attachmentStorage||settingRow.attachmentStorage==='auto')settingRow.attachmentStorage=settingRow.storageType;
 
 		return settingRow;
 	},
@@ -236,12 +240,21 @@ const settingService = {
 		delete params.regVerifyOpen
 		delete params.addVerifyOpen
 		delete params.storageType
+		delete params.objectProxyBase
 
 		if (params.aiModel) {
 			params.aiModel = resolveAiModel(params.aiModel);
 		}
 
 		const settingData = await this.query(c);
+		if(Object.keys(params).some(key=>['s3Prefix','attachmentStorage','bucket','endpoint','region','s3AccessKey','s3SecretKey','forcePathStyle'].includes(key))){
+			await ensureStorageColumns(c);
+			if(Object.hasOwn(params,'s3Prefix'))params.s3Prefix=normalizeStoragePrefix(params.s3Prefix);
+			if(Object.hasOwn(params,'attachmentStorage')&&!['auto','R2','S3','KV'].includes(params.attachmentStorage))throw new BizError('请选择有效的附件存储',400);
+			const candidate={...settingData,...params};
+			if(candidate.attachmentStorage==='R2'&&!c.env.r2)throw new BizError('当前未绑定 R2 存储',400);
+			if(candidate.attachmentStorage==='S3'||(params.bucket&&params.endpoint))validateS3Config(candidate);
+		}
 		const sendflareInput = params.sendflareTokens;
 		delete params.sendflareTokens;
 		delete params.translation;
@@ -375,6 +388,7 @@ const settingService = {
 			registerVerify: settingRow.registerVerify,
 			send: settingRow.send,
 			r2Domain: settingRow.r2Domain,
+			objectProxyBase: settingRow.objectProxyBase,
 			siteKey: settingRow.siteKey,
 			domainList: settingRow.loginDomain === 1 ? [] : settingRow.domainList,
 			regKey: settingRow.regKey,

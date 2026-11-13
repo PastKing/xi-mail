@@ -5,17 +5,17 @@
       <div class="card-content">
         <div class="setting-item">
           <div><span>{{ t('addAccount') }}</span></div>
-          <div><el-switch v-model="setting.addEmail" @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1" /></div>
+          <div><el-switch v-model="setting.addEmail" @change="change('addEmail')" :before-change="beforeChange" :active-value="0" :inactive-value="1" /></div>
         </div>
         <div class="setting-item">
           <div><span>{{ t('multipleEmail') }}</span><el-tooltip effect="dark" :content="t('multipleEmailDesc')"><Icon class="warning" icon="mingcute:information-line" width="18" height="18" /></el-tooltip></div>
-          <div><el-switch v-model="setting.manyEmail" @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1" /></div>
+          <div><el-switch v-model="setting.manyEmail" @change="change('manyEmail')" :before-change="beforeChange" :active-value="0" :inactive-value="1" /></div>
         </div>
         <div class="settings-inline-field">
           <div class="settings-inline-heading"><span>{{ t('emailPrefix') }}</span><div class="email-prefix"><span>{{ t('atLeast') }}</span><el-input-number class="settings-number-input" controls-position="right" v-model="minEmailPrefix" :aria-label="t('emailPrefix')" :min="1" :max="20" /><span>{{ t('character') }}</span></div></div>
           <p>{{ t('emailPrefixRulesHint') }}</p>
           <el-input-tag v-model="emailPrefixFilter" :aria-label="t('mustNotContain')" :placeholder="t('emailPrefixFilterPlaceholder')" />
-          <div class="settings-inline-actions"><el-button @click="resetEmailPrefix">{{ t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="saveEmailPrefix">{{ t('settingsInlineSave') }}</el-button></div>
+          <div class="settings-inline-actions"><el-button @click="resetEmailPrefix">{{ t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="isSaving('minEmailPrefix','emailPrefixFilter')" :disabled="isSaving('minEmailPrefix','emailPrefixFilter')" @click="saveEmailPrefix">{{ t('settingsInlineSave') }}</el-button></div>
         </div>
         <div class="setting-item">
           <div>
@@ -33,7 +33,7 @@
               class="settings-number-input"
               controls-position="right"
               :aria-label="t('randomPrefixLength')"
-              @change="change"
+              @change="change('randomPrefixLength')"
               :min="4"
               :max="32"
               :step="1"
@@ -53,7 +53,7 @@
               :active-value="0"
               :inactive-value="1"
               :before-change="beforeChange"
-              @change="change"
+              @change="change('receive')"
             />
           </div>
         </div>
@@ -73,7 +73,7 @@
               :aria-label="t('autoRefresh')"
               class="settings-compact-select refresh-interval-select"
               popper-class="sys-setting-popper"
-              @change="change"
+              @change="change('autoRefresh')"
               ><el-option
                 v-for="item in autoRefreshOptions"
                 :key="item.value"
@@ -90,7 +90,7 @@
               :active-value="0"
               :inactive-value="1"
               :before-change="beforeChange"
-              @change="change"
+              @change="change('send')"
             />
           </div>
         </div>
@@ -110,7 +110,7 @@
               :active-value="0"
               :inactive-value="1"
               :before-change="beforeChange"
-              @change="change"
+              @change="change('noRecipient')"
             />
           </div>
         </div>
@@ -180,7 +180,7 @@
               :model-value="row.value"
               :empty-values="[null, undefined]"
               :aria-label="t('sendingDefault') + ' ' + row.domain"
-              :disabled="settingLoading"
+              :disabled="!!tokenAction"
               popper-class="sys-setting-popper"
               @change="
                 (value) =>
@@ -206,7 +206,7 @@
           ><el-select
             v-model="tokenForm.service"
             :aria-label="t('sendingService')"
-            :disabled="settingLoading"
+            :disabled="!!tokenAction"
             popper-class="sys-setting-popper"
             ><el-option
               v-for="provider in providers"
@@ -219,7 +219,7 @@
             v-model="tokenForm.domain"
             :aria-label="t('domain')"
             filterable
-            :disabled="tokenForm.existing || settingLoading"
+            :disabled="tokenForm.existing || !!tokenAction"
             popper-class="sys-setting-popper"
             ><el-option
               v-for="domain in availableDomains"
@@ -230,7 +230,7 @@
         <el-form-item label="API Token"
           ><el-input
             v-model="tokenForm.token"
-            :disabled="settingLoading"
+            :disabled="!!tokenAction"
             type="password"
             show-password
             autocomplete="off"
@@ -248,14 +248,15 @@
             v-if="tokenForm.existing"
             type="danger"
             plain
-            :loading="settingLoading"
+            :loading="tokenAction === 'delete'"
+            :disabled="!!tokenAction && tokenAction !== 'delete'"
             @click="deleteToken"
             >{{ t('delete') }}</el-button
           ><el-button
             type="primary"
             native-type="submit"
-            :loading="settingLoading"
-            :disabled="!tokenForm.domain || !tokenForm.token.trim()"
+            :loading="tokenAction === 'save'"
+            :disabled="!!tokenAction && tokenAction !== 'save' || !tokenForm.domain || !tokenForm.token.trim()"
             >{{ t('save') }}</el-button
           >
         </div>
@@ -283,7 +284,7 @@ const { t } = useI18n();
 const {
   setting,
   settingStore,
-  settingLoading,
+  isSaving,
   editSetting,
   change,
   beforeChange,
@@ -296,6 +297,7 @@ let prefixBaseline;
 const prefixSnapshot = () => JSON.stringify({minEmailPrefix:minEmailPrefix.value,emailPrefixFilter:emailPrefixFilter.value});
 const providerDialogShow = ref(false),
   tokenDialogShow = ref(false);
+const tokenAction = ref('');
 const providers = [
   { id: 'resend', name: 'Resend', field: 'resendTokens' },
   { id: 'queensmtp', name: 'QueenSMTP', field: 'queenTokens' },
@@ -350,7 +352,7 @@ function openTokenForm(service = 'resend', domain = '') {
   tokenDialogShow.value = true;
 }
 async function saveToken() {
-  if (settingLoading.value) return;
+  if (tokenAction.value) return;
   const provider = providers.find((item) => item.id === tokenForm.service);
   if (!provider || !tokenForm.domain || !tokenForm.token.trim()) return;
   const original = providers.find((item) => item.id === tokenForm.originalService);
@@ -377,14 +379,16 @@ async function saveToken() {
     if (setting.value.sendProviders?.[tokenForm.domain] === original.id)
       payload.sendProviders = { [tokenForm.domain]: provider.id };
   }
-  const ok = await editSetting(payload);
+  tokenAction.value = 'save';
+  let ok;
+  try { ok = await editSetting(payload); } finally { tokenAction.value = ''; }
   if (ok) {
     tokenForm.token = '';
     tokenDialogShow.value = false;
   }
 }
 async function deleteToken() {
-  if (settingLoading.value) return;
+  if (tokenAction.value) return;
   const provider = providers.find((item) => item.id === tokenForm.originalService);
   if (!provider) return;
   try {
@@ -405,7 +409,8 @@ async function deleteToken() {
   const payload = { [provider.field]: { [tokenForm.domain]: '' } };
   if (setting.value.sendProviders?.[tokenForm.domain] === provider.id)
     payload.sendProviders = { [tokenForm.domain]: '' };
-  if (await editSetting(payload)) tokenDialogShow.value = false;
+  tokenAction.value = 'delete';
+  try { if (await editSetting(payload)) tokenDialogShow.value = false; } finally { tokenAction.value = ''; }
 }
 function resetEmailPrefix() {
   minEmailPrefix.value = setting.value.minEmailPrefix;

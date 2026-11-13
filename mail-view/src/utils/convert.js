@@ -11,7 +11,7 @@ export function cvtR2Url(key) {
 
     const { settings } = useSettingStore();
 
-    let domain = settings.r2Domain
+    let domain = settings.objectProxyBase || settings.r2Domain
 
     if (!domain) {
         return key;

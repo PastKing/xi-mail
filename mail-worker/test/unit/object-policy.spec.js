@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { safeObjectHeaders, safeObjectMetadata, attachmentDisposition, OBJECT_CSP } from '../../src/utils/object-policy';
 import r2Service from '../../src/service/r2-service';
 import kvObjService from '../../src/service/kv-obj-service';
 import s3Service from '../../src/service/s3-service';
 import worker from '../../src/index';
+import locations from '../../src/service/object-location-service';
+import settingService from '../../src/service/setting-service';
 
 const encoder = new TextEncoder();
 const svg = encoder.encode('<svg xmlns="http://www.w3.org/2000/svg"><script>parent.__objectProbe=localStorage.token</script></svg>');
@@ -61,6 +63,11 @@ describe('Untrusted object response policy', () => {
 });
 
 describe('Stored object entry points', () => {
+  beforeEach(()=>{
+    vi.spyOn(locations,'list').mockResolvedValue([]);
+    vi.spyOn(locations,'record').mockResolvedValue(undefined);
+    vi.spyOn(settingService,'query').mockResolvedValue({bucket:'test-bucket',endpoint:'https://s3.example.test',s3AccessKey:'test-key',s3SecretKey:'test-secret'});
+  });
   it.each(['R2', 'KV', 'S3'])('stores safe metadata for anonymous uploads using %s', async storage => {
     vi.spyOn(r2Service, 'storageType').mockResolvedValue(storage);
     const put = vi.fn().mockResolvedValue(undefined);
@@ -88,7 +95,7 @@ describe('Stored object entry points', () => {
   it.each(['KV', 'S3'])('protects legacy %s objects on reads, including the shared /oss responder', async storage => {
     vi.spyOn(r2Service, 'storageType').mockResolvedValue(storage);
     vi.spyOn(storage === 'KV' ? kvObjService : s3Service, 'getObj').mockResolvedValue({ buff: svg, ...oldSvgMetadata });
-    const response = await r2Service.toObjResp({ env: {} }, 'attachments/legacy.svg');
+    const response = await r2Service.toObjResp({ env: {kv:{}} }, 'attachments/legacy.svg');
     expect(response.headers.get('content-disposition')).toMatch(/^attachment;/);
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });

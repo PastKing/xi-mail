@@ -15,6 +15,7 @@
                  @jump="jumpContent"
                  @refresh-before="refreshBefore"
                  @right-search="rightSearch"
+                 @block-sender-domain="blockMailSender"
                  :type="'all-email'"
 
     >
@@ -136,6 +137,8 @@ import {sleep} from "@/utils/time-utils.js";
 import {useSettingStore} from "@/store/setting.js";
 import { useRoute } from 'vue-router'
 import SenderStatistics from '@/components/SenderStatistics.vue'
+import {blockSenderDomain} from '@/request/setting'
+import {useSysSetting} from '@/views/sys-setting/use-sys-setting'
 
 defineOptions({
   name: 'all-email'
@@ -145,6 +148,19 @@ const route = useRoute()
 const {t} = useI18n();
 const emailStore = useEmailStore();
 const settingStore = useSettingStore();
+let blockingSender=false;
+async function blockMailSender(address){
+  if(blockingSender)return;
+  const domain=String(address||'').slice(String(address||'').lastIndexOf('@')+1).trim().toLowerCase();
+  if(!domain)return;
+  blockingSender=true;
+  try{
+    try{await ElMessageBox.confirm(t('blockSenderDomainConfirm',{domain}),t('blockSenderDomain'),{type:'warning',confirmButtonText:t('confirm'),cancelButtonText:t('cancel')});}catch{return}
+    const result=await blockSenderDomain(domain);
+    useSysSetting().applyExternalSettings({senderDomainBlacklist:result.senderDomainBlacklist,senderFilterMode:result.senderFilterMode});
+    ElMessage({message:t(result.alreadyBlocked?'senderDomainAlreadyBlocked':'senderDomainBlocked',{domain:result.domain}),type:'success',plain:true});
+  }catch{}finally{blockingSender=false;}
+}
 const clearTime = ref('')
 const sysEmailScroll = ref({})
 const searchValue = ref('')

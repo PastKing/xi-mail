@@ -8,7 +8,7 @@ import {useUserStore} from "@/store/user.js";
 import i18n from "@/i18n/index.js";
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
 
-export const SYS_SETTING_VERSION = 'v3.6.9'
+export const SYS_SETTING_VERSION = 'v3.6.10'
 
 let context = null
 
@@ -20,7 +20,10 @@ function createContext() {
 
   const firstLoading = ref(true)
   const settingLoading = ref(false)
+  const savingFields = ref([])
   const clearS3Loading = ref(false)
+  const pendingSaves = []
+  let saveQueue = Promise.resolve()
 
   /* Sections register a handler to re-sync their local form state whenever
      the settings are (re)fetched from the server. */
@@ -28,6 +31,11 @@ function createContext() {
   const dirtyChecks = new Map()
 
   let backup = '{}'
+  let persisted = {}
+  let hasPersisted = false
+  const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value))
+  const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b)
+  const isSaving = (...keys) => settingLoading.value && keys.flat().some(key => savingFields.value.includes(key))
 
   const t = (key, params) => i18n.global.t(key, params)
 
@@ -46,15 +54,19 @@ function createContext() {
   function hasUnsavedChanges() { return [...dirtyChecks.keys()].some(check => check()) }
   function discardUnsavedChanges() { for (const [check,discard] of dirtyChecks) if (check()) discard?.() }
 
-  function getSettings() {
+  function getSettings(completingJob = null) {
     return settingQuery().then(settingData => {
-      setting.value = settingData
+      const queuedFields=new Set(pendingSaves.filter(job=>job!==completingJob).flatMap(job=>job.keys))
+      const edits = hasPersisted ? Object.fromEntries(Object.entries(setting.value).filter(([key,value]) => queuedFields.has(key) || (!completingJob?.keys.includes(key) && !equal(value,persisted[key])))) : {}
+      persisted = clone(settingData)
+      hasPersisted = true
+      setting.value = {...settingData,...edits}
       settingStore.domainList = settingData.domainList
-      if (settingData.colorTheme) {
-        document.documentElement.dataset.colorTheme = settingData.colorTheme
+      if (setting.value.colorTheme) {
+        document.documentElement.dataset.colorTheme = setting.value.colorTheme
       }
       firstLoading.value = false
-      loadedHandlers.forEach(handler => handler())
+      loadedHandlers.forEach(handler => handler(completingJob?.keys || []))
     })
   }
 
@@ -63,13 +75,13 @@ function createContext() {
   }
 
   function beforeChange() {
-    if (settingLoading.value) return false
     backupSetting()
     return true
   }
 
-  /** Persists the whole setting object, used by the inline switches / selects. */
-  function change() {
+  /** Inline controls submit only fields changed from the last server snapshot. */
+  function change(field) {
+    if(typeof field==='string')return editSetting({[field]:clone(setting.value[field])},false)
     const settingForm = {...setting.value}
     delete settingForm.siteKey
     delete settingForm.secretKey
@@ -80,6 +92,7 @@ function createContext() {
     delete settingForm.sendflareTokens
     delete settingForm.sendProviders
     delete settingForm.hasR2
+    delete settingForm.objectProxyBase
     delete settingForm.hasAi
     delete settingForm.aiModels
     delete settingForm.domainList
@@ -89,30 +102,45 @@ function createContext() {
     for (const provider of OAUTH_PROVIDERS) {
       for (const suffix of ['Switch', 'ClientId', 'ClientSecret', 'CallbackUrl', 'HasSecret', 'MinTrustLevel']) delete settingForm[provider.id + suffix]
     }
-    return editSetting(settingForm, false)
+    const changed = hasPersisted ? Object.fromEntries(Object.entries(settingForm).filter(([key,value]) => !savingFields.value.includes(key) && !equal(value,persisted[key]))) : settingForm
+    return editSetting(changed, false)
   }
 
   /** Resolves to true when the save succeeded, so callers can close their dialog. */
   function editSetting(settingForm, refreshStatus = true) {
-    if (settingLoading.value) return Promise.resolve(false)
-    settingLoading.value = true
-
-    return settingSet(settingForm).then(async () => {
-      ElMessage({message: t('saveSuccessMsg'), type: 'success', plain: true})
-      if (setting.value.manyEmail === 1) {
-        accountStore.currentAccountId = userStore.user.account.accountId
+    const keys = Object.keys(settingForm)
+    if (!keys.length) return Promise.resolve(true)
+    const job={keys,form:clone(settingForm)}
+    pendingSaves.push(job)
+    syncSavingState()
+    const run=async()=>{
+      const before = clone(hasPersisted ? persisted : JSON.parse(backup))
+      try{
+        await settingSet(job.form)
+        ElMessage({message: t('saveSuccessMsg'), type: 'success', plain: true})
+        if (setting.value.manyEmail === 1) accountStore.currentAccountId = userStore.user.account.accountId
+        if (refreshStatus) await getSettings(job)
+        else Object.assign(persisted,clone(job.form))
+        return true
+      }catch{
+        for (const key of keys) {
+          if (!pendingSaves.some(other=>other!==job&&other.keys.includes(key)) && equal(setting.value[key],job.form[key])) setting.value[key] = clone(before[key])
+        }
+        if(keys.includes('colorTheme')&&setting.value.colorTheme)document.documentElement.dataset.colorTheme=setting.value.colorTheme
+        return false
+      }finally{
+        pendingSaves.splice(pendingSaves.indexOf(job),1)
+        syncSavingState()
+        if(keys.includes('bucket'))clearS3Loading.value = false
       }
-      if (refreshStatus) {
-        await getSettings()
-      }
-      return true
-    }).catch(() => {
-      setting.value = {...setting.value, ...JSON.parse(backup)}
-      return false
-    }).finally(() => {
-      settingLoading.value = false
-      clearS3Loading.value = false
-    })
+    }
+    const result=saveQueue.then(run,run)
+    saveQueue=result.then(()=>undefined,()=>undefined)
+    return result
+  }
+  function syncSavingState(){
+    settingLoading.value=pendingSaves.length>0
+    savingFields.value=[...new Set(pendingSaves.flatMap(job=>job.keys))]
   }
 
   return {
@@ -120,6 +148,7 @@ function createContext() {
     settingStore,
     firstLoading,
     settingLoading,
+    isSaving,
     clearS3Loading,
     getSettings,
     editSetting,
@@ -130,6 +159,11 @@ function createContext() {
     onSettingsDirty,
     hasUnsavedChanges,
     discardUnsavedChanges,
+    applyExternalSettings(patch) {
+      Object.assign(setting.value,clone(patch))
+      Object.assign(persisted,clone(patch))
+      loadedHandlers.forEach(handler => handler())
+    },
   }
 }
 

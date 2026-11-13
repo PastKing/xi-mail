@@ -83,7 +83,7 @@ const attService = {
 			}
 
 			//邮件正文站内图片转cid附件
-			const attKey = this.toAttKey(src, r2Domain);
+			const attKey = this.toAttKey(src, r2Domain) || (c.req?.url ? this.toAttKey(src,new URL(c.req.url).origin) : null);
 
 			if (attKey) {
 

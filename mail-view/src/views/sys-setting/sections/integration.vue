@@ -10,7 +10,7 @@
         </label>
         <div class="webhook-secret-actions">
           <el-tag :type="setting.hasResendWebhookSecret ? 'success' : 'warning'" size="small">{{ $t(setting.hasResendWebhookSecret ? 'resendWebhookConfigured' : 'resendWebhookUnconfigured') }}</el-tag>
-          <el-button type="primary" :loading="settingLoading" @click="saveWebhookSecret">{{ $t('save') }}</el-button>
+          <el-button type="primary" :loading="isSaving('resendWebhookSecret')" :disabled="isSaving('resendWebhookSecret')" @click="saveWebhookSecret">{{ $t('save') }}</el-button>
         </div>
       </div>
     </div>
@@ -41,7 +41,7 @@
           <div class="forward">
             <el-select popper-class="sys-setting-popper"
                 v-model="setting.aiModel"
-                @change="change"
+                @change="change('aiModel')"
                 :disabled="!setting.hasAi"
                 :placeholder="$t('aiModel')"
                 style="width: 280px"
@@ -63,7 +63,7 @@
             </el-tooltip>
           </div>
           <div class="forward" style="display: flex; gap: 8px; align-items: center;">
-            <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
+            <el-switch @change="change('aiCode')" :before-change="beforeChange" :active-value="0" :inactive-value="1"
                        v-model="setting.aiCode"/>
           </div>
         </div>
@@ -71,7 +71,7 @@
           <div class="settings-inline-heading"><span>{{ $t('aiCodeFilter') }}</span></div>
           <p>{{ $t('aiCodeFilterHint') }}</p>
           <el-input-tag v-model="aiCodeFilterData" :aria-label="$t('aiCodeFilter')" :placeholder="$t('aiCodeFilterPlaceholder')" />
-          <div class="settings-inline-actions"><el-button @click="resetAiCodeFilter">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="saveAiCodeFilter">{{ $t('settingsInlineSave') }}</el-button></div>
+          <div class="settings-inline-actions"><el-button @click="resetAiCodeFilter">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="isSaving('aiCodeFilter')" :disabled="isSaving('aiCodeFilter')" @click="saveAiCodeFilter">{{ $t('settingsInlineSave') }}</el-button></div>
         </div>
       </div>
     </div>
@@ -94,14 +94,19 @@
         <div class="setting-item">
           <div><span>{{ $t('s3Configuration') }}</span></div>
           <div class="r2domain">
-            <el-button class="settings-action" @click="addS3Show = true">{{ $t('manage') }}</el-button>
+            <span class="s3-config-status">{{ $t(setting.bucket && setting.endpoint && setting.s3AccessKey && setting.s3SecretKey ? 's3ConnectionConfigured' : 's3ConnectionNotConfigured') }}</span>
+            <el-button class="settings-action" :loading="isSaving('bucket')" @click="addS3Show = true">{{ $t('manage') }}</el-button>
           </div>
         </div>
         <div class="setting-item">
-          <div><span>{{ $t('storageType') }}</span></div>
+          <div><span>{{ $t('attachmentStorageLabel') }}</span></div>
           <div class="r2domain">
             <div class="storage-type">
-              <el-tag>{{ setting.storageType }}</el-tag>
+              <el-select class="settings-compact-select" :aria-label="$t('attachmentStorageLabel')" popper-class="sys-setting-popper" v-model="setting.attachmentStorage" :disabled="isSaving('attachmentStorage')" @change="change('attachmentStorage')">
+                <el-option label="R2" value="R2" :disabled="!setting.hasR2" />
+                <el-option label="S3" value="S3" :disabled="!setting.bucket || !setting.endpoint || !setting.s3AccessKey || !setting.s3SecretKey" />
+                <el-option v-if="!setting.hasR2" label="KV" value="KV" />
+              </el-select>
             </div>
           </div>
         </div>
@@ -122,14 +127,14 @@
           <div class="settings-inline-heading"><span>{{ $t('otherEmail') }}</span><el-switch v-model="forwardStatus" :active-value="0" :inactive-value="1" :aria-label="$t('otherEmail')" /></div>
           <p>{{ $t('otherEmailDesc') }}</p>
           <el-input-tag v-model="forwardEmail" :aria-label="$t('otherEmail')" :placeholder="$t('otherEmailInputDesc')" @add-tag="emailAddTag" />
-          <div class="settings-inline-actions"><el-button @click="resetForwardEmail">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="forwardEmailSave">{{ $t('settingsInlineSave') }}</el-button></div>
+          <div class="settings-inline-actions"><el-button @click="resetForwardEmail">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="isSaving('forwardEmail','forwardStatus')" :disabled="isSaving('forwardEmail','forwardStatus')" @click="forwardEmailSave">{{ $t('settingsInlineSave') }}</el-button></div>
         </div>
         <div class="settings-inline-field">
           <div class="settings-inline-heading"><span>{{ $t('forwardingRules') }}</span></div>
           <p>{{ $t('forwardingRulesDesc') }}</p>
           <el-radio-group v-model="ruleType"><el-radio :value="0">{{ $t('forwardAll') }}</el-radio><el-radio :value="1">{{ $t('rules') }}</el-radio></el-radio-group>
           <el-input-tag v-model="ruleEmail" :aria-label="$t('forwardingRules')" :placeholder="$t('ruleEmailsInputDesc')" @add-tag="ruleEmailAddTag" />
-          <div class="settings-inline-actions"><el-button @click="resetForwardRules">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="ruleEmailSave">{{ $t('settingsInlineSave') }}</el-button></div>
+          <div class="settings-inline-actions"><el-button @click="resetForwardRules">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="isSaving('ruleEmail','ruleType')" :disabled="isSaving('ruleEmail','ruleType')" @click="ruleEmailSave">{{ $t('settingsInlineSave') }}</el-button></div>
         </div>
       </div>
     </div>
@@ -142,7 +147,7 @@
           <div>
             <el-input-number v-if="setting.registerVerify === 2" v-model="regVerifyCount" :aria-label="$t('signUpVerification')" :min="1" style="width: 110px" @change="saveRegVerifyCount" />
             <el-select popper-class="sys-setting-popper"
-                @change="change"
+                @change="change('registerVerify')"
                 :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                 v-model="setting.registerVerify"
                 placeholder="Select"
@@ -160,7 +165,7 @@
           <div>
             <el-input-number v-if="setting.addEmailVerify === 2" v-model="addVerifyCount" :aria-label="$t('addEmailVerification')" :min="1" style="width: 110px" @change="saveAddVerifyCount" />
             <el-select popper-class="sys-setting-popper"
-                @change="change"
+                @change="change('addEmailVerify')"
                 :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                 v-model="setting.addEmailVerify"
                 placeholder="Select"
@@ -214,31 +219,45 @@
                @closed="r2DomainInput = setting.r2Domain">
       <form>
         <el-input type="text" :placeholder="$t('domainDesc')" v-model="r2DomainInput"/>
-        <el-button type="primary" :loading="settingLoading" @click="saveR2domain">{{ $t('save') }}</el-button>
+        <el-button type="primary" :loading="isSaving('r2Domain')" :disabled="isSaving('r2Domain')" @click="saveR2domain">{{ $t('save') }}</el-button>
       </form>
     </el-dialog>
 
-    <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="addS3Show" :title="$t('s3Configuration')" @closed="resetS3Form">
-      <form>
-        <el-input class="dialog-input" type="text" placeholder="Bucket" v-model="s3.bucket"/>
-        <el-input class="dialog-input" type="text" placeholder="Endpoint" v-model="s3.endpoint"/>
-        <el-input class="dialog-input" type="text" placeholder="Region" v-model="s3.region"/>
-        <el-input class="dialog-input" type="text" :placeholder="setting.s3AccessKey || 'Access Key'" v-model="s3.s3AccessKey"/>
-        <el-input style="margin-bottom: 10px" type="text" :placeholder="setting.s3SecretKey || 'Secret Key'" v-model="s3.s3SecretKey"/>
-        <div class="force-path-style">
-          <div class="force-path-style-left">
-            <span>ForcePathStyle</span>
-            <el-tooltip effect="dark" :content="$t('forcePathStyleDesc')">
-              <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
-            </el-tooltip>
+    <el-dialog class="sys-setting-dialog ss-dialog-sm s3-config-dialog" v-model="addS3Show" :title="$t('s3Configuration')" @closed="resetS3Form">
+      <form class="s3-config-form" @submit.prevent="saveS3">
+        <div class="s3-storage-state"><span>{{ $t('s3CurrentStorage') }}</span><strong>{{ setting.attachmentStorage === 'auto' ? setting.storageType : (setting.attachmentStorage || setting.storageType || 'R2') }}</strong><el-tooltip :content="$t('s3StorageSwitchNote')"><Icon class="warning" icon="mingcute:information-line" width="16" /></el-tooltip><span class="s3-state-caption">{{ $t('s3ConfigOnlyNote') }}</span></div>
+        <section class="s3-config-section" :aria-label="$t('s3ConnectionSection')">
+          <h3>{{ $t('s3ConnectionSection') }}</h3>
+          <div class="s3-field-grid">
+            <label class="s3-config-field s3-field-wide"><span>{{ $t('s3EndpointLabel') }}</span><el-input :disabled="isSaving('bucket') || s3Testing" :aria-label="$t('s3EndpointLabel')" placeholder="https://s3.example.com" inputmode="url" v-model="s3.endpoint" /><small>{{ $t('s3EndpointHelp') }}</small></label>
+            <label class="s3-config-field"><span>{{ $t('s3BucketLabel') }}<el-tooltip :content="$t('s3BucketHelp')"><Icon class="warning" icon="mingcute:information-line" width="14" /></el-tooltip></span><el-input :disabled="isSaving('bucket') || s3Testing" :aria-label="$t('s3BucketLabel')" :placeholder="$t('s3BucketPlaceholder')" v-model="s3.bucket" /></label>
+            <label class="s3-config-field"><span>{{ $t('s3RegionLabel') }}<el-tooltip :content="$t('s3RegionHelp')"><Icon class="warning" icon="mingcute:information-line" width="14" /></el-tooltip></span><el-input :disabled="isSaving('bucket') || s3Testing" :aria-label="$t('s3RegionLabel')" :placeholder="$t('s3RegionPlaceholder')" v-model="s3.region" /></label>
           </div>
-          <el-switch :before-change="beforeChange" :active-value="0" :inactive-value="1" v-model="s3.forcePathStyle"/>
-        </div>
-        <div class="s3-button">
-          <el-button :loading="clearS3Loading" @click="clearS3">{{ $t('clear') }}</el-button>
-          <el-button type="primary" :loading="settingLoading && !clearS3Loading" @click="saveS3">{{ $t('save') }}</el-button>
-        </div>
+        </section>
+        <section class="s3-config-section" :aria-label="$t('s3CredentialsSection')">
+          <h3>{{ $t('s3CredentialsSection') }}</h3>
+          <div class="s3-field-grid">
+            <label class="s3-config-field"><span>Access Key ID</span><el-input :disabled="isSaving('bucket') || s3Testing" aria-label="Access Key ID" autocomplete="off" :placeholder="setting.s3AccessKey ? $t('s3CredentialKept') : $t('s3AccessKeyPlaceholder')" v-model="s3.s3AccessKey" /></label>
+            <label class="s3-config-field"><span>Secret Access Key</span><el-input :disabled="isSaving('bucket') || s3Testing" aria-label="Secret Access Key" type="password" show-password autocomplete="new-password" :placeholder="setting.s3SecretKey ? $t('s3CredentialKept') : $t('s3SecretKeyPlaceholder')" v-model="s3.s3SecretKey" /></label>
+          </div>
+        </section>
+        <section class="s3-config-section" :aria-label="$t('s3FileSection')">
+          <h3>{{ $t('s3FileSection') }}</h3>
+          <div class="s3-field-grid">
+            <label class="s3-config-field"><span>{{ $t('s3PrefixLabel') }}</span><el-input :disabled="isSaving('bucket') || s3Testing" :aria-label="$t('s3PrefixLabel')" :placeholder="$t('s3PrefixPlaceholder')" v-model="s3.s3Prefix" /><small>{{ $t('s3PrefixRootHelp') }}</small></label>
+            <label class="s3-config-field force-path-style"><span>{{ $t('s3PathStyleLabel') }}</span><el-select :disabled="isSaving('bucket') || s3Testing" :aria-label="$t('s3PathStyleLabel')" v-model="s3.forcePathStyle" popper-class="sys-setting-popper"><el-option label="path-style" :value="0" /><el-option label="virtual-hosted-style" :value="1" /></el-select></label>
+          </div>
+          <div class="s3-path-preview"><span>{{ $t('s3AddressPreview') }}</span><code>{{ s3PreviewAddress }}</code></div>
+        </section>
       </form>
+      <template #footer>
+        <p v-if="s3TestPassed" class="s3-test-passed">{{ $t('s3TestPassed') }}</p>
+        <div class="s3-button">
+          <el-tooltip :content="$t('s3TestHelp')" :trigger-keys="[]"><el-button class="s3-test-button" :loading="s3Testing" :disabled="isSaving('bucket')" @click="testS3">{{ $t('s3TestConnection') }}</el-button></el-tooltip>
+          <el-button text :loading="clearS3Loading" :disabled="s3Testing || isSaving('bucket')" @click="clearS3">{{ $t('clear') }}</el-button>
+          <el-button type="primary" :loading="isSaving('bucket') && !clearS3Loading" :disabled="s3Testing || isSaving('bucket')" @click="saveS3">{{ $t('save') }}</el-button>
+        </div>
+      </template>
     </el-dialog>
 
     <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="turnstileShow" :title="$t('addTurnstileSecret')"
@@ -246,7 +265,7 @@
       <form>
         <el-input type="text" placeholder="Site Key" v-model="turnstileForm.siteKey"/>
         <el-input type="text" style="margin-top: 15px" placeholder="Secret Key" v-model="turnstileForm.secretKey"/>
-        <el-button type="primary" :loading="settingLoading" @click="saveTurnstileKey">{{ $t('save') }}</el-button>
+        <el-button type="primary" :loading="isSaving('siteKey','secretKey')" :disabled="isSaving('siteKey','secretKey')" @click="saveTurnstileKey">{{ $t('save') }}</el-button>
       </form>
     </el-dialog>
 
@@ -286,7 +305,7 @@
         <div class="dialog-footer">
           <el-switch v-model="tgBotStatus" :active-value="0" :inactive-value="1" :active-text="$t('enable')"
                      :inactive-text="$t('disable')"/>
-          <el-button :loading="settingLoading" type="primary" @click="tgBotSave">{{ $t('save') }}</el-button>
+          <el-button :loading="isSaving('tgBotToken')" :disabled="isSaving('tgBotToken')" type="primary" @click="tgBotSave">{{ $t('save') }}</el-button>
         </div>
       </template>
     </el-dialog>
@@ -314,7 +333,7 @@
                      :inactive-text="$t('disable')"/>
           <div>
             <el-button @click="uiStore.previewNotice({ ...noticeForm })">{{ $t('preview') }}</el-button>
-            <el-button :loading="settingLoading" type="primary" @click="saveNoticePopup">{{ $t('save') }}</el-button>
+            <el-button :loading="isSaving('noticeTitle','noticeContent','notice')" :disabled="isSaving('noticeTitle','noticeContent','notice')" type="primary" @click="saveNoticePopup">{{ $t('save') }}</el-button>
           </div>
         </div>
       </template>
@@ -324,7 +343,7 @@
 </template>
 
 <script setup>
-import {computed, defineOptions, reactive, ref} from "vue";
+import {computed, defineOptions, reactive, ref, watch} from "vue";
 import {Icon} from "@iconify/vue";
 import {useI18n} from "vue-i18n";
 import {isEmail} from "@/utils/verify-utils.js";
@@ -333,6 +352,7 @@ import {useSysSetting} from "../use-sys-setting.js";
 import NoticeEditor from "../components/notice-editor.vue";
 import { useServerStore } from '@/store/server.js';
 import { useRoute } from 'vue-router';
+import {testS3Connection} from '@/request/setting';
 
 defineOptions({
   name: 'sys-setting-integration'
@@ -353,7 +373,7 @@ const sectionArea = computed(() => {
 })
 const inArea = area => sectionArea.value === 'all' || sectionArea.value === area
 const uiStore = useUiStore()
-const {setting, settingLoading, clearS3Loading, editSetting, change, beforeChange, onSettingsLoaded, onSettingsDirty} = useSysSetting()
+const {setting, isSaving, clearS3Loading, editSetting, change, beforeChange, onSettingsLoaded, onSettingsDirty} = useSysSetting()
 const webhookSecret = ref('')
 const webhookServer = useServerStore()
 const webhookUrl = computed(() => new URL(webhookServer.getActiveBaseURL().replace(/\/+$/, '') + '/webhooks', window.location.origin).href)
@@ -381,8 +401,22 @@ const s3 = reactive({
   region: '',
   s3AccessKey: '',
   s3SecretKey: '',
+  s3Prefix: '',
   forcePathStyle: 1
 })
+const s3Testing=ref(false),s3TestPassed=ref(false)
+const s3PreviewPath=computed(()=>[s3.s3Prefix.trim().replace(/^\/+|\/+$/g,''),'attachments/example.png'].filter(Boolean).join('/'))
+const s3PreviewAddress=computed(()=>{
+  let url
+  try{url=new URL(s3.endpoint.trim());if(!['http:','https:'].includes(url.protocol))throw new Error()}
+  catch{url=new URL('https://s3.example.com')}
+  url.username='';url.password='';url.search='';url.hash=''
+  const bucket=s3.bucket.trim()||'bucket',base=url.pathname.replace(/\/+$/,'')
+  if(s3.forcePathStyle===0)url.pathname=base+'/'+bucket+'/'+s3PreviewPath.value
+  else{url.hostname=(/^[a-zA-Z0-9.-]+$/.test(bucket)?bucket:'bucket')+'.'+url.hostname;url.pathname=base+'/'+s3PreviewPath.value}
+  return url.href
+})
+watch(s3,()=>{s3TestPassed.value=false})
 
 const noticeForm = reactive({
   noticeTitle: '',
@@ -426,7 +460,9 @@ function resetS3Form() {
   s3.region = setting.value.region
   s3.s3AccessKey = ''
   s3.s3SecretKey = ''
-  s3.forcePathStyle = setting.value.forcePathStyle
+  s3.forcePathStyle = setting.value.endpoint ? setting.value.forcePathStyle : 0
+  s3.s3Prefix = setting.value.s3Prefix || ''
+  s3TestPassed.value=false
 }
 
 function resetNoticeForm() {
@@ -441,11 +477,11 @@ function resetNoticeForm() {
 }
 
 onSettingsLoaded(() => {
-  r2DomainInput.value = setting.value.r2Domain
+  if(!r2DomainShow.value)r2DomainInput.value = setting.value.r2Domain
   regVerifyCount.value = setting.value.regVerifyCount
   addVerifyCount.value = setting.value.addVerifyCount
-  resetS3Form()
-  resetNoticeForm()
+  if(!addS3Show.value)resetS3Form()
+  if(!noticePopupShow.value)resetNoticeForm()
   if (aiFilterBaseline === undefined || JSON.stringify(aiCodeFilterData.value) === aiFilterBaseline) resetAiCodeFilter()
   if (forwardBaseline === undefined || forwardSnapshot() === forwardBaseline) resetForwardEmail()
   if (ruleBaseline === undefined || ruleSnapshot() === ruleBaseline) resetForwardRules()
@@ -536,6 +572,7 @@ function saveR2domain() {
 }
 
 function clearS3() {
+  if (isSaving('bucket')) return
   clearS3Loading.value = true
   editSetting({
     bucket: '',
@@ -543,22 +580,47 @@ function clearS3() {
     region: '',
     s3AccessKey: '',
     s3SecretKey: '',
+    s3Prefix:'',
+    attachmentStorage:setting.value.hasR2?'R2':'KV',
     forcePathStyle: 1
   }).then(ok => {
     if (ok) addS3Show.value = false
   })
 }
 
-function saveS3() {
+function s3Form() {
+  if (isSaving('bucket')) return
+  const bucket = s3.bucket.trim(), endpoint = s3.endpoint.trim()
+  if (!bucket || !endpoint || (!s3.s3AccessKey.trim() && !setting.value.s3AccessKey) || (!s3.s3SecretKey.trim() && !setting.value.s3SecretKey)) {
+    ElMessage.warning(t('s3RequiredFields'));return
+  }
+  try {
+    const url = new URL(endpoint)
+    if (!['https:','http:'].includes(url.protocol) || !url.hostname || url.username || url.password || url.search || url.hash) throw new Error('invalid endpoint')
+  } catch { ElMessage.warning(t('s3EndpointInvalid'));return }
   const form = {
-    bucket: s3.bucket,
-    endpoint: s3.endpoint,
-    region: s3.region,
+    bucket,
+    endpoint,
+    region: s3.region.trim(),
+    s3Prefix:s3.s3Prefix.trim(),
+    attachmentStorage:setting.value.attachmentStorage || setting.value.storageType || (setting.value.hasR2?'R2':'KV'),
     forcePathStyle: s3.forcePathStyle
   }
-  if (s3.s3AccessKey) form.s3AccessKey = s3.s3AccessKey
-  if (s3.s3SecretKey) form.s3SecretKey = s3.s3SecretKey
+  if (s3.s3AccessKey.trim()) form.s3AccessKey = s3.s3AccessKey.trim()
+  if (s3.s3SecretKey.trim()) form.s3SecretKey = s3.s3SecretKey.trim()
 
+  return form
+}
+async function testS3(){
+  if(s3Testing.value)return
+  const form=s3Form();if(!form)return
+  const snapshot=JSON.stringify(s3)
+  s3Testing.value=true;s3TestPassed.value=false
+  try{await testS3Connection(form);s3TestPassed.value=snapshot===JSON.stringify(s3)}catch{}finally{s3Testing.value=false}
+}
+function saveS3() {
+  if(s3Testing.value)return
+  const form=s3Form();if(!form)return
   editSetting(form).then(ok => {
     if (ok) addS3Show.value = false
   })
@@ -684,13 +746,45 @@ function saveNoticePopup() {
 }
 
 .s3-button {
-  display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 15px;
+  display: flex;
+  justify-content:flex-end;
+  gap: 8px;
+  border-top:1px solid var(--el-border-color-extra-light);
+  padding-top:12px;
 
   .el-button {
     margin-left: 0;
   }
+}
+.s3-config-form { display:flex; flex-direction:column; gap:18px; }
+.s3-config-status { color:var(--el-text-color-secondary); font-size:12px; }
+.s3-storage-state { display:flex; align-items:center; flex-wrap:wrap; gap:7px; font-size:12px; line-height:1.6; color:var(--el-text-color-secondary); }
+.s3-storage-state strong { font-weight:500; padding:1px 7px; border-radius:4px; background:var(--el-fill-color-light); color:var(--el-text-color-regular); }
+.s3-state-caption { margin-left:auto; }
+.s3-config-section { min-width:0; }
+.s3-config-section + .s3-config-section { border-top:1px solid var(--el-border-color-extra-light); padding-top:16px; }
+.s3-config-section h3 { margin:0 0 10px; font-size:12px; line-height:1.5; font-weight:600; color:var(--el-text-color-secondary); }
+.s3-field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:12px 16px; }
+.s3-field-wide { grid-column:1/-1; }
+.s3-config-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.s3-config-field > span { display:inline-flex; align-items:center; gap:3px; font-size:14px; line-height:1.5; color:var(--el-text-color-primary); }
+.s3-config-field small { font-size:12px; line-height:1.55; color:var(--el-text-color-secondary); overflow-wrap:anywhere; }
+.s3-path-preview { display:flex; align-items:baseline; gap:10px; margin-top:12px; padding:9px 10px; background:var(--el-fill-color-light); border-radius:6px; color:var(--el-text-color-secondary); font-size:12px; line-height:1.6; }
+.s3-path-preview > span { flex-shrink:0; }
+.s3-path-preview code { min-width:0; font:inherit; overflow-wrap:anywhere; color:var(--el-text-color-regular); }
+.s3-test-button { margin-right:auto!important; }
+.s3-test-passed { margin:0 0 8px; font-size:12px; color:var(--el-color-success); text-align:left; }
+.s3-config-form .force-path-style { flex-direction:column; align-items:stretch; gap:6px; }
+.s3-config-form .force-path-style-left { justify-content:flex-start; padding:0; }
+:global(.el-dialog.s3-config-dialog.sys-setting-dialog) { --s3-dialog-gap:clamp(16px,4vh,36px); width:min(620px,calc(100vw - 32px))!important; max-height:calc(100dvh - var(--s3-dialog-gap) - var(--s3-dialog-gap)); margin:var(--s3-dialog-gap) auto!important; padding:20px; display:flex; flex-direction:column; }
+:global(.s3-config-dialog .el-dialog__header) { flex-shrink:0; padding:0 28px 16px 0; }
+:global(.s3-config-dialog .el-dialog__footer) { flex-shrink:0; padding:14px 0 0; }
+:global(.s3-config-dialog .el-dialog__body) { min-height:0; padding:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+@media(max-width:520px) {
+  .s3-field-grid { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .s3-state-caption { flex-basis:100%; margin:0; }
+  .s3-path-preview { flex-direction:column; gap:2px; }
+  :global(.el-dialog.s3-config-dialog.sys-setting-dialog) { padding:16px; }
 }
 
 .force-path-style {

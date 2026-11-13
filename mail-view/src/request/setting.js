@@ -4,6 +4,13 @@ export function settingSet(setting) {
     return http.put('/setting/set',setting)
 }
 
+export function blockSenderDomain(domain) {
+    return http.post('/setting/senderDomain/block',{domain})
+}
+export function testS3Connection(form) {
+    return http.post('/setting/s3/test',form,{timeout:25000})
+}
+
 export function settingQuery() {
     return http.get('/setting/query')
 }
