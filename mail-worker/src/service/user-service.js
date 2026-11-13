@@ -25,6 +25,8 @@ import oauthService from "./oauth-service";
 import accountTransfer from '../entity/account-transfer';
 import userContext from '../security/user-context';
 import sessionService from './session-service';
+import securityRateLimit from './security-rate-limit-service';
+import { assertStrongPassword } from '../utils/password-policy';
 
 const userService = {
 
@@ -42,23 +44,8 @@ const userService = {
 			userRow.email === c.env.admin ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
 		]);
 
-		// Auto-create primary account for users who don't have one (e.g. migrated users)
-		if (!account) {
-			try {
-				account = await orm(c).insert(accountEntity)
-					.values({
-						email: userRow.email,
-						userId: userRow.userId,
-						name: emailUtils.getName(userRow.email),
-						isDel: isDel.NORMAL,
-					})
-					.returning()
-					.get();
-			} catch (e) {
-				// Insert failed (duplicate etc.), try selecting again
-				account = await accountService.selectByEmailIncludeDel(c, userRow.email);
-			}
-		}
+		// A login address is not proof of a hosted mailbox. Never create one during login.
+		if (account && (account.userId !== userId || account.isDel !== isDel.NORMAL)) account = null;
 
 		const user = {};
 		user.userId = userRow.userId;
@@ -90,11 +77,15 @@ const userService = {
 
 		const { password } = params;
 
-		if (typeof password !== 'string' || password.length < 6) {
-			throw new BizError(t('pwdMinLength'));
-		}
+		assertStrongPassword(password);
 		const { salt, hash } = await cryptoUtils.hashPassword(password);
 		await orm(c).update(user).set({ password: hash, salt: salt }).where(eq(user.userId, userId)).run();
+	},
+
+	async upgradePasswordHash(c, userRow, password) {
+		if (!userRow?.userId || !cryptoUtils.needsRehash(userRow.password)) return;
+		const { salt, hash } = await cryptoUtils.hashPassword(password);
+		await orm(c).update(user).set({ password: hash, salt }).where(and(eq(user.userId, userRow.userId), eq(user.password, userRow.password))).run();
 	},
 
 	// 改密码后只保留当前会话，其他设备上的旧凭证全部失效
@@ -103,10 +94,12 @@ const userService = {
 		if (!userRow) {
 			throw new BizError(t('authExpired'), 401);
 		}
-		if (!await cryptoUtils.verifyPassword(params.oldPassword, userRow.salt, userRow.password)) {
+		await securityRateLimit.consume(c, 'pwd-change', String(userId), 8, 900);
+		if (!await cryptoUtils.verifyPassword(params?.oldPassword, userRow.salt, userRow.password)) {
 			throw new BizError(t('IncorrectPwd'));
 		}
 		await this.resetPassword(c, params, userId);
+		await securityRateLimit.clear(c, 'pwd-change', String(userId));
 		await sessionService.revokeOthers(c, userId, userContext.getToken(c));
 	},
 
@@ -416,9 +409,7 @@ const userService = {
 			throw new BizError(t('notEmailDomain'));
 		}
 
-		if (password.length < 6) {
-			throw new BizError(t('pwdMinLength'));
-		}
+		assertStrongPassword(password);
 
 		const accountRow = await accountService.selectByEmailIncludeDel(c, email);
 
@@ -463,7 +454,7 @@ const userService = {
 			.where(eq(user.userId, userId))
 			.run();
 		const userRow = await this.selectById(c, userId);
-		await accountService.restoreByEmail(c, userRow.email);
+		await accountService.restoreByEmail(c, userRow.email, userId);
 
 		if (type) {
 			await emailService.restoreByUserId(c, userId);

@@ -11,6 +11,7 @@ import emailHtmlTemplate from '../template/email-html';
 import verifyUtils from '../utils/verify-utils';
 import domainUtils from "../utils/domain-uitls";
 import {objectProxyBase} from './storage-config-service';
+import {rewriteAttachmentImages} from './attachment-access-service';
 
 const telegramService = {
 
@@ -18,13 +19,15 @@ const telegramService = {
 
 		const { token } = params
 
-		const emailRow = await mailLinkService.read(c, token);
+		const emailRow = await mailLinkService.read(c, token, true);
 
 		if (emailRow) {
 
 			if (emailRow.content) {
 				const setting = await settingService.query(c);
-				return emailHtmlTemplate(emailRow.content || '', objectProxyBase(c,setting)||setting.r2Domain)
+				const rows=(await c.env.db.prepare('SELECT key FROM attachments WHERE email_id=? AND user_id=? AND account_id=?').bind(emailRow.emailId,emailRow.userId,emailRow.accountId).all()).results;
+				const urls=Object.fromEntries(rows.map(({key})=>[key,new URL(c.req.url).origin+'/api/telegram/attachment/'+token+'?key='+encodeURIComponent(key)]));
+				return emailHtmlTemplate(rewriteAttachmentImages(emailRow.content || '',urls), objectProxyBase(c,setting)||setting.r2Domain)
 			} else {
 				return emailTextTemplate(emailRow.text || '')
 			}

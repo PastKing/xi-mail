@@ -284,8 +284,8 @@ const accountService = {
 		return num;
 	},
 
-	async restoreByEmail(c, email) {
-		await orm(c).update(account).set({isDel: isDel.NORMAL}).where(eq(account.email, email)).run();
+	async restoreByEmail(c, email, userId) {
+		await orm(c).update(account).set({isDel: isDel.NORMAL}).where(and(eq(account.email, email), eq(account.userId, userId))).run();
 	},
 
 	async restoreByUserId(c, userId) {

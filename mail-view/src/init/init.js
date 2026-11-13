@@ -54,7 +54,7 @@ export async function init() {
 
         if (user) {
             settingStore.domainList = user.domainList || setting.domainList;
-            accountStore.currentAccountId = user.account.accountId;
+            accountStore.currentAccountId = user.account.accountId || 0;
             accountStore.currentAccount = user.account;
             userStore.user = user;
 

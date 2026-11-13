@@ -27,7 +27,7 @@ function commitPending(){
   if(props.disabled)return false;
   const normalize=value=>props.kind==='domain'?String(value).trim().replace(/^@/,'').replace(/\.$/,'').toLowerCase():String(value).trim();
   const added=pending.value.split(/[\r\n,，;；]+/).map(value=>value.trim()).filter(Boolean).map(normalize);
-  if(added.some(value=>value.length>(props.kind==='domain'?253:512)||(props.kind==='domain'&&!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?$/i.test(value)))){
+  if(added.some(value=>value.length>(props.kind==='domain'?320:512)||(props.kind==='domain'&&!/^(?:[a-z0-9!#$%&'*+=?^_`{}~.-]{1,64}@)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?$/i.test(value)))){
     ElMessage.error(t('ruleListInvalid'));return false;
   }
   const seen=new Set(props.modelValue.map(value=>normalize(value).toLowerCase())),values=[...props.modelValue];

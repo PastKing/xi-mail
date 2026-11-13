@@ -29,20 +29,21 @@ const mailLinkService = {
 			expiresAt: Date.now() + MAIL_LINK_TTL * 1000 }), { expirationTtl: MAIL_LINK_TTL });
 		return token;
 	},
-	async read(c, token) {
+	async read(c, token, withIdentity=false) {
 		// All legacy JWT links fail before a database lookup, regardless of signing key.
 		if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return null;
 		const link = await c.env.kv.get(await key(token), { type: 'json' });
 		if (!link || !validId(link.emailId)
 			|| !Number.isFinite(link.expiresAt) || link.expiresAt <= Date.now()) return null;
+		const columns={content:email.content,text:email.text,...(withIdentity?{emailId:email.emailId,userId:email.userId,accountId:email.accountId}:{})};
 		if (link.purpose === 'telegram-unassigned-mail') {
 			if (link.userId !== 0 || link.accountId !== 0) return null;
-			return await orm(c).select({ content: email.content, text: email.text }).from(email)
+			return await orm(c).select(columns).from(email)
 				.where(and(eq(email.emailId, link.emailId), eq(email.userId, 0), eq(email.accountId, 0),
 					eq(email.type, emailConst.type.RECEIVE), eq(email.status, emailConst.status.NOONE), eq(email.isDel, 0))).get() || null;
 		}
 		if (link.purpose !== 'telegram-mail' || ![link.userId, link.accountId].every(validId)) return null;
-		return await orm(c).select({ content: email.content, text: email.text }).from(email)
+		return await orm(c).select(columns).from(email)
 			.innerJoin(account, and(eq(account.accountId, email.accountId), eq(account.userId, email.userId), eq(account.isDel, 0)))
 			.innerJoin(user, and(eq(user.userId, email.userId), eq(user.isDel, 0), eq(user.status, 0)))
 			.where(and(eq(email.emailId, link.emailId), eq(email.userId, link.userId), eq(email.accountId, link.accountId), eq(email.isDel, 0))).get() || null;

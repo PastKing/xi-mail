@@ -451,7 +451,7 @@ function getAccountList() {
     let duration = Date.now() - start;
     if (duration < 200) await sleep(200 - duration);
     if (list.length < queryParams.size) noLoading.value = true;
-    if (accounts.length === 0 && list[0]) accountStore.currentAccount = list[0];
+    if (accounts.length === 0 && list[0]) changeAccount(list.find(item => item.accountId === accountStore.currentAccountId) || list[0]);
     accounts.push(...list);
     loading.value = false;
     followLoading.value = false;
@@ -528,6 +528,7 @@ function submit() {
     addLoading.value = false;
     showAdd.value = false;
     addForm.email = '';
+    if (!accountStore.currentAccountId) changeAccount(acc);
     accounts.push(acc);
     verifyToken = '';
     settingStore.settings.addVerifyOpen = acc.addVerifyOpen;

@@ -15,6 +15,9 @@ import permService from '../../src/service/perm-service';
 import settingService from '../../src/service/setting-service';
 import analysis from '../../src/dao/analysis-dao';
 import { createRegistration } from '../../src/service/registration-service';
+import userService from '../../src/service/user-service';
+import accountService from '../../src/service/account-service';
+import roleService from '../../src/service/role-service';
 import { EMAIL_LIST_HTML_LEN } from '../../src/lib/email-list-columns';
 
 let db,c,seen;
@@ -150,6 +153,31 @@ describe('Atomic registration and invitation consumption',()=>{
  const data=(email='new@example.test',displayId='registration-one')=>({email,displayId,type:2,regKeyId:1,password:'local-hash',salt:'local-salt',name:'New'});
  const invitation={code:'limited-code',todayStart:'2026-11-05 16:00:00'};
  function invite(extra={}) {insert('reg_key',{rege_key_id:1,code:'limited-code',count:1,role_id:2,expire_time:null,...extra});}
+ it('registers external identities and consumes the invitation once without creating mailboxes',async()=>{
+  invite();const results=await Promise.all(Array.from({length:10},(_,n)=>createRegistration(c,{...data(`outside${n}@external.example`,'external-'+n),createMailbox:false},invitation)));
+  expect(results.filter(Boolean)).toHaveLength(1);
+  expect(db.prepare('SELECT count FROM reg_key').get().count).toBe(0);
+  expect(db.prepare('SELECT COUNT(*) AS n FROM account').get().n).toBe(2);
+  expect(db.prepare('SELECT COUNT(*) AS n FROM user WHERE reg_key_id=1').get().n).toBe(1);
+ });
+ it('keeps external users without mailboxes across login and never claims another owner mailbox',async()=>{
+  insert('user',{user_id:3,email:'external@outside.example',type:2,is_del:0,status:0});
+  vi.spyOn(roleService,'selectById').mockResolvedValue({roleId:2});
+  vi.spyOn(settingService,'query').mockResolvedValue({domainList:['@example.test']});
+  const info=await userService.loginUserInfo(c,3);
+  expect(info.account).toEqual({});expect(info.email).toBe('external@outside.example');
+  expect(db.prepare('SELECT COUNT(*) AS n FROM account WHERE user_id=3').get().n).toBe(0);
+  insert('account',{account_id:30,user_id:2,email:'external@outside.example',is_del:0});
+  expect((await userService.loginUserInfo(c,3)).account).toEqual({});
+  expect(db.prepare('SELECT user_id FROM account WHERE account_id=30').get().user_id).toBe(2);
+ });
+ it('restoring an external login identity does not restore another owner mailbox at the same address',async()=>{
+  insert('account',{account_id:30,user_id:2,email:'external@outside.example',is_del:1});
+  await accountService.restoreByEmail(c,'external@outside.example',3);
+  expect(db.prepare('SELECT is_del FROM account WHERE account_id=30').get().is_del).toBe(1);
+  await accountService.restoreByEmail(c,'external@outside.example',2);
+  expect(db.prepare('SELECT is_del FROM account WHERE account_id=30').get().is_del).toBe(0);
+ });
  it('allows exactly one concurrent registration for a one-use code, without orphan accounts or negative counts',async()=>{
   invite();const results=await Promise.all(Array.from({length:15},(_,n)=>createRegistration(c,data(`new${n}@example.test`,'reg-'+n),invitation)));
   expect(results.filter(Boolean)).toHaveLength(1);expect(db.prepare('SELECT count FROM reg_key').get().count).toBe(0);

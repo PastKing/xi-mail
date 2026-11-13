@@ -70,7 +70,7 @@ describe('S3 configuration and connection probe',()=>{
  });
  it('routes object links through the application when S3 is configured',()=>{
   expect(objectProxyBase({req:{url:'https://mail.example/api/setting/query'}},config)).toBe('https://mail.example');
-  expect(objectProxyBase({req:{url:'https://mail.example/api'}},{})).toBe('');
+  expect(objectProxyBase({req:{url:'https://mail.example/api'}},{})).toBe('https://mail.example');
  });
  it('saves prefix and credentials atomically without activating S3',async()=>{
   db.exec('DROP TABLE setting');

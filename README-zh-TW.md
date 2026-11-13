@@ -8,7 +8,7 @@
 
 衍生自 [cloud-mail](https://github.com/maillab/cloud-mail)，重新設計介面並持續擴充功能
 
-[![Version](https://img.shields.io/badge/Version-v3.6.10-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.11-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -33,7 +33,7 @@
 
 ## 🔑 線上體驗
 
-體驗站：[mail.azx.us](https://mail.azx.us)。使用註冊碼 `viewUser` 註冊，僅限 `@nlfree.me` 後綴。僅供預覽，請勿存放真實郵件。
+體驗站：[mail.azx.us](https://mail.azx.us)。使用註冊碼 `viewUser` 註冊。
 
 ---
 
