@@ -28,7 +28,7 @@
         <div>{{$t('senderName')}}</div>
         <div>
           <span v-if="setNameShow" class="edit-name-input">
-            <el-input v-model="accountName" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="30" clearable @keyup.enter="setName" />
+            <el-input v-model="accountName" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="80" clearable @keyup.enter="setName" />
             <el-button link type="primary" :loading="setNameLoading" @click="setName">{{$t('save')}}</el-button>
           </span>
           <span v-else class="user-name">

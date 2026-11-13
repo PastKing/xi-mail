@@ -202,7 +202,7 @@
     <el-dialog v-model="setNameShow" :title="$t('senderName')" width="min(400px, calc(100% - 32px))">
       <div class="container">
         <div class="sender-name-hint">{{ account?.email }}</div>
-        <el-input v-model="accountName" type="text" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="30" show-word-limit clearable autocomplete="off" @keyup.enter="setName"/>
+        <el-input v-model="accountName" type="text" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="80" show-word-limit clearable autocomplete="off" @keyup.enter="setName"/>
         <div class="sender-name-hint">{{ $t('senderNameHint') }}</div>
         <el-button class="btn" type="primary" @click="setName" :loading="setNameLoading">{{ $t('save') }}</el-button>
       </div>

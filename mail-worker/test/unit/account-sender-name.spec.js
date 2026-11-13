@@ -20,7 +20,10 @@ it('saves normalized names, restores the prefix on clearing, and rejects invalid
     expect(state.saved.mock.lastCall[0]).toEqual({name: expected});
   }
   state.saved.mockClear();
-  for (const name of [null, {}, 'x'.repeat(31), '客服\r\nBcc: other@example.com']) {
+  expect(await accountService.setName({}, {accountId: 7, name: 'Signal Processing Editorial Office'}, 1))
+    .toEqual({name: 'Signal Processing Editorial Office'});
+  state.saved.mockClear();
+  for (const name of [null, {}, 'x'.repeat(81), '客服\r\nBcc: other@example.com']) {
     await expect(accountService.setName({}, {accountId: 7, name}, 1)).rejects.toThrow('invalidSenderName');
   }
   await expect(accountService.setName({}, {accountId: 7, name: 'Team'}, 2)).rejects.toThrow('noUserAccount');

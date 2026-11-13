@@ -13,7 +13,7 @@ const zh = {
     senderName: '发件人名称',
     composeSenderNameHint: '仅为当前发件邮箱保存，发送时自动保存。留空使用邮箱前缀。',
     senderNamePlaceholder: '选填，留空使用邮箱前缀',
-    senderNameHint: '保存后，收件人将看到此名称。留空保存可恢复邮箱前缀，最多 30 个字符。',
+    senderNameHint: '保存后，收件人将看到此名称。留空保存可恢复邮箱前缀，最多 80 个字符。',
 	sendChannels: "发信服务",
     sendConfigManagement: '发信服务',
     searchSendingDomain: '搜索域名',

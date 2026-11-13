@@ -299,7 +299,7 @@ const accountService = {
 		}
 		// 去掉尖括号，避免显示名被当作 HTML 注入到回信模板 / 正文渲染
 		let name = params.name.replace(/[<>]/g, '').trim();
-		if (name.length > 30) {
+		if (name.length > 80) {
 			throw new BizError(t('invalidSenderName'));
 		}
 		const accountRow = await this.selectById(c, accountId);

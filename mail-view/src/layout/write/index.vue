@@ -21,7 +21,7 @@
           </el-select>
           <el-tooltip v-if="internalOnly" :content="$t('senderInternalOnlyDesc')"><span class="sender-internal-tag">{{ $t('senderInternalOnly') }}</span></el-tooltip>
         </div>
-        <el-input id="compose-sender-name" class="sender-name-field recipient-field" v-model="form.name" :placeholder="$t('senderNamePlaceholder')" :title="$t('composeSenderNameHint')" :maxlength="30" clearable :disabled="senderNameLoading || accountsLoading" @blur="saveSenderName(false)">
+        <el-input id="compose-sender-name" class="sender-name-field recipient-field" v-model="form.name" :placeholder="$t('senderNamePlaceholder')" :title="$t('composeSenderNameHint')" :maxlength="80" clearable :disabled="senderNameLoading || accountsLoading" @blur="saveSenderName(false)">
           <template #prefix><div class="item-title">{{ $t('senderName') }}</div></template>
         </el-input>
         <el-input-tag class="recipient-input recipient-field" @paste="pasteRecipients" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >

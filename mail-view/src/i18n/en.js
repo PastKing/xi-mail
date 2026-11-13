@@ -13,7 +13,7 @@ const en = {
     senderName: 'Sender name',
     composeSenderNameHint: 'Saved for this sender address only, including when sending. Leave blank to use the email prefix.',
     senderNamePlaceholder: 'Optional; defaults to the email prefix',
-    senderNameHint: 'Recipients will see this name after saving. Clear and save to restore the email prefix. Up to 30 characters.',
+    senderNameHint: 'Recipients will see this name after saving. Clear and save to restore the email prefix. Up to 80 characters.',
 	sendChannels: "Sending services",
     sendConfigManagement: 'Sending services',
     searchSendingDomain: 'Search domains',

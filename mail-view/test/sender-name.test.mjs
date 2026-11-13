@@ -6,6 +6,7 @@ import {computed, ref} from 'vue';
 test('composer renders sender name as a full-width field without a save button', () => {
   const source = readFileSync(new URL('../src/layout/write/index.vue', import.meta.url), 'utf8');
   assert.match(source, /class="sender-name-field recipient-field"/);
+  assert.match(source, /:maxlength="80"/);
   assert.match(source, /<template #prefix><div class="item-title">\{\{ \$t\('senderName'\) \}\}<\/div><\/template>/);
   assert.match(source, /@blur="saveSenderName\(false\)"/);
   assert.doesNotMatch(source, /<el-button[^>]*@click="saveSenderName\(\)"/);
