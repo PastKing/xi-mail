@@ -10,6 +10,9 @@ import BizError from '../error/biz-error';
 import emailUtils from '../utils/email-utils';
 import { Resend } from 'resend';
 import attService from './att-service';
+import attachmentAccess from './attachment-access-service';
+import {rewriteAttachmentImages} from './attachment-access-service';
+import outboundImage from './outbound-image-service';
 import { parseHTML } from 'linkedom';
 import userService from './user-service';
 import roleService from './role-service';
@@ -320,7 +323,9 @@ const emailService = {
 
 			//QueenSMTP 不支持 cid 内嵌图片，正文图片换成可公开访问的地址（图片在发件后写入存储，收件人打开时已可访问）
 			const baseUrl = domainUtils.toOssDomain(r2Domain) || new URL(c.req.url).origin;
-			const queenHtml = this.imgReplace(html, imageDataList, r2Domain).replace(/{{domain}}/g, baseUrl + '/');
+			const outgoingUrls={};
+			for (const image of imageDataList) outgoingUrls[image.key]=await outboundImage.issue(c,image.key,userId);
+			const queenHtml = rewriteAttachmentImages(this.imgReplace(html, imageDataList, r2Domain),outgoingUrls).replace(/{{domain}}/g, baseUrl + '/');
 
 			const { ids, failed } = await queenSmtpService.send(provider.token, {
 				from: accountRow.email,
@@ -635,6 +640,7 @@ const emailService = {
 			emailId: emailRow.emailId,
 			content: emailRow.content,
 			text: emailRow.text,
+			...await attachmentAccess.prepare(c,emailRow,userId),
 		};
 	},
 

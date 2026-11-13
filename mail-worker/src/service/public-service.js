@@ -17,6 +17,7 @@ import userService from './user-service';
 import KvConst from '../const/kv-const';
 import subWorkerService from './sub-worker-service';
 import securityRateLimit from './security-rate-limit-service';
+import { assertStrongPassword } from '../utils/password-policy';
 
 const publicService = {
 
@@ -100,14 +101,18 @@ const publicService = {
 	},
 
 	async addUser(c, params) {
-		const { list } = params;
+		const list = params?.list;
 
+		if (!Array.isArray(list) || list.length > 100) throw new BizError(t('paramsError'));
 		if (list.length === 0) return;
 
 		for (const emailRow of list) {
-			if (!verifyUtils.isEmail(emailRow.email)) {
+			if (!emailRow || typeof emailRow.email !== 'string' || emailRow.email.length > 320 || !verifyUtils.isEmail(emailRow.email)) {
 				throw new BizError(t('notEmail'));
 			}
+			emailRow.email = emailRow.email.trim().toLowerCase();
+			if (emailRow.password !== undefined && emailRow.password !== null && emailRow.password !== '') assertStrongPassword(emailRow.password);
+			if (emailRow.roleName !== undefined && typeof emailRow.roleName !== 'string') throw new BizError(t('paramsError'));
 
 			const setting = await settingService.query(c);
 			if (!settingService.isDomainValid(setting, emailUtils.getDomain(emailRow.email))) {
@@ -142,17 +147,16 @@ const publicService = {
 			}
 
 			const userSql = `INSERT INTO user (email, password, salt, type, os, browser, active_ip, create_ip, device, active_time, create_time)
-			VALUES ('${email}', '${hash}', '${salt}', '${type}', '${os}', '${browser}', '${activeIp}', '${activeIp}', '${device}', '${activeTime}', '${activeTime}')`
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 			const accountSql = `INSERT INTO account (email, name, user_id)
-			VALUES ('${email}', '${emailUtils.getName(email)}', 0);`;
+			VALUES (?, ?, (SELECT user_id FROM user WHERE email = ?));`;
 
-			userList.push(c.env.db.prepare(userSql));
-			userList.push(c.env.db.prepare(accountSql));
+			userList.push(c.env.db.prepare(userSql).bind(email,hash,salt,type,os,browser,activeIp,activeIp,device,activeTime,activeTime));
+			userList.push(c.env.db.prepare(accountSql).bind(email,emailUtils.getName(email),email));
 
 		}
 
-		userList.push(c.env.db.prepare(`UPDATE account SET user_id = (SELECT user_id FROM user WHERE user.email = account.email) WHERE user_id = 0;`))
 
 		try {
 			await c.env.db.batch(userList);
@@ -188,11 +192,12 @@ const publicService = {
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
 		// 三种失败统一文案，避免用于枚举管理员邮箱
-		const valid = await cryptoUtils.verifyPassword(password, userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || 'unmatchable-dummy-hash');
+		const valid = await cryptoUtils.verifyPassword(password, userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || cryptoUtils.DUMMY_HASH);
 		if (email !== c.env.admin.toLowerCase() || !userRow || userRow.isDel === isDel.DELETE || userRow.status === userConst.status.BAN || !valid) {
 			throw new BizError(t('invalidCredentials'));
 		}
 		await securityRateLimit.loginSuccess(c, email);
+		await userService.upgradePasswordHash(c, userRow, password);
 	}
 
 }

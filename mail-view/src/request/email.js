@@ -22,12 +22,14 @@ export function emailContent(emailId) {
 
 // 列表接口只返回摘要，正文在打开时懒加载；取回后原地合并并打标记避免重复请求
 export async function ensureEmailContent(email) {
-    if (!email || email.contentFull || !email.emailId) {
+    if (!email || !email.emailId || (email.contentFull && email.attachmentUrlsExpireAt > Date.now()+60000)) {
         return email
     }
     const data = await emailContent(email.emailId)
     email.content = data.content
     email.text = data.text
+    email.attachmentUrls = data.attachmentUrls || {}
+    email.attachmentUrlsExpireAt = data.attachmentUrlsExpireAt || Date.now()+300000
     email.contentFull = true
     return email
 }

@@ -78,7 +78,7 @@
                     <button type="button" class="xi-icon-button" :aria-label="$t('preview')" @click="showImage(att.key)"><Icon icon="mingcute:eye-2-line" width="18" height="18"/></button>
                   </el-tooltip>
                   <el-tooltip :content="$t('downloadAttachment')" :trigger-keys="[]">
-                    <a class="xi-icon-button" :aria-label="$t('downloadAttachment')" :href="cvtR2Url(att.key)" download><Icon icon="mingcute:download-2-line" width="18" height="18"/></a>
+                    <a class="xi-icon-button" :aria-label="$t('downloadAttachment')" :href="attachmentUrl(att.key)" @click.prevent="downloadAttachment(att)" download referrerpolicy="no-referrer"><Icon icon="mingcute:download-2-line" width="18" height="18"/></a>
                   </el-tooltip>
                 </div>
               </div>
@@ -107,7 +107,7 @@ import {useAccountStore} from "@/store/account.js";
 import {formatDetailDate} from "@/utils/day.js";
 import {starAdd, starCancel} from "@/request/star.js";
 import {getExtName, formatBytes} from "@/utils/file-utils.js";
-import {cvtR2Url,toOssDomain} from "@/utils/convert.js";
+import {cvtR2Url,toOssDomain,formatPrivateImages} from "@/utils/convert.js";
 import {getIconByName} from "@/utils/icon-utils.js";
 import {useSettingStore} from "@/store/setting.js";
 import {allEmailDelete} from "@/request/all-email.js";
@@ -140,7 +140,7 @@ onMounted(() => {
   }
 
   // 列表只带摘要，进入详情时懒加载完整正文
-  if (!email.contentFull) {
+  if (!email.contentFull || !(email.attachmentUrlsExpireAt > Date.now()+60000)) {
     contentLoading.value = !email.content && !email.text
     ensureEmailContent(email).finally(() => {
       contentLoading.value = false
@@ -174,14 +174,15 @@ async function copyEmailCode(code) {
 }
 
 function formatImage(content) {
-  content = content || '';
+  content = formatPrivateImages(content,email.attachmentUrls);
   const domain = settingStore.settings.objectProxyBase || settingStore.settings.r2Domain;
   return  content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
 }
 
-function showImage(key) {
+async function showImage(key) {
   if (!isImage(key)) return;
-  const url = cvtR2Url(key)
+  try {await ensureEmailContent(email)} catch {return;}
+  const url = attachmentUrl(key)
   srcList.length = 0
   srcList.push(url)
   showPreview.value = true
@@ -189,6 +190,16 @@ function showImage(key) {
 
 function isImage(filename) {
   return ['png', 'jpg', 'jpeg', 'bmp', 'gif','jfif'].includes(getExtName(filename))
+}
+
+function attachmentUrl(key) { return email.attachmentUrls?.[key] || cvtR2Url(key); }
+
+async function downloadAttachment(att) {
+  try {await ensureEmailContent(email)} catch {return;}
+  const url=email.attachmentUrls?.[att.key];
+  if (!url) return;
+  const link=document.createElement('a');
+  link.href=url;link.download=att.filename || '';link.referrerPolicy='no-referrer';link.click();
 }
 
 function formateReceive(recipient) {

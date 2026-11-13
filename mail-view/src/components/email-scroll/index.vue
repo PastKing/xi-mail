@@ -86,7 +86,7 @@
                   <span class="name">
                     <span>
                       <div class="unread" v-if="isMobile && (item.unread === EmailUnreadEnum.UNREAD && showUnread) "/>
-                      <span class="sender-display-name" :title="item.sendEmail"><slot name="name" :email="item"> {{ item.name }}</slot></span>
+                      <span class="sender-display-name" :title="item.sendEmail"><slot name="name" :email="item"> {{ senderLabel(item) }}</slot></span>
                     </span>
                     <span>
                       <Icon v-if="item.isStar" icon="fluent-color:star-16" width="18" height="18"/>
@@ -264,6 +264,7 @@ import {EmailUnreadEnum} from "@/enums/email-enum.js";
 import { UseVirtualList } from '@vueuse/components'
 import { useScroll } from '@vueuse/core'
 import { emailPreviewText } from '@/utils/email-html'
+import { senderLabel } from '@/utils/sender-name.js'
 
 const props = defineProps({
   getEmailList: Function,

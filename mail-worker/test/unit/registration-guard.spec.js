@@ -11,7 +11,7 @@ import cryptoUtils from '../../src/utils/crypto-utils';
 import * as registration from '../../src/service/registration-service';
 
 let settings, c, lookup, invitation, create, fetchMock;
-const input = (extra = {}) => ({ email: 'candidate@allowed.example', password: 'local-test-password', code: 'test-invitation', ...extra });
+const input = (extra = {}) => ({ email: 'candidate@allowed.example', password: 'Local-test-pass1', code: 'test-invitation', ...extra });
 beforeEach(() => {
   settings = { register: 0, regKey: 0, registerVerify: 0, regVerifyCount: 1, minEmailPrefix: 3,
     emailPrefixFilter: [], emailKeywordBlacklist: [], domainList: ['@allowed.example'], secretKey: 'test-private-secret' };
@@ -28,11 +28,38 @@ beforeEach(() => {
   vi.spyOn(regKeyService, 'reduceCount').mockResolvedValue(undefined);
   vi.spyOn(verifyRecordService, 'isOpenRegVerify').mockResolvedValue(true);
   vi.spyOn(verifyRecordService, 'increaseRegCount').mockResolvedValue({ count: 1 });
-  fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ success: true }));
+  fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ success: true }));
 });
 afterEach(() => vi.restoreAllMocks());
 
 describe('Registration Turnstile guard', () => {
+  it('registers an external login address without creating a hosted mailbox, preserving the invitation role', async () => {
+    settings.emailPrefixFilter = ['x']; settings.emailKeywordBlacklist = ['x'];
+    await expect(loginService.register(c, input({email:' X@External.Example ',token:'test-token'}))).resolves.toEqual({regVerifyOpen:true});
+    expect(create.mock.calls[0][1]).toMatchObject({email:'x@external.example',type:2,regKeyId:1,createMailbox:false});
+    expect(create.mock.calls[0][2]).toMatchObject({code:'test-invitation'});
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+  it('still requires CAPTCHA before registering external identities', async () => {
+    await expect(loginService.register(c,input({email:'new@external.example'}))).rejects.toMatchObject({code:400});
+    expect(create).not.toHaveBeenCalled(); expect(invitation).not.toHaveBeenCalled();
+  });
+  it('does not bypass a required invitation for external identities', async () => {
+    invitation.mockRestore();
+    await expect(loginService.register(c,input({email:'new@external.example',code:'',token:'test-token'}))).rejects.toThrow();
+    expect(create).not.toHaveBeenCalled();
+  });
+  it('continues to create primary mailboxes and enforce suffix permissions for managed addresses', async () => {
+    await loginService.register(c,input({token:'test-token'}));
+    expect(create.mock.calls[0][1].createMailbox).toBe(true);
+    roleService.selectById.mockResolvedValue({availDomain:'other.example'});
+    await expect(loginService.register(c,input({token:'test-token'}))).rejects.toMatchObject({code:403});
+  });
+  it('keeps managed prefix rules and rejects malformed external addresses', async () => {
+    await expect(loginService.register(c,input({email:'x@allowed.example',token:'test-token'}))).rejects.toThrow();
+    await expect(loginService.register(c,input({email:'name@@external.example',token:'test-token'}))).rejects.toThrow();
+    expect(create).not.toHaveBeenCalled();
+  });
   it.each([undefined, '', ' ', {}, [], 'x'.repeat(2049)])('rejects invalid token before invitation/address queries (%j)', async token => {
     await expect(loginService.register(c, input({ token }))).rejects.toMatchObject({ code: 400 });
     expect(invitation).not.toHaveBeenCalled(); expect(lookup).not.toHaveBeenCalled();

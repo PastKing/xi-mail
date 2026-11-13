@@ -13,17 +13,7 @@ import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
 import { managedSender, authenticatedSender, managedDomainList } from '../utils/sender-auth';
 
-function matchDomainList(list, address) {
-	if (!address) return false;
-	const atIdx = address.lastIndexOf('@');
-	if (atIdx === -1) return false;
-	const senderDomain = address.slice(atIdx + 1).toLowerCase().trim().replace(/[>)]+$/, '');
-	return list.some(item => {
-		const d = item.toLowerCase().trim().replace(/^@/, '');
-		if (!d) return false;
-		return senderDomain === d || senderDomain.endsWith('.' + d);
-	});
-}
+import { matchSenderList as matchDomainList, safeSenderName } from '../utils/sender-filter';
 
 export async function email(message, env, ctx) {
 
@@ -176,7 +166,7 @@ export async function email(message, env, ctx) {
 			toEmail: recipientTo,
 			toName: toName,
 			sendEmail: email.from.address,
-			name: email.from.name || emailUtils.getName(email.from.address),
+			name: safeSenderName(email.from.name, email.from.address) || emailUtils.getName(email.from.address),
 			subject: email.subject,
 			content: email.html,
 			text: email.text,
@@ -198,7 +188,7 @@ export async function email(message, env, ctx) {
 
 		for (let item of email.attachments) {
 			let attachment = { ...item };
-			attachment.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(attachment.content) + fileUtils.getExtFileName(item.filename);
+			attachment.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(attachment.content, env.jwt_secret) + fileUtils.getExtFileName(item.filename);
 			attachment.size = item.content.length ?? item.content.byteLength;
 			attachments.push(attachment);
 			if (attachment.contentId) {

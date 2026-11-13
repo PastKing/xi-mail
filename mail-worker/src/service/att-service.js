@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import domainUtils from '../utils/domain-uitls';
 import settingService from "./setting-service";
 import { attachmentDisposition } from '../utils/object-policy';
+import attachmentAccess, {attachmentKeyFromUrl} from './attachment-access-service';
+import BizError from '../error/biz-error';
 
 const attService = {
 
@@ -66,7 +68,7 @@ const attService = {
 				const file = fileUtils.base64ToFile(src);
 				const buff = await file.arrayBuffer();
 				const cid = uuidv4().replace(/-/g, '');
-				const key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(buff) + fileUtils.getExtFileName(file.name);
+				const key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(buff, c.env.jwt_secret) + fileUtils.getExtFileName(file.name);
 
 				img.setAttribute('src', 'cid:' + cid);
 
@@ -83,9 +85,11 @@ const attService = {
 			}
 
 			//邮件正文站内图片转cid附件
-			const attKey = this.toAttKey(src, r2Domain) || (c.req?.url ? this.toAttKey(src,new URL(c.req.url).origin) : null);
+			const attKey = img.getAttribute('data-xi-attachment-key') || attachmentKeyFromUrl(src,c.req?.url) || this.toAttKey(src, r2Domain) || (c.req?.url ? this.toAttKey(src,new URL(c.req.url).origin) : null);
 
 			if (attKey) {
+				if (!await attachmentAccess.find(c,attKey,c.get('user')?.userId)) throw new BizError('附件不存在或无权访问',404);
+				img.removeAttribute('data-xi-attachment-key');
 
 				const cid = uuidv4().replace(/-/g, '')
 				img.setAttribute('src', 'cid:' + cid);
@@ -193,7 +197,7 @@ const attService = {
 
 		for (let att of attList) {
 			att.buff = fileUtils.base64ToUint8Array(att.content);
-			att.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(att.buff) + fileUtils.getExtFileName(att.filename);
+			att.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(att.buff, c.env.jwt_secret) + fileUtils.getExtFileName(att.filename);
 			const attData = { userId, accountId, emailId };
 			attData.key = att.key;
 			attData.size = att.buff.length;

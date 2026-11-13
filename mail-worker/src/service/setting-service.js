@@ -339,7 +339,7 @@ const settingService = {
 			const file = fileUtils.base64ToFile(background)
 
 			const arrayBuffer = await file.arrayBuffer();
-			background = constant.BACKGROUND_PREFIX + await fileUtils.getBuffHash(arrayBuffer) + fileUtils.getExtFileName(file.name);
+			background = constant.BACKGROUND_PREFIX + await fileUtils.getBuffHash(arrayBuffer, c.env.jwt_secret) + fileUtils.getExtFileName(file.name);
 
 
 			await r2Service.putObj(c, background, arrayBuffer, {

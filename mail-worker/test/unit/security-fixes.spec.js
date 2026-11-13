@@ -61,7 +61,7 @@ beforeEach(() => {
   sql.exec(`CREATE TABLE account (account_id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL COLLATE NOCASE UNIQUE,
     name TEXT NOT NULL DEFAULT '', status INTEGER NOT NULL DEFAULT 0, latest_email_time TEXT, create_time TEXT DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER NOT NULL, all_receive INTEGER NOT NULL DEFAULT 0, sort INTEGER NOT NULL DEFAULT 0, is_del INTEGER NOT NULL DEFAULT 0);
-    CREATE TABLE attachments(att_id INTEGER PRIMARY KEY, account_id INTEGER, user_id INTEGER);`);
+    CREATE TABLE attachments(att_id INTEGER PRIMARY KEY, account_id INTEGER, user_id INTEGER, email_id INTEGER, key TEXT);`);
   // Real entity column names ensure queries fail if a fix uses an incomplete or incorrect schema.
   const columns = getTableConfig(emailTable).columns.map(column => `${column.name} ${column.getSQLType()}${column.primary ? ' PRIMARY KEY' : ''}`);
   sql.exec('CREATE TABLE email (' + columns.join(',') + ')');
@@ -208,7 +208,7 @@ describe.skipIf(!DatabaseSync)('Mailbox ownership and availability', () => {
   });
   it('creates an independent mailbox when another user reclaims a deleted address, preserving old mail and attachments', async () => {
     mailbox(1, 20, 'reused@allowed.example', 1); mail(1, 1, 20); mail(2, 1, 20, 1);
-    sql.prepare('INSERT INTO attachments VALUES (1, 1, 20)').run();
+    sql.prepare('INSERT INTO attachments(att_id,account_id,user_id) VALUES (1, 1, 20)').run();
     const fresh = await accountService.add(c, { email: 'reused@allowed.example' }, 10);
     expect(fresh.accountId).not.toBe(1); expect(fresh.userId).toBe(10);
     expect(sql.prepare('SELECT user_id, is_del FROM email ORDER BY email_id').all()).toEqual([{ user_id: 20, is_del: 0 }, { user_id: 20, is_del: 1 }]);

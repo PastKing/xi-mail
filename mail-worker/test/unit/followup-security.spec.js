@@ -23,6 +23,7 @@ import email from '../../src/entity/email';
 import user from '../../src/entity/user';
 import account from '../../src/entity/account';
 import regKey from '../../src/entity/reg-key';
+import {att} from '../../src/entity/att';
 
 const SECRET = 'test-signing-key-with-256-bit-variety-A1b2C3d4';
 let db, c, records;
@@ -43,7 +44,7 @@ function adapter(db) {
 }
 beforeEach(() => {
   db = new DatabaseSync(':memory:'); records = new Map();
-  for (const entity of [email, user, account, regKey]) {
+  for (const entity of [email, user, account, regKey, att]) {
     const table = getTableConfig(entity);
     db.exec(`CREATE TABLE ${table.name} (${table.columns.map(column => `${column.name} ${column.getSQLType()}${column.primary ? ' PRIMARY KEY' : ''}${table.name === 'reg_key' && column.name === 'code' ? ' COLLATE NOCASE' : ''}`).join(',')})`);
   }

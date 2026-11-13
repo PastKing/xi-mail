@@ -11,6 +11,7 @@ import app from '../hono/hono';
 
 const publicExact = [
 	'/translation/pack',
+	'/attachment/view',
 	'/mail-share/read',
 	'/mail-share/content',
 	'/mail-share/attachment',
@@ -20,7 +21,7 @@ const publicExact = [
 	'/webhooks',
 	'/public/genToken',
 ];
-const publicTrees = ['/oss/', '/init/', '/telegram/', '/oauth/', '/admin/'];
+const publicTrees = ['/attachment/sent/', '/init/', '/telegram/', '/oauth/', '/admin/'];
 
 const requirePerms = [
 	'/translation/config', '/translation/save', '/translation/generate', '/translation/catalog/refresh', '/translation/register',

@@ -1,6 +1,8 @@
+import {isObjectKey} from '../utils/object-key-policy';
 const kvObjService = {
 
 	async putObj(c, key, content, metadata) {
+		if(!isObjectKey(key))throw new Error('Invalid file key');
 		await c.env.kv.put(key, content, { metadata: metadata });
 	},
 
@@ -18,6 +20,7 @@ const kvObjService = {
 	},
 
 	async getObj(c, key) {
+		if(!isObjectKey(key))return null;
 
 		const obj = await c.env.kv.getWithMetadata(key, { type: 'arrayBuffer' });
 

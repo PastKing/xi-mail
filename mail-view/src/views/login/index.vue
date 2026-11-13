@@ -153,13 +153,13 @@
           <div v-else key="register" class="fields register-fields">
             <div class="field field-email">
               <label>{{ $t('emailAccount') }}</label>
-              <div class="input-group" :class="{ 'has-suffix': hasDomains }">
+              <div class="input-group" :class="{ 'has-suffix': showRegisterSuffix }">
                 <div class="input-main">
                   <Icon class="input-icon" icon="mingcute:mail-line" width="16" height="16" />
                   <input v-model="registerForm.email" type="text" autocomplete="off"
                     :placeholder="hasDomains ? 'username' : $t('emailAccount')" />
                 </div>
-                <div v-if="hasDomains" class="input-suffix" @click.stop="openSelect">
+                <div v-if="showRegisterSuffix" class="input-suffix" @click.stop="openSelect">
                   <span>{{ suffix }}</span>
                   <Icon icon="mingcute:down-line" width="11" height="11" />
                   <el-select v-if="show !== 'login'" ref="mySelect" v-model="suffix" class="hidden-select" :popper-class="suffixPopperClass">
@@ -173,7 +173,7 @@
               <label>{{ $t('password') }}</label>
               <div class="input-main standalone">
                 <Icon class="input-icon" icon="mingcute:lock-line" width="16" height="16" />
-                <input v-model="registerForm.password" :type="showPwd ? 'text' : 'password'" autocomplete="off" :placeholder="$t('password')" />
+                <input v-model="registerForm.password" :type="showPwd ? 'text' : 'password'" autocomplete="new-password" :placeholder="$t('pwdRuleHint')" :title="$t('pwdWeakMsg')" />
                 <button class="toggle-pwd" @click="showPwd = !showPwd" type="button" tabindex="-1">
                   <Icon :icon="showPwd ? 'mingcute:eye-line' : 'mingcute:eye-close-line'" width="15" height="15" />
                 </button>
@@ -191,6 +191,8 @@
               </div>
             </div>
 
+            <PasswordRequirements :value="registerForm.password" class="register-password-feedback"/>
+            <div class="register-address-hint">{{ $t('registerAddressHint') }}</div>
             <div v-if="settingStore.settings.regKey === 0 || settingStore.settings.regKey === 2" class="field field-reg-key">
               <label>{{ settingStore.settings.regKey === 0 ? $t('regKey') : $t('regKeyOptional') }}</label>
               <div class="input-main standalone">
@@ -241,10 +243,12 @@
 
 <script setup>
 import BrandMark from '@/components/BrandMark.vue';
+import PasswordRequirements from '@/components/PasswordRequirements.vue';
 import router from "@/router";
 import {computed, nextTick, onMounted, reactive, ref, watch} from "vue";
 import {login, register} from "@/request/login.js";
 import {isEmail} from "@/utils/verify-utils.js";
+import {isStrongPassword} from '@/utils/password.js';
 import {useSettingStore} from "@/store/setting.js";
 import {useAccountStore} from "@/store/account.js";
 import {useUserStore} from "@/store/user.js";
@@ -296,6 +300,7 @@ const registerForm = reactive({ email: '', password: '', confirmPassword: '', co
 const domainList = computed(() => settingStore.domainList || []);
 const hasDomains = computed(() => domainList.value.length > 0);
 const showLoginSuffix = computed(() => settingStore.settings.loginDomain === 0 && hasDomains.value && !form.email.includes('@'));
+const showRegisterSuffix = computed(() => hasDomains.value && !registerForm.email.includes('@'));
 const suffixPopperClass = '';
 const registerLoading = ref(false);
 suffix.value = domainList.value[0] || '';
@@ -352,7 +357,7 @@ async function saveToken(token) {
   const sid = serverStore.activeServer?.id || 'local'
   serverStore.setToken(sid, token)
   const user = await loginUserInfo();
-  accountStore.currentAccountId = user.account.accountId;
+  accountStore.currentAccountId = user.account.accountId || 0;
   accountStore.currentAccount = user.account;
   userStore.user = user;
   settingStore.domainList = user.domainList || settingStore.domainList;
@@ -364,13 +369,14 @@ async function saveToken(token) {
 
 function submitRegister() {
   if (!registerForm.email) { ElMessage({ message: t('emptyEmailMsg'), type: 'error', plain: true }); return; }
-  if (registerForm.email.split('@')[0].length < settingStore.settings.minEmailPrefix) {
+  if (showRegisterSuffix.value && registerForm.email.trim().length < settingStore.settings.minEmailPrefix) {
     ElMessage({ message: t('minEmailPrefix', { msg: settingStore.settings.minEmailPrefix }), type: 'error', plain: true }); return;
   }
-  const regSuffix = hasDomains.value ? suffix.value : '';
-  if (!isEmail(registerForm.email + regSuffix)) { ElMessage({ message: t('notEmailMsg'), type: 'error', plain: true }); return; }
+  const regSuffix = showRegisterSuffix.value ? suffix.value : '';
+  const email = registerForm.email.trim() + regSuffix;
+  if (!isEmail(email)) { ElMessage({ message: t('notEmailMsg'), type: 'error', plain: true }); return; }
   if (!registerForm.password) { ElMessage({ message: t('emptyPwdMsg'), type: 'error', plain: true }); return; }
-  if (registerForm.password.length < 6) { ElMessage({ message: t('pwdLengthMsg'), type: 'error', plain: true }); return; }
+  if (!isStrongPassword(registerForm.password)) { ElMessage({ message: t('pwdWeakMsg'), type: 'error', plain: true }); return; }
   if (registerForm.password !== registerForm.confirmPassword) {
     ElMessage({ message: t('confirmPwdFailMsg'), type: 'error', plain: true }); return;
   }
@@ -392,7 +398,7 @@ function submitRegister() {
     return;
   }
   registerLoading.value = true;
-  register({ email: registerForm.email + regSuffix, password: registerForm.password, token: verifyToken, code: registerForm.code })
+  register({ email, password: registerForm.password, token: verifyToken, code: registerForm.code })
     .then(({ regVerifyOpen }) => {
       show.value = 'login';
       Object.assign(registerForm, { email: '', password: '', confirmPassword: '', code: '' });
@@ -720,6 +726,8 @@ function submitRegister() {
     }
   }
 }
+
+.register-address-hint { font-size: 12px; line-height: 1.5; color: var(--el-text-color-secondary); }
 
 .auth-card.is-register {
   .card-header {

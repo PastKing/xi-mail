@@ -8,7 +8,7 @@ import {useUserStore} from "@/store/user.js";
 import i18n from "@/i18n/index.js";
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
 
-export const SYS_SETTING_VERSION = 'v3.6.10'
+export const SYS_SETTING_VERSION = 'v3.6.11'
 
 let context = null
 
@@ -118,7 +118,7 @@ function createContext() {
       try{
         await settingSet(job.form)
         ElMessage({message: t('saveSuccessMsg'), type: 'success', plain: true})
-        if (setting.value.manyEmail === 1) accountStore.currentAccountId = userStore.user.account.accountId
+        if (setting.value.manyEmail === 1) accountStore.currentAccountId = userStore.user.account?.accountId || 0
         if (refreshStatus) await getSettings(job)
         else Object.assign(persisted,clone(job.form))
         return true

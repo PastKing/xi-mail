@@ -11,6 +11,7 @@ import accountService from './account-service';
 import aiService from './ai-service';
 import telegramService from './telegram-service';
 import { managedSender, authenticatedSender, managedDomainList } from '../utils/sender-auth';
+import { matchSenderList, safeSenderName } from '../utils/sender-filter';
 
 const SYNC_CURSOR = 'sub-sync-sw:';
 const SYNC_LOCK = 'sub-sync-lock:';
@@ -35,16 +36,7 @@ export function parseDomains(raw) {
 	return list.map(item => String(item).trim().replace(/^@/, '').toLowerCase()).filter(Boolean);
 }
 
-function matchDomainList(list, address) {
-	if (!address) return false;
-	const atIdx = address.lastIndexOf('@');
-	if (atIdx === -1) return false;
-	const senderDomain = address.slice(atIdx + 1).toLowerCase().trim();
-	return list.some(item => {
-		const d = item.toLowerCase().trim().replace(/^@/, '');
-		return d && (senderDomain === d || senderDomain.endsWith('.' + d));
-	});
-}
+const matchDomainList = matchSenderList;
 
 // 子 Worker 邮件在主库里的唯一标识，用于去重
 function syncMessageId(subWorkerId, remoteId) {
@@ -139,7 +131,7 @@ const subWorkerService = {
 
 		const emailRow = await orm(c).insert(email).values({
 			sendEmail: fromAddress,
-			name: row.name || emailUtils.getName(fromAddress),
+			name: safeSenderName(row.name, fromAddress) || emailUtils.getName(fromAddress),
 			subject: row.subject || '',
 			content: row.content || '',
 			text: row.text || '',

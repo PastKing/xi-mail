@@ -106,7 +106,7 @@ import {useEmailStore} from "@/store/email.js";
 import {fileToBase64, formatBytes} from "@/utils/file-utils.js";
 import {getIconByName} from "@/utils/icon-utils.js";
 import sendPercent from "@/components/send-percent/index.vue"
-import {toOssDomain} from "@/utils/convert.js";
+import {toOssDomain,formatPrivateImages} from "@/utils/convert.js";
 import {formatDetailDate} from "@/utils/day.js";
 import {useSettingStore} from "@/store/setting.js";
 import {userDraftStore} from "@/store/draft.js";
@@ -512,7 +512,7 @@ async function openForward(email) {
 
   setTimeout(() => {
     defValue.value = `
-      ${formatImage(email.content) || `<pre style="font-family: inherit;word-break: break-word;white-space: pre-wrap;margin: 0">${email.text}</pre>`}
+      ${formatImage(email.content,email.attachmentUrls) || `<pre style="font-family: inherit;word-break: break-word;white-space: pre-wrap;margin: 0">${email.text}</pre>`}
     `
     open()
 
@@ -555,7 +555,7 @@ async function openReply(email) {
     </div>
     <blockquote class="mceNonEditable" style="margin: 0 0 0 0.8ex;border-left: 1px solid rgb(204,204,204);padding-left: 1ex;">
       <articl>
-          ${formatImage(email.content) || `<pre style="font-family: inherit;word-break: break-word;white-space: pre-wrap;margin: 0">${email.text}</pre>`}
+          ${formatImage(email.content,email.attachmentUrls) || `<pre style="font-family: inherit;word-break: break-word;white-space: pre-wrap;margin: 0">${email.text}</pre>`}
       </article>
     </blockquote>`
     open()
@@ -570,8 +570,8 @@ async function openReply(email) {
 
 }
 
-function formatImage(content) {
-  content = content || '';
+function formatImage(content,urls) {
+  content = formatPrivateImages(content,urls);
   const domain = settingStore.settings.objectProxyBase || settingStore.settings.r2Domain;
   return content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
 }

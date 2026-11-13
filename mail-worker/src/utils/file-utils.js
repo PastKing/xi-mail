@@ -1,15 +1,16 @@
 const fileUtils = {
 	getExtFileName(filename) {
-		try {
-			const index = filename.lastIndexOf('.');
-			return index !== -1 ? filename.slice(index) : '';
-		} catch (e) {
-			return ''
-		}
+		if (typeof filename !== 'string') return '';
+		const index = filename.lastIndexOf('.');
+		const ext = index !== -1 ? filename.slice(index) : '';
+		return /^\.[A-Za-z0-9]{1,16}$/.test(ext) ? ext.toLowerCase() : '';
 	},
 
-	async getBuffHash(buff) {
-		const hashBuffer = await crypto.subtle.digest('SHA-256', buff);
+	// Keyed so object keys cannot be derived from known file content.
+	async getBuffHash(buff, secret) {
+		const hashBuffer = secret
+			? await crypto.subtle.sign('HMAC', await crypto.subtle.importKey('raw', new TextEncoder().encode('xi-mail-object-key:' + secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']), buff)
+			: await crypto.subtle.digest('SHA-256', buff);
 		const hashArray = Array.from(new Uint8Array(hashBuffer));
 		return hashArray.slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
 	},

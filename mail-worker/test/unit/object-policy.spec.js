@@ -6,6 +6,7 @@ import s3Service from '../../src/service/s3-service';
 import worker from '../../src/index';
 import locations from '../../src/service/object-location-service';
 import settingService from '../../src/service/setting-service';
+import {isObjectKey} from '../../src/utils/object-key-policy';
 
 const encoder = new TextEncoder();
 const svg = encoder.encode('<svg xmlns="http://www.w3.org/2000/svg"><script>parent.__objectProbe=localStorage.token</script></svg>');
@@ -14,6 +15,11 @@ const oldSvgMetadata = { contentType: 'image/svg+xml', contentDisposition: 'inli
 afterEach(() => vi.restoreAllMocks());
 
 describe('Untrusted object response policy', () => {
+  it.each(['setting:','global:token','public_key:','auth-uid:1','mail-link:v1:test','attachments/../setting:','attachments/%2e%2e/setting%3a','static/background/../../setting:'])('rejects non-object key %s before any storage lookup',async key=>{
+    const lookup=vi.fn();expect(isObjectKey(key)).toBe(false);
+    expect(await r2Service.getObj({env:{kv:{getWithMetadata:lookup},db:{prepare:lookup}}},key)).toBe(null);
+    expect(await kvObjService.getObj({env:{kv:{getWithMetadata:lookup}}},key)).toBe(null);expect(lookup).not.toHaveBeenCalled();
+  });
   it.each(['image/svg+xml', 'image/svg+xml; charset=utf-8', 'IMAGE/SVG+XML', 'text/html', 'application/xhtml+xml', 'application/xml', 'text/xml', 'text/javascript', 'application/pdf', '', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/png\r\nX-Injected: yes'])('downloads active or spoofed content declared as %s', type => {
     const headers = safeObjectHeaders(svg, 'attachments/probe.svg', { ...oldSvgMetadata, contentType: type });
     expect(headers['Content-Type']).toBe('application/octet-stream');
@@ -80,7 +86,12 @@ describe('Stored object entry points', () => {
     expect(metadata.contentDisposition).toMatch(/^attachment;/);
     expect(metadata.cacheControl).toBe('no-store');
   });
-  it.each(['/attachments/probe.svg', '/static/probe.svg'])('protects historical objects through the public Worker path %s', async path => {
+  it('denies anonymous reads of historical private objects before storage lookup',async()=>{
+    const get=vi.fn();
+    const response=await worker.fetch(new Request('https://mail.example/attachments/probe.svg'),{r2:{get}},{});
+    expect(response.status).toBe(401);expect(get).not.toHaveBeenCalled();
+  });
+  it.each(['/static/probe.svg'])('protects historical public website assets through the Worker path %s', async path => {
     vi.spyOn(r2Service, 'storageType').mockResolvedValue('R2');
     const get = vi.fn().mockResolvedValue({ httpMetadata: oldSvgMetadata, arrayBuffer: async () => svg.buffer });
     const response = await worker.fetch(new Request('https://mail.example' + path), { r2: { get } }, {});

@@ -22,6 +22,7 @@ import verifyRecordService from './verify-record-service';
 import sessionService from './session-service';
 import securityRateLimit from './security-rate-limit-service';
 import { createRegistration } from './registration-service';
+import { assertStrongPassword } from '../utils/password-policy';
 
 const loginService = {
 
@@ -30,7 +31,9 @@ const loginService = {
 		const { password, token, code } = params || {};
 		const email = typeof params?.email === 'string' ? params.email.trim().toLowerCase() : params?.email;
 
-		let { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter, emailKeywordBlacklist } = await settingService.query(c)
+		const setting = await settingService.query(c);
+		const { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter, emailKeywordBlacklist } = setting;
+		const managedAddress = typeof email === 'string' && settingService.getValidDomains(setting).includes(emailUtils.getDomain(email));
 
 		if (register === settingConst.register.CLOSE) {
 			throw new BizError(t('regDisabled'));
@@ -40,8 +43,7 @@ const loginService = {
 		if (typeof email !== 'string' || email.length > 320 || !verifyUtils.isEmail(email)) {
 			throw new BizError(t('notEmail'));
 		}
-		if (typeof password !== 'string' || password.length < 6) throw new BizError(t('pwdMinLength'));
-		if (password.length > 30) throw new BizError(t('pwdLengthLimit'));
+		assertStrongPassword(password);
 
 		// Registration is anonymous: claiming the admin address must not bypass CAPTCHA.
 		// Verify before policy, invitation or address lookups to avoid unverified probing.
@@ -51,26 +53,20 @@ const loginService = {
 		}
 		if (regVerifyOpen) await turnstileService.verify(c, token);
 
-		if (emailUtils.getName(email).length < minEmailPrefix) {
+		if (managedAddress && emailUtils.getName(email).length < minEmailPrefix) {
 			throw new BizError(t('minEmailPrefix', { msg: minEmailPrefix } ));
 		}
 
-		if (emailPrefixFilter.some(content => emailUtils.getName(email).includes(content)))  {
+		if (managedAddress && emailPrefixFilter.some(content => emailUtils.getName(email).includes(content)))  {
 			throw new BizError(t('banEmailPrefix'));
 		}
 
-		if (emailKeywordBlacklist.length > 0 && emailKeywordBlacklist.some(kw => emailUtils.getName(email).toLowerCase().includes(kw.toLowerCase()))) {
+		if (managedAddress && emailKeywordBlacklist.length > 0 && emailKeywordBlacklist.some(kw => emailUtils.getName(email).toLowerCase().includes(kw.toLowerCase()))) {
 			throw new BizError(t('emailKeywordBlocked'));
 		}
 
 		if (emailUtils.getName(email).length > 64) {
 			throw new BizError(t('emailLengthLimit'));
-		}
-
-		const isAdmin = email === c.env.admin;
-		const setting = await settingService.query(c);
-		if (!isAdmin && !settingService.isDomainValid(setting, emailUtils.getDomain(email))) {
-			throw new BizError(t('notEmailDomain'));
 		}
 
 		let type = null;
@@ -108,7 +104,7 @@ const loginService = {
 
 		const roleRow = await roleService.selectById(c, type || defType);
 
-		if(!roleService.hasAvailDomainPerm(roleRow.availDomain, email)) {
+		if(managedAddress && !roleService.hasAvailDomainPerm(roleRow.availDomain, email)) {
 
 			if (type) {
 				throw new BizError(t('noDomainPermRegKey'),403)
@@ -122,13 +118,13 @@ const loginService = {
 
 		const { salt, hash } = await saltHashUtils.hashPassword(password);
 
-		const registration = { email, regKeyId, password: hash, salt, type: type || defType,
+		const registration = { email, regKeyId, password: hash, salt, type: type || defType, createMailbox: managedAddress,
 			displayId: userService.generateDisplayId(), name: emailUtils.getName(email) };
 		const invitation = regKeyId ? { code, todayStart: toUtc().tz('Asia/Shanghai').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss') } : null;
 		let userId = await createRegistration(c, registration, invitation);
 		if (!userId && regKey === settingConst.regKey.OPTIONAL && invitation) {
 			const fallback = await roleService.selectDefaultRole(c);
-			if (!roleService.hasAvailDomainPerm(fallback.availDomain, email)) throw new BizError(t('noDomainPermReg'), 403);
+			if (managedAddress && !roleService.hasAvailDomainPerm(fallback.availDomain, email)) throw new BizError(t('noDomainPermReg'), 403);
 			userId = await createRegistration(c, { ...registration, type: fallback.roleId, regKeyId: 0 });
 		}
 		if (!userId) {
@@ -211,7 +207,7 @@ const loginService = {
 
 		// Hash even for unknown accounts, and use one response for unknown/deleted/wrong-password logins.
 		const validPassword = noVerifyPwd || await cryptoUtils.verifyPassword(password,
-			userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || 'unmatchable-dummy-hash');
+			userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || cryptoUtils.DUMMY_HASH);
 		if (!userRow || userRow.isDel === isDel.DELETE || !validPassword)
 			throw new BizError(t('invalidCredentials'));
 
@@ -221,7 +217,10 @@ const loginService = {
 			throw new BizError(banMsg);
 		}
 
-		if (!noVerifyPwd) await securityRateLimit.loginSuccess(c, email);
+		if (!noVerifyPwd) {
+			await securityRateLimit.loginSuccess(c, email);
+			await userService.upgradePasswordHash(c, userRow, password);
+		}
 
 		const uuid = uuidv4();
 		const jwt = await JwtUtils.generateToken(c,{ userId: userRow.userId, token: uuid });

@@ -37,4 +37,4 @@ export function validateS3Config(setting) {
   normalizeStoragePrefix(setting.s3Prefix||'');
 }
 export function storageKey(setting,key) {return normalizeStoragePrefix(setting.s3Prefix||'')+key;}
-export function objectProxyBase(c,setting) {return hasS3Config(setting)&&c.req?.url?new URL(c.req.url).origin:'';}
+export function objectProxyBase(c,setting) {return c.req?.url?new URL(c.req.url).origin:'';}

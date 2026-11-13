@@ -253,6 +253,7 @@
             <button type="button" class="xi-icon-button" :aria-label="$t('randomPassword')" :disabled="settingLoading" @click="userForm.password=createRandomPassword()"><Icon icon="mingcute:refresh-2-line" width="16" height="16"/></button>
           </el-tooltip>
         </div>
+        <PasswordRequirements :value="userForm.password || ''"/>
         <el-button class="btn" type="primary" :loading="settingLoading" @click="updatePwd"
         >{{ $t('save') }}
         </el-button>
@@ -290,6 +291,7 @@
             </el-tooltip>
           </div>
         </div>
+        <PasswordRequirements :value="addForm.password || ''"/>
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('perm') }}</label>
           <el-select v-model="addForm.type" :placeholder="$t('perm')" style="width: 100%">
@@ -514,7 +516,8 @@ import {useRoleStore} from "@/store/role.js";
 import {useUserStore} from "@/store/user.js";
 import {useI18n} from 'vue-i18n';
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js';
-import {createRandomPassword} from '@/utils/password.js';
+import {createRandomPassword, isStrongPassword} from '@/utils/password.js';
+import PasswordRequirements from '@/components/PasswordRequirements.vue';
 
 defineOptions({
   name: 'user'
@@ -888,9 +891,9 @@ function submit() {
     return
   }
 
-  if (addForm.password.length < 6) {
+  if (!isStrongPassword(addForm.password)) {
     ElMessage({
-      message: t('pwdLengthMsg'),
+      message: t('pwdWeakMsg'),
       type: "error",
       plain: true
     })
@@ -1149,9 +1152,9 @@ function updatePwd() {
     return
   }
 
-  if (userForm.password.length < 6) {
+  if (!isStrongPassword(userForm.password)) {
     ElMessage({
-      message: t('pwdLengthMsg'),
+      message: t('pwdWeakMsg'),
       type: 'error',
       plain: true,
     })

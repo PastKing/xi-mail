@@ -4,6 +4,7 @@ import kvObjService from './kv-obj-service';
 import { safeObjectMetadata, safeObjectHeaders } from '../utils/object-policy';
 import locations from './object-location-service';
 import {hasS3Config,storageKey} from './storage-config-service';
+import {isObjectKey} from '../utils/object-key-policy';
 
 const r2Service = {
 
@@ -59,6 +60,7 @@ const r2Service = {
 	 * 之前这里固定读 KV，R2/S3 存储下会返回空内容，导致图片和附件变成 0 字节
 	 */
 	async getObj(c, key) {
+		if(!isObjectKey(key))return null;
 		const candidates=await this.candidates(c,key),seen=new Set();
 		for(const {backend,physicalKey} of candidates){
 			const id=backend+':'+physicalKey;if(seen.has(id))continue;seen.add(id);

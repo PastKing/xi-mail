@@ -58,6 +58,10 @@ const sessionService = {
 			authInfo.sessions = {};
 		}
 		authInfo.signingKeyId = keyId;
+		if (authInfo.user) {
+			const { password, salt, ...safeUser } = authInfo.user;
+			authInfo.user = safeUser;
+		}
 		return c.env.kv.put(KvConst.AUTH_INFO + userId, JSON.stringify(authInfo), { expirationTtl: constant.TOKEN_EXPIRE });
 	},
 

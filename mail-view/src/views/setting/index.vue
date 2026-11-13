@@ -35,7 +35,7 @@
           </span>
           <span v-else class="user-name">
             <span >{{ userStore.user.name }}</span>
-            <span class="edit-name" @click="showSetName">
+            <span v-if="userStore.user.account?.accountId" class="edit-name" @click="showSetName">
              {{$t('change')}}
             </span>
           </span>
@@ -71,6 +71,7 @@
       <div class="update-pwd">
         <el-input type="password" :placeholder="$t('oldPassword')" v-model="form.oldPwd" autocomplete="off"/>
         <el-input type="password" :placeholder="$t('newPassword')" v-model="form.password" autocomplete="off"/>
+        <PasswordRequirements :value="form.password"/>
         <el-input type="password" :placeholder="$t('confirmPassword')" v-model="form.newPwd" autocomplete="off"/>
         <el-button type="primary" :loading="setPwdLoading" @click="submitPwd">{{$t('save')}}</el-button>
       </div>
@@ -81,6 +82,8 @@
 import {computed, reactive, ref, defineOptions, onMounted} from 'vue'
 import {Icon} from "@iconify/vue";
 import {resetPassword, userDelete} from "@/request/my.js";
+import {isStrongPassword} from '@/utils/password.js';
+import PasswordRequirements from '@/components/PasswordRequirements.vue';
 import {useUserStore} from "@/store/user.js";
 import router from "@/router/index.js";
 import {accountSetName} from "@/request/account.js";
@@ -228,9 +231,9 @@ function submitPwd() {
     return
   }
 
-  if (form.password.length < 6) {
+  if (!isStrongPassword(form.password)) {
     ElMessage({
-      message: t('pwdLengthMsg'),
+      message: t('pwdWeakMsg'),
       type: 'error',
       plain: true,
     })

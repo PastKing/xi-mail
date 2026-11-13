@@ -14,6 +14,10 @@ app.use('*', cors({
 
 app.onError((err, c) => {
 	if (err.name === 'BizError') {
+		if (c.req.path.startsWith('/oss/')) {
+			c.header('Cache-Control','no-store');
+			return c.json(result.fail(err.message,err.code),[401,403,404].includes(err.code)?err.code:400);
+		}
 		console.log(err.message);
 	} else {
 		console.error(err);
