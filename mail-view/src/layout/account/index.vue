@@ -596,7 +596,9 @@ path[fill="#ffdda1"] { fill: #ffdd7d; }
 
 .scrollbar {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+  :deep(.el-scrollbar__wrap) { overscroll-behavior-y: contain; }
 }
 
 .account-row {

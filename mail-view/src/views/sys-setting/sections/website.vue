@@ -6,14 +6,14 @@
         <div class="setting-item">
           <div><span>{{ $t('websiteReg') }}</span></div>
           <div>
-            <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
+            <el-switch @change="change('register')" :before-change="beforeChange" :active-value="0" :inactive-value="1"
                        v-model="setting.register"/>
           </div>
         </div>
         <div class="setting-item">
           <div><span>{{ $t('loginDomain') }}</span></div>
           <div>
-            <el-switch @change="change" :before-change="beforeChange" :active-value="0" :inactive-value="1"
+            <el-switch @change="change('loginDomain')" :before-change="beforeChange" :active-value="0" :inactive-value="1"
                        v-model="setting.loginDomain"/>
           </div>
         </div>
@@ -21,7 +21,7 @@
           <div><span>{{ $t('regKey') }}</span></div>
           <div>
             <el-select popper-class="sys-setting-popper"
-                @change="change"
+                @change="change('regKey')"
                 :style="`width: ${ locale === 'en' ?  100 : 80 }px;`"
                 v-model="setting.regKey"
                 placeholder="Select"
@@ -48,7 +48,7 @@
               :placeholder="$t('regKeyHintPlaceholder')"
               style="width: 200px;"
               clearable
-              @change="change"
+              @change="change('regKeyHint')"
             />
           </div>
         </div>
@@ -65,7 +65,7 @@
               :placeholder="$t('regKeyLinkPlaceholder')"
               style="width: 200px;"
               clearable
-              @change="change"
+              @change="change('regKeyLink')"
             />
           </div>
         </div>
@@ -73,14 +73,14 @@
           <div class="title-item"><span>{{ $t('websiteTitle') }}</span></div>
           <div class="email-title">
             <el-input v-model="editTitle" :aria-label="$t('websiteTitle')" :placeholder="$t('websiteTitle')" @keyup.enter="saveTitle" />
-            <el-button type="primary" :loading="titleSaving" :disabled="settingLoading && !titleSaving" @click="saveTitle">{{ $t('save') }}</el-button>
+            <el-button type="primary" :loading="titleSaving" :disabled="titleSaving" @click="saveTitle">{{ $t('save') }}</el-button>
           </div>
         </div>
         <div class="setting-item">
           <div><span>{{ $t('websiteSubtitle') }}</span><el-tooltip :content="$t('websiteSubtitleDesc')"><Icon icon="mingcute:information-line" width="18" height="18" /></el-tooltip></div>
           <div class="email-title">
             <el-input v-model="editSubtitle" :aria-label="$t('websiteSubtitle')" :placeholder="$t('websiteSubtitlePlaceholder')" :maxlength="100" @keyup.enter="saveSubtitle" />
-            <el-button type="primary" :loading="subtitleSaving" :disabled="settingLoading && !subtitleSaving" @click="saveSubtitle">{{ $t('save') }}</el-button>
+            <el-button type="primary" :loading="subtitleSaving" :disabled="subtitleSaving" @click="saveSubtitle">{{ $t('save') }}</el-button>
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ defineOptions({
 })
 
 const {t, locale} = useI18n()
-const {setting, settingLoading, editSetting, change, beforeChange, onSettingsLoaded, onSettingsDirty} = useSysSetting()
+const {setting, editSetting, change, beforeChange, onSettingsLoaded, onSettingsDirty} = useSysSetting()
 
 const editTitle = ref(''), editSubtitle = ref('')
 const titleSaving = ref(false), subtitleSaving = ref(false)
@@ -130,7 +130,7 @@ onSettingsDirty(() => (titleBaseline !== undefined && editTitle.value !== titleB
 })
 
 async function saveTitle() {
-  if (settingLoading.value) return
+  if (titleSaving.value) return
   const saved = editTitle.value
   titleSaving.value = true
   try {
@@ -138,7 +138,7 @@ async function saveTitle() {
   } finally { titleSaving.value = false }
 }
 async function saveSubtitle() {
-  if (settingLoading.value) return
+  if (subtitleSaving.value) return
   const saved = editSubtitle.value.trim()
   subtitleSaving.value = true
   try {

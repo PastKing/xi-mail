@@ -10,6 +10,7 @@ import emailTextTemplate from '../template/email-text';
 import emailHtmlTemplate from '../template/email-html';
 import verifyUtils from '../utils/verify-utils';
 import domainUtils from "../utils/domain-uitls";
+import {objectProxyBase} from './storage-config-service';
 
 const telegramService = {
 
@@ -22,8 +23,8 @@ const telegramService = {
 		if (emailRow) {
 
 			if (emailRow.content) {
-				const { r2Domain } = await settingService.query(c);
-				return emailHtmlTemplate(emailRow.content || '', r2Domain)
+				const setting = await settingService.query(c);
+				return emailHtmlTemplate(emailRow.content || '', objectProxyBase(c,setting)||setting.r2Domain)
 			} else {
 				return emailTextTemplate(emailRow.text || '')
 			}

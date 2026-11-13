@@ -128,16 +128,17 @@ const handleResize = () => {
 }
 
 .show {
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
   @media (max-width: 767px) {
-    position: fixed;
+    position: absolute;
+    inset: 0 auto 0 0;
     z-index: 100;
     width: 260px;
   }
 }
 
 .hide {
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
   position: fixed;
   transform: translateX(-100%);
   opacity: 0;
@@ -145,6 +146,18 @@ const handleResize = () => {
     width: 260px;
     z-index: 100;
   }
+  @media (max-width: 767px) {
+    position: absolute;
+    inset: 0 auto 0 0;
+  }
+}
+
+.main-box-show,
+.main-box-hide {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .main-box-show {

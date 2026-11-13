@@ -229,7 +229,12 @@
               </div>
             </template>
           </el-dropdown-item>
-          <el-dropdown-item @click="rightDelete(rightClickEmail.emailId)">
+          <el-dropdown-item v-if="props.type === 'all-email' && rightClickEmail.type === 0 && hasPerm('setting:set') && rightClickEmail.sendEmail?.includes('@')" @click="emit('block-sender-domain',rightClickEmail.sendEmail)">
+            <div class="right-dropdown-item"><Icon icon="mingcute:shield-line" width="18" height="18"/><span>{{ t('blockSenderDomain') }}</span></div>
+          </el-dropdown-item>
+          <el-dropdown-item v-if="props.type === 'all-email' && rightClickEmail.sendEmail" @click="handleSearch('sendEmail',rightClickEmail.sendEmail)"><div class="right-dropdown-item"><Icon icon="mingcute:search-line" width="18" height="18"/><span>{{t('searchSenderAddress')}}</span></div></el-dropdown-item>
+          <el-dropdown-item v-if="props.type === 'all-email' && rightClickEmail.sendEmail" @click="copySenderAddress"><div class="right-dropdown-item"><Icon icon="mingcute:copy-line" width="18" height="18"/><span>{{t('copySenderAddress')}}</span></div></el-dropdown-item>
+          <el-dropdown-item v-if="hasPerm(props.type === 'all-email' ? 'all-email:delete' : 'email:delete')" @click="rightDelete(rightClickEmail.emailId)">
             <template #default>
               <div class="right-dropdown-item">
                 <Icon icon="mingcute:delete-2-line" width="18" height="18" />
@@ -310,7 +315,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['jump', 'refresh-before', 'delete-draft', 'right-search'])
+const emit = defineEmits(['jump', 'refresh-before', 'delete-draft', 'right-search','block-sender-domain'])
 const {t} = useI18n()
 const settingStore = useSettingStore()
 const uiStore = useUiStore();
@@ -686,6 +691,10 @@ function rightDelete(emailId) {
 
 function handleSearch(type, value) {
   emit('right-search', type, value);
+}
+async function copySenderAddress(){
+  try{await navigator.clipboard.writeText(rightClickEmail.value.sendEmail);ElMessage({message:t('copySuccessMsg'),type:'success',plain:true});}
+  catch{ElMessage({message:t('copyFailMsg'),type:'error',plain:true});}
 }
 
 function handleDelete() {

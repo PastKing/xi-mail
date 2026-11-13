@@ -1,37 +1,21 @@
 <template>
-  <div class="sys-setting-section">
+  <div class="sys-setting-section domain-settings">
     <div class="settings-card">
-      <div class="card-title">{{ $t('domainList') }}</div>
+      <div class="card-title domain-card-heading"><span class="domain-heading-label">{{ $t('domainList') }}<el-tooltip :content="$t('domainManagementDesc')"><Icon class="warning" icon="mingcute:information-line" width="16" /></el-tooltip></span><span class="domain-heading-meta">{{ $t('domainEnabledCount', { enabled: enabledDomainCount, total: managedDomainsData.length }) }}</span></div>
       <div class="card-content">
         <div class="domain-panel">
-          <div class="domain-tip">
-            <Icon icon="mingcute:information-line" width="15" height="15"/>
-            <span>{{ $t('domainManagementDesc') }}</span>
-          </div>
-
-          <div class="domain-add-row">
-            <el-input
-              v-model="newDomainInput"
-              :placeholder="$t('domainPlaceholder')"
-              @keyup.enter="addDomain"
-              style="flex:1"
-            />
-            <el-button type="primary" @click="addDomain">
-              <Icon icon="mingcute:add-line" width="16" height="16" style="margin-right:4px"/>
-              {{ $t('add') }}
-            </el-button>
-          </div>
+          <p class="domain-summary">{{ $t('domainListSummary') }}</p>
 
           <el-input v-model="domainSearch" clearable :placeholder="$t('domainSearchPlaceholder')" :aria-label="$t('domainSearchPlaceholder')">
             <template #prefix><Icon icon="mingcute:search-line" width="16" height="16" /></template>
           </el-input>
 
           <div class="domain-stat">
-            <span class="domain-order-hint">
+            <span class="domain-order-hint" :title="$t('domainOrderHint')">
               <Icon icon="mingcute:dot-grid-line" width="14" height="14"/>
-              {{ $t('domainOrderHint') }}
+              <span class="domain-sort-desktop">{{ $t('domainSortSummary') }}</span><span class="domain-sort-mobile">{{ $t('domainSortMobileSummary') }}</span>
             </span>
-            <span class="domain-count">{{ $t('domainEnabledCount', { enabled: enabledDomainCount, total: managedDomainsData.length }) }}<template v-if="domainSearch.trim()"> · {{ $t('domainMatchedCount', { count: visibleDomains.length }) }}</template></span>
+            <span v-if="domainSearch.trim()" class="domain-count">{{ $t('domainMatchedCount', { count: visibleDomains.length }) }}</span>
           </div>
 
           <div v-if="managedDomainsData.length === 0" class="domain-empty">{{ $t('noDomains') }}</div>
@@ -54,7 +38,9 @@
                   <Icon icon="mingcute:dot-grid-line" width="16" height="16"/>
                 </span>
               <span class="domain-index">{{ idx + 1 }}</span>
-              <span class="domain-name" :title="item.domain">{{ item.domain }}</span>
+              <span class="domain-label"><span class="domain-name" :title="item.domain">{{ item.domain }}</span>
+              <span v-if="item.domain === defaultDomain" class="domain-default">{{ $t('default') }}</span>
+              </span>
               <div class="domain-actions">
                   <button type="button" class="domain-icon-button domain-step" :title="$t('moveUp')" :aria-label="$t('moveUp')" :disabled="idx === 0" @click="moveDomain(idx, -1)">
                     <Icon icon="mingcute:up-line" width="16" height="16"/>
@@ -84,9 +70,14 @@
             </template>
           </el-dropdown>
 
+          <div class="domain-add-row">
+            <el-input v-model="newDomainInput" :aria-label="$t('domainPlaceholder')" :placeholder="$t('domainPlaceholder')" @keyup.enter="addDomain" />
+            <el-button @click="addDomain"><Icon icon="mingcute:add-line" width="16" height="16" />{{ $t('add') }}</el-button>
+          </div>
+
           <div class="domain-save-row">
             <el-button @click="resetManagedDomains">{{ $t('reset') }}</el-button>
-            <el-button type="primary" :loading="settingLoading" @click="saveDomains">{{ $t('save') }}</el-button>
+            <el-button type="primary" :loading="isSaving('managedDomains')" :disabled="isSaving('managedDomains')" @click="saveDomains">{{ $t('save') }}</el-button>
           </div>
         </div>
       </div>
@@ -106,20 +97,24 @@
     </el-dialog>
 
     <div class="settings-card">
-      <div class="card-title">{{ $t('domainMapping') }}</div>
+      <div class="card-title domain-card-heading"><span>{{ $t('domainMapping') }}</span><span class="domain-heading-meta">{{ $t('ruleListCount', { count: Object.keys(domainMappingData).length }) }}</span></div>
       <div class="card-content">
-        <div class="settings-inline-field">
-      <p>{{ $t('domainMappingDesc') }}</p>
+        <div class="settings-inline-field mapping-panel">
+      <p class="domain-summary">{{ $t('domainMappingDesc') }}</p>
       <div class="mapping-list">
+        <el-input v-if="Object.keys(domainMappingData).length > 6" v-model="mappingSearch" clearable :aria-label="$t('domainMappingSearch')" :placeholder="$t('domainMappingSearch')"><template #prefix><Icon icon="mingcute:search-line" width="16" /></template></el-input>
         <div class="mapping-columns" aria-hidden="true"><span>{{ $t('sourceDomain') }}</span><span>{{ $t('displayDomain') }}</span></div>
-        <div v-for="(val, key) in domainMappingData" :key="key" class="mapping-row">
+        <div v-if="mappingEntries.length" class="mapping-entries">
+        <div v-for="[key] in mappingEntries" :key="key" class="mapping-row">
           <span class="mapping-source" :title="key">{{ key }}</span>
           <Icon class="mapping-arrow" icon="mingcute:arrow-right-line" width="16" height="16" />
           <el-input v-model="domainMappingData[key]" :aria-label="$t('displayDomain') + ' ' + key" :placeholder="$t('displayDomain')" />
-          <el-button type="danger" link :aria-label="$t('delete') + ' ' + key" @click="delete domainMappingData[key]">
+          <el-tooltip :content="$t('delete')" :trigger-keys="[]"><button type="button" class="xi-icon-button" :aria-label="$t('delete') + ' ' + key" @click="delete domainMappingData[key]">
             <Icon icon="mingcute:delete-2-line" width="16" height="16"/>
-          </el-button>
+          </button></el-tooltip>
         </div>
+        </div>
+        <p v-else class="mapping-empty">{{ $t(mappingSearch.trim() ? 'domainNoMatches' : 'domainMappingEmpty') }}</p>
         <div class="mapping-row mapping-row--new">
           <el-select popper-class="sys-setting-popper"
               v-model="newMappingSource"
@@ -143,7 +138,7 @@
             <Icon icon="mingcute:add-line" width="16" height="16"/>
           </el-button>
         </div>
-        <div class="settings-inline-actions"><el-button @click="resetDomainMapping">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="settingLoading" @click="saveDomainMapping">{{ $t('settingsInlineSave') }}</el-button></div>
+        <div class="settings-inline-actions"><el-button @click="resetDomainMapping">{{ $t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="isSaving('domainMapping')" :disabled="isSaving('domainMapping')" @click="saveDomainMapping">{{ $t('settingsInlineSave') }}</el-button></div>
       </div>
         </div>
       </div>
@@ -162,7 +157,7 @@ defineOptions({
 })
 
 const {t} = useI18n()
-const {setting, settingStore, settingLoading, editSetting, onSettingsLoaded, onSettingsDirty} = useSysSetting()
+const {setting, settingStore, isSaving, editSetting, onSettingsLoaded, onSettingsDirty} = useSysSetting()
 
 const managedDomainsData = ref([])
 const newDomainInput = ref('')
@@ -190,6 +185,8 @@ const dragIndex = ref(null)
 const dragOverIndex = ref(null)
 
 const domainMappingData = reactive({})
+const mappingSearch = ref('')
+const mappingEntries = computed(() => Object.entries(domainMappingData).filter(([source,display]) => (source+' '+display).toLowerCase().includes(mappingSearch.value.trim().toLowerCase())))
 let domainsBaseline, mappingBaseline
 const newMappingSource = ref('')
 const newMappingDisplay = ref('')
@@ -197,6 +194,7 @@ const newMappingDisplay = ref('')
 const enabledDomainCount = computed(() =>
   managedDomainsData.value.filter(d => d.enabled !== false).length
 )
+const defaultDomain = computed(() => managedDomainsData.value.find(item => item.enabled !== false)?.domain)
 
 const systemDomains = computed(() =>
   (settingStore.domainList || []).map(d => d.replace(/^@/, ''))
@@ -219,6 +217,7 @@ function resetManagedDomains() {
 }
 
 function resetDomainMapping() {
+  mappingSearch.value = ''
   Object.keys(domainMappingData).forEach(key => delete domainMappingData[key])
   Object.assign(domainMappingData, setting.value.domainMapping || {})
   newMappingSource.value = ''
@@ -325,36 +324,35 @@ async function saveDomainMapping() {
 </script>
 
 <style scoped lang="scss">
+.sys-setting-section.domain-settings {
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  align-items:start;
+  gap:16px;
+  > .settings-card { min-width:0; margin-bottom:0; }
+  .domain-card-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:8px; }
+  .domain-heading-label { display:inline-flex; align-items:center; gap:2px; }
+  .domain-heading-meta { font-size:12px; font-weight:400; color:var(--el-text-color-secondary); white-space:nowrap; }
+  .domain-summary { margin:0 0 4px; font-size:12px; line-height:1.6; color:var(--el-text-color-secondary); }
+  .mapping-panel { padding:0; border:0; }
+}
+@media(max-width:1180px) { .sys-setting-section.domain-settings { grid-template-columns:minmax(0,1fr); gap:12px; } }
 .domain-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 4px 0 2px;
-}
-
-.domain-tip {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-lighter);
-  border-radius: var(--xi-radius-sm, 6px);
-  padding: 8px 10px;
-
-  svg { flex-shrink: 0; margin-top: 2px; }
+  gap: 10px;
+  padding: 0;
 }
 
 .domain-add-row {
   display: flex;
   gap: 8px;
   align-items: center;
+  > .el-input { min-width:0; flex:1; }
+  > .el-button { display:inline-flex; gap:4px; margin:0; flex-shrink:0; }
 
   @media (max-width: 480px) {
-    flex-wrap: wrap;
-    > .el-input { flex: 1; min-width: 140px; }
-    > .el-button { flex-shrink: 0; }
+    > .el-input { min-width:0; }
   }
 }
 
@@ -363,7 +361,7 @@ async function saveDomainMapping() {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 
   .domain-order-hint {
@@ -383,21 +381,26 @@ async function saveDomainMapping() {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-height: 420px;
+  gap: 0;
+  max-height: min(440px,55vh);
   overflow-y: auto;
+  overscroll-behavior:contain;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--xi-radius-sm, 6px);
-  padding: 4px;
+  padding: 0 4px;
 }
 
 .domain-row {
   display: flex;
+  flex-shrink:0;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 4px;
+  gap: 6px;
+  min-height:44px;
+  padding: 2px 4px;
+  box-sizing:border-box;
+  border-radius: 0;
   border: 1px solid transparent;
+  border-bottom-color:var(--el-border-color-extra-light);
   transition: background 0.15s, border-color 0.15s, opacity 0.15s;
 
   &:hover {
@@ -431,10 +434,13 @@ async function saveDomainMapping() {
     width: 20px;
     text-align: center;
     font-size: 12px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-variant-numeric:tabular-nums;
     color: var(--el-text-color-placeholder);
   }
 }
+.domain-row:last-child { border-bottom-color:transparent; }
+.domain-label { display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
+.domain-default { color:var(--el-color-primary); background:var(--el-color-primary-light-9); font-size:11px; line-height:20px; padding:0 5px; border-radius:4px; white-space:nowrap; }
 
 .domain-name {
   font-size: 14px;
@@ -443,6 +449,14 @@ async function saveDomainMapping() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.domain-sort-mobile { display:none; }
+@media(max-width:600px) {
+  .domain-row { padding:6px 2px; gap:4px; .drag-handle { display:none; } .domain-index { width:18px; } }
+  .domain-label { flex-direction:column; align-items:flex-start; gap:2px; }
+  .domain-name { flex:initial; max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+  .domain-sort-desktop { display:none; }
+  .domain-sort-mobile { display:inline; }
 }
 
 .domain-actions {
@@ -455,7 +469,7 @@ async function saveDomainMapping() {
   .el-button + .el-button { margin-left: 0; }
   @media (max-width: 600px) { .domain-step { display: none; } }
 }
-.domain-icon-button { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; border-radius:5px; background:transparent; color:var(--el-text-color-regular); cursor:pointer; }
+.domain-icon-button { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0; border:0; border-radius:5px; background:transparent; color:var(--el-text-color-secondary); cursor:pointer; }
 .domain-icon-button:hover:not(:disabled) { background:var(--el-fill-color); color:var(--el-color-primary); }
 .domain-icon-button:disabled { color:var(--el-text-color-placeholder); cursor:not-allowed; }
 .domain-icon-button:focus-visible { outline:2px solid var(--el-color-primary); outline-offset:1px; }
@@ -470,10 +484,9 @@ async function saveDomainMapping() {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  padding-top:12px;
+  border-top:1px solid var(--el-border-color-extra-light);
 
-  @media (max-width: 480px) {
-    .el-button { flex: 1; }
-  }
 }
 
 .domain-empty {
@@ -484,7 +497,7 @@ async function saveDomainMapping() {
 }
 
 .domain-count {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
@@ -493,8 +506,13 @@ async function saveDomainMapping() {
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  max-width: 680px;
+  margin-top:12px;
 }
+.mapping-entries { max-height:360px; overflow:auto; overscroll-behavior:contain; }
+.mapping-empty { margin:0!important; padding:12px 0; color:var(--el-text-color-secondary); font-size:12px; }
+.mapping-entries .mapping-row { padding:6px 0; border-bottom:1px solid var(--el-border-color-extra-light); }
+.mapping-entries .mapping-row:last-child { border-bottom:0; }
+.mapping-row--new { padding-top:8px; }
 
 .mapping-row, .mapping-columns {
   display: grid;
@@ -504,6 +522,7 @@ async function saveDomainMapping() {
   min-width: 0;
   > .el-select, > .el-input { min-width: 0; width: 100%; }
   > .el-button { margin: 0; width: var(--settings-control-height, 32px); height: var(--settings-control-height, 32px); }
+  > .xi-icon-button { width:var(--settings-control-height,32px); height:var(--settings-control-height,32px); }
 }
 .mapping-columns {
   color: var(--el-text-color-secondary);
@@ -519,9 +538,8 @@ async function saveDomainMapping() {
   height: var(--settings-control-height, 32px);
   line-height: var(--settings-control-height, 32px);
   box-sizing: border-box;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  background:transparent;
+  border: 1px solid transparent;
   color: var(--el-text-color-regular);
   font-size: 14px;
   overflow: hidden;
@@ -536,7 +554,7 @@ async function saveDomainMapping() {
     padding: 8px 0;
     border-bottom: 1px solid var(--el-border-color-extra-light);
     > .mapping-source, > .el-select, > .el-input { grid-column: 1; }
-    > .el-button { grid-column: 2; grid-row: 1 / span 2; }
+    > .el-button, > .xi-icon-button { grid-column: 2; grid-row: 1 / span 2; }
   }
   .mapping-arrow { display: none; }
 }

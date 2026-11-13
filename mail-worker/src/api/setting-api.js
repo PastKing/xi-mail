@@ -4,6 +4,10 @@ import settingService from '../service/setting-service';
 import BizError from '../error/biz-error';
 import { t } from '../i18n/i18n';
 import wecomService from '../service/wecom-service';
+import {blockSenderDomain} from '../service/sender-domain-block-service';
+import s3Service from '../service/s3-service';
+import rateLimit from '../service/security-rate-limit-service';
+import userContext from '../security/user-context';
 
 app.get('/setting/wecom/query', async (c) => {
 	c.header('Cache-Control', 'no-store');
@@ -18,6 +22,18 @@ app.put('/setting/wecom/set', async (c) => {
 app.post('/setting/wecom/test', async (c) => {
 	await wecomService.test(c, await c.req.json());
 	return c.json(result.ok());
+});
+
+app.post('/setting/s3/test',async(c)=>{
+	c.header('Cache-Control','no-store');
+	await rateLimit.consume(c,'s3-test',String(userContext.getUserId(c)),5,60);
+	return c.json(result.ok(await s3Service.testConnection(c,await c.req.json())));
+});
+
+app.post('/setting/senderDomain/block', async(c)=>{
+	c.header('Cache-Control','no-store');
+	const {domain}=await c.req.json();
+	return c.json(result.ok(await blockSenderDomain(c,domain)));
 });
 
 app.put('/setting/set', async (c) => {

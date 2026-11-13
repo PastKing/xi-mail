@@ -21,7 +21,7 @@ export function emailDocument(html) {
   referrer.content = 'no-referrer'
   doc.head.append(referrer)
   const defaults = doc.createElement('style')
-  defaults.textContent = 'html{background:#fff;color:#13181d}body{margin:0;font:14px/1.5 -apple-system,Inter,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:break-word}p{margin:0}h1,h2,h3,h4{font-size:18px;font-weight:700}a{color:#0e70df;text-decoration:none}img{max-width:100%;height:auto}'
+  defaults.textContent = 'html{background:#fff;color:#13181d}body{margin:0;font:14px/1.5 -apple-system,Inter,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:break-word}p{margin:0}pre{max-width:100%;box-sizing:border-box;white-space:pre-wrap;overflow-wrap:anywhere}h1,h2,h3,h4{font-size:18px;font-weight:700}a{color:#0e70df;text-decoration:none}img{max-width:100%;height:auto}'
   doc.head.insertBefore(defaults, policy.nextSibling)
   for (const link of doc.querySelectorAll('a')) {
     link.target = '_blank'
