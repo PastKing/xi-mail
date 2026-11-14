@@ -18,7 +18,7 @@ test('sending services is the single entry for channels and provider settings', 
 
 test('provider rows include configured domains without provider tokens', () => {
   const start = source.indexOf('const providerDomains = computed');
-  const end = source.indexOf('const configurationCount', start);
+  const end = source.indexOf('const filteredProviderDomains', start);
   const script = source.slice(start, end);
   const setting = ref({
     sendProviders: {
@@ -34,6 +34,7 @@ test('provider rows include configured domains without provider tokens', () => {
     { id: 'resend', field: 'resendTokens' },
     { id: 'queensmtp', field: 'queenTokens' },
     { id: 'sendflare', field: 'sendflareTokens' },
+    { id: 'cloudflare', field: null },
   ];
   const providerDomains = new Function(
     'computed',
@@ -50,14 +51,14 @@ test('provider rows include configured domains without provider tokens', () => {
       value: '',
     },
     {
-      domain: 'cloudflare.example',
-      providers: [],
-      value: 'cloudflare',
-    },
-    {
       domain: 'other.example',
       providers: [{ id: 'queensmtp', field: 'queenTokens' }],
       value: 'queensmtp',
+    },
+    {
+      domain: 'cloudflare.example',
+      providers: [{ id: 'cloudflare', field: null }],
+      value: 'cloudflare',
     },
   ]);
 });

@@ -47,6 +47,7 @@
         </div>
       </div>
     </div>
+    <TwoFactorSettings />
     <div class="container oauth-connections" v-if="showOAuthAccounts">
       <div class="title"><Icon icon="mingcute:key-2-line" width="18" height="18" />{{ $t('oauthAccounts') }}</div>
       <p class="oauth-description">{{ $t('oauthAccountsNote') }}</p>
@@ -83,6 +84,7 @@ import {Icon} from "@iconify/vue";
 import {resetPassword, userDelete} from "@/request/my.js";
 import {isStrongPassword} from '@/utils/password.js';
 import PasswordRequirements from '@/components/PasswordRequirements.vue';
+import TwoFactorSettings from '@/components/TwoFactorSettings.vue';
 import {useUserStore} from "@/store/user.js";
 import router from "@/router/index.js";
 import {accountSetName} from "@/request/account.js";
@@ -274,9 +276,10 @@ function submitPwd() {
   width: 100%; max-width: 1280px; margin: 0 auto; padding: 20px;
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; align-items: start;
   &.has-oauth {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr;
-    .oauth-connections { grid-column: 2; grid-row: 1 / span 2; }
-    .del-email { grid-column: 1; grid-row: 2; }
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr;
+    .oauth-connections { grid-column: 2; grid-row: 1 / span 3; }
+    .two-factor-settings { grid-column: 1; grid-row: 2; }
+    .del-email { grid-column: 1; grid-row: 3; }
   }
   .title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
   .title > svg { color: var(--el-text-color-secondary); }
@@ -310,7 +313,7 @@ function submitPwd() {
 .update-pwd { display: flex; flex-direction: column; gap: 15px; }
 @media (max-width: 1023px) {
   .box, .box.has-oauth { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; padding: 16px;
-    .oauth-connections, .del-email { grid-column: auto; grid-row: auto; }
+    .oauth-connections, .del-email, .two-factor-settings { grid-column: auto; grid-row: auto; }
   }
 }
 @media (max-width: 600px) {

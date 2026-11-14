@@ -36,6 +36,8 @@ const sendflareService = {
 		const body = {
 			from: form.from,
 			to: batch ? form.to : form.to[0],
+			...(form.cc?.length ? { cc: form.cc } : {}),
+			...(form.bcc?.length ? { bcc: form.bcc } : {}),
 			subject: form.subject,
 			body: form.html || form.text || ' ',
 			replyTo: [form.from],

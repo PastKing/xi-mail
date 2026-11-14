@@ -8,7 +8,6 @@ import settingService from './setting-service';
 import accountService from './account-service';
 import BizError from '../error/biz-error';
 import emailUtils from '../utils/email-utils';
-import sendChannelService from './send-channel-service';
 import { Resend } from 'resend';
 import attService from './att-service';
 import attachmentAccess from './attachment-access-service';
@@ -184,22 +183,22 @@ const emailService = {
 	},
 
 	// 选择域名的发件服务：按「发件服务」设置优先，未设置时 Resend 优先，保持旧行为
-	resolveSendProvider(setting, domain, hasAttachments) {
+	resolveSendProvider(setting, domain, hasAttachments, emailBinding) {
 		const resendToken = setting.resendTokens?.[domain];
 		const queenToken = setting.queenTokens?.[domain];
 		const flareToken = setting.sendflareTokens?.[domain];
 		const preferred = setting.sendProviders?.[domain];
 
 		const resend = resendToken ? { type: 'resend', token: resendToken } : null;
-		const cloudflare = preferred === 'cloudflare' ? { type: 'cloudflare', token: null } : null;
 		const queen = queenToken ? { type: 'queensmtp', token: queenToken } : null;
 		const flare = flareToken ? { type: 'sendflare', token: flareToken } : null;
+		const cloudflare = preferred === 'cloudflare'
+			? (typeof emailBinding?.send === 'function' ? { type: 'cloudflare' } : null)
+			: null;
 
-		let provider = cloudflare
-			|| ({ resend, queensmtp: queen, sendflare: flare })[preferred]
-			|| resend
-			|| queen
-			|| flare;
+		if (preferred === 'cloudflare' && !cloudflare) throw new BizError(t('cloudflareEmailNotConfigured'), 503);
+
+		let provider = ({ resend, queensmtp: queen, sendflare: flare, cloudflare })[preferred] || resend || queen || flare;
 
 		//QueenSMTP 不支持附件，有附件时换用 Resend
 		if (provider?.type === 'queensmtp' && hasAttachments) {
@@ -219,36 +218,42 @@ const emailService = {
 			sendType, //发件类型
 			emailId, //邮件id，如果是回复邮件会带
 			receiveEmail, //收件人邮箱
-			cc = [], //可选抄送邮箱
+			cc,
+			bcc,
 			text, //邮件纯文本
 			content, //邮件内容
 			subject, //邮件标题
 			attachments //附件
 		} = params;
 
-		// Validate and deduplicate at the API boundary; To takes precedence over CC.
-		const seen = new Set();
-		const normalizeRecipients = addresses => {
-			if (!Array.isArray(addresses)) throw new BizError(t('notEmail'));
-			return addresses.flatMap(address => {
-				if (typeof address !== 'string' || !verifyUtils.isEmail(address.trim())) {
-					throw new BizError(t('notEmail'));
+		const recipientGroups = [];
+		const seenRecipients = new Set();
+		for (const [field, value] of [['receiveEmail', receiveEmail], ['cc', cc], ['bcc', bcc]]) {
+			if (value == null && field !== 'receiveEmail') {
+				recipientGroups.push([]);
+				continue;
+			}
+			if (!Array.isArray(value) || value.length > 100) throw new BizError(t('invalidRecipient'), 400);
+			const normalized = [];
+			for (const address of value) {
+				if (typeof address !== 'string' || address.length > 320) throw new BizError(t('invalidRecipient'), 400);
+				const trimmed = address.trim();
+				if (!verifyUtils.isEmail(trimmed)) throw new BizError(t('invalidRecipient'), 400);
+				const key = trimmed.toLowerCase();
+				if (!seenRecipients.has(key)) {
+					seenRecipients.add(key);
+					normalized.push(trimmed);
 				}
-				address = address.trim();
-				const key = address.toLowerCase();
-				if (seen.has(key)) return [];
-				seen.add(key);
-				return [address];
-			});
-		};
-		receiveEmail = normalizeRecipients(receiveEmail);
-		cc = normalizeRecipients(cc);
-		if (!receiveEmail.length) throw new BizError(t('emptyEmail'));
-		const allRecipients = [...receiveEmail, ...cc];
-
-		const { resendTokens, r2Domain, send, domainList } = await settingService.query(c);
+			}
+			recipientGroups.push(normalized);
+		}
+		[receiveEmail, cc, bcc] = recipientGroups;
+		if (!receiveEmail.length) throw new BizError(t('emptyRecipientMsg'), 400);
+		if (receiveEmail.length + cc.length + bcc.length > 100) throw new BizError(t('invalidRecipient'), 400);
+		const allRecipients = [...receiveEmail, ...cc, ...bcc];
 
 		const setting = await settingService.query(c);
+		const { r2Domain, send, domainList } = setting;
 
 		//判断是否关闭发件功能
 		if (send === settingConst.send.CLOSE) {
@@ -275,7 +280,7 @@ const emailService = {
 
 		//判断接收方是不是全部为站内邮箱
 		const allInternal = allRecipients.every(email => {
-			const domain = '@' + emailUtils.getDomain(email).toLowerCase();
+			const domain = '@' + emailUtils.getDomain(email);
 			return domainList.includes(domain);
 		});
 
@@ -316,11 +321,13 @@ const emailService = {
 
 		}
 
-		const provider = allInternal ? null : this.resolveSendProvider(
-			setting,
-			domain,
-			attachments?.length > 0,
-		);
+		const provider = allInternal ? null : this.resolveSendProvider(setting, domain, attachments?.length > 0, c.env.EMAIL);
+		if (provider?.type === 'cloudflare' && allRecipients.length > 50) {
+			throw new BizError(t('cloudflareEmailRecipientLimit'), 400);
+		}
+		if (provider?.type === 'queensmtp' && (cc.length || bcc.length)) {
+			throw new BizError(t('queenNoCcBcc'), 400);
+		}
 
 		//如果接收方存在站外邮箱，又没有可用的发件服务
 		if (!provider && !allInternal) {
@@ -366,6 +373,8 @@ const emailService = {
 				from: accountRow.email,
 				fromName: name,
 				to: receiveEmail,
+				cc,
+				bcc,
 				subject,
 				html: queenHtml,
 				text,
@@ -381,17 +390,42 @@ const emailService = {
 		} else if (!allInternal && provider.type === 'sendflare') {
 			const id = await sendflareService.send(provider.token, {
 				from: accountRow.email, to: receiveEmail, subject, html, text,
-				cc,
+				cc, bcc,
 				attachments: [...imageDataList, ...(attachments || [])],
 				inReplyTo: sendType === 'reply' ? emailRow.messageId : null,
 			});
 			resendResult = { data: { id: 'sendflare:' + id } };
+		} else if (!allInternal && provider.type === 'cloudflare') {
+			try {
+				const result = await c.env.EMAIL.send({
+					from: { email: accountRow.email, name },
+					to: receiveEmail,
+					...(cc.length ? { cc } : {}),
+					...(bcc.length ? { bcc } : {}),
+					subject,
+					text,
+					html,
+					attachments: [...imageDataList, ...attachments].map(item => ({
+						content: item.content,
+						filename: item.filename,
+						type: item.mimeType || item.contentType || item.type || 'application/octet-stream',
+						disposition: item.contentId ? 'inline' : 'attachment',
+						...(item.contentId ? { contentId: item.contentId } : {}),
+					})),
+				});
+				if (!result?.messageId) throw new Error('Email Service did not return a message ID');
+				resendResult = { data: { id: 'cloudflare:' + result.messageId } };
+			} catch (error) {
+				console.error('Cloudflare Email send failed', error?.code || 'unknown');
+				throw new BizError(t('cloudflareEmailSendFailed', { message: error?.message || '' }), 502);
+			}
 		} else if (!allInternal) {
 
 			const sendForm = {
 				from: `"${name.replace(/["\\]/g, '\\$&')}" <${accountRow.email}>`,
 				to: [...receiveEmail],
 				...(cc.length ? { cc: [...cc] } : {}),
+				...(bcc.length ? { bcc: [...bcc] } : {}),
 				subject: subject,
 				text: text,
 				html: html,
@@ -405,9 +439,8 @@ const emailService = {
 				};
 			}
 
-			resendResult = await sendChannelService.send(c, provider, sendForm, {
-				email: accountRow.email, name
-			}).then(id => ({ data: { id } }));
+			const resend = new Resend(provider.token);
+			resendResult = await resend.emails.send(sendForm);
 
 		}
 
@@ -444,7 +477,8 @@ const emailService = {
 		});
 
 		emailData.recipient = JSON.stringify(recipient);
-		emailData.cc = JSON.stringify(cc.map(address => ({ address, name: '' })));
+		emailData.cc = JSON.stringify(cc);
+		emailData.bcc = JSON.stringify(bcc);
 
 		if (sendType === 'reply') {
 			emailData.inReplyTo = emailRow.messageId;
@@ -514,6 +548,8 @@ const emailService = {
 			emailValues.type = emailConst.type.RECEIVE;
 			emailValues.toEmail = email;
 			emailValues.toName = emailUtils.getName(email);
+			// Blind-copy addresses belong only to the sender's Sent item.
+			emailValues.bcc = '[]';
 			emailValues.emailId = null;
 
 			const accountRow = accountList.find(accountRow => accountRow.email === email);

@@ -196,6 +196,9 @@ const publicService = {
 		if (email !== c.env.admin.toLowerCase() || !userRow || userRow.isDel === isDel.DELETE || userRow.status === userConst.status.BAN || !valid) {
 			throw new BizError(t('invalidCredentials'));
 		}
+		const { default: twoFactor } = await import('./two-factor-service');
+		const factor = await twoFactor.row(c, userRow.userId);
+		if (factor) await twoFactor.consume(c, factor, params.code);
 		await securityRateLimit.loginSuccess(c, email);
 		await userService.upgradePasswordHash(c, userRow, password);
 	}

@@ -13,11 +13,6 @@ describe('resolveSendProvider', () => {
 		expect(emailService.resolveSendProvider(setting({}, { 'a.com': 'qs_1' }), 'a.com', false)).toEqual({ type: 'queensmtp', token: 'qs_1' });
 	});
 
-	it('统一字段可以直接选择 Cloudflare', () => {
-		expect(emailService.resolveSendProvider(setting({ 'a.com': 're_1' }, {}, { 'a.com': 'cloudflare' }), 'a.com', false))
-			.toEqual({ type: 'cloudflare', token: null });
-	});
-
 	it('两个都配置时默认 Resend，指定后用 QueenSMTP', () => {
 		const both = { 'a.com': 're_1' };
 		const queen = { 'a.com': 'qs_1' };
@@ -37,6 +32,13 @@ describe('resolveSendProvider', () => {
 
 	it('其他域名的 Token 不会被使用', () => {
 		expect(emailService.resolveSendProvider(setting({ 'b.com': 're_1' }, { 'b.com': 'qs_1' }), 'a.com', false)).toBeNull();
+	});
+
+	it('Cloudflare Email 只在指定域名且 Worker 有绑定时启用', () => {
+		const config = setting({}, {}, { 'a.com': 'cloudflare' });
+		expect(emailService.resolveSendProvider(config, 'a.com', false, { send: vi.fn() })).toEqual({ type: 'cloudflare' });
+		expect(() => emailService.resolveSendProvider(config, 'a.com', false)).toThrow(/Cloudflare Email/);
+		expect(emailService.resolveSendProvider(config, 'b.com', false, { send: vi.fn() })).toBeNull();
 	});
 });
 

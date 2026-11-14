@@ -92,7 +92,8 @@ const oauthService = {
     if (!binding) throw new BizError(`此 ${provider.name} 账号尚未绑定邮箱，请先使用邮箱登录，在个人设置中绑定`, 403);
     const user = await userService.selectByIdIncludeDel(c, binding.userId);
     if (!user) throw new BizError('绑定的邮箱已不存在，请联系管理员', 403);
-    return { token: await loginService.login(c, { email: user.email }, true) };
+    const login = await loginService.login(c, { email: user.email }, true);
+    return typeof login === 'string' ? { token: login } : login;
   },
 
   async list(c, userId) {

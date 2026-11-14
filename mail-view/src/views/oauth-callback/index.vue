@@ -1,5 +1,6 @@
 <template>
   <main class="oauth-result" :class="'is-' + phase">
+    <TwoFactorChallenge :challenge="twoFactorChallenge" @verified="finishTwoFactor" @cancel="router.replace('/login')" />
     <header class="oauth-page-header">
       <a :href="returnPath" class="oauth-wordmark"><BrandMark :size="27" /><span>{{ siteName }}</span></a>
       <span>{{ $t('oauthConnectionPage') }}</span>
@@ -55,6 +56,7 @@ import { useServerStore } from '@/store/server.js'
 import { useSettingStore } from '@/store/setting.js'
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js'
 import BrandMark from '@/components/BrandMark.vue'
+import TwoFactorChallenge from '@/components/TwoFactorChallenge.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -64,6 +66,12 @@ const setting = useSettingStore()
 const provider = computed(() => OAUTH_PROVIDERS.find(item => item.id === route.params.provider) || OAUTH_PROVIDERS[0])
 const siteName = computed(() => setting.settings.title || 'Xi-Mail')
 const phase = ref('processing')
+const twoFactorChallenge = ref('')
+function finishTwoFactor(token) {
+  twoFactorChallenge.value = ''
+  server.setToken(server.activeServerId || 'local', token)
+  setSuccess('login')
+}
 const intent = ref('login')
 const message = ref('')
 const retrying = ref(false)
@@ -106,6 +114,7 @@ async function processCallback() {
     const { intent, result } = await finishOAuth(params, route.params.provider)
     if (currentRun !== run) return
     if (intent !== 'bind') {
+      if (result?.requiresTwoFactor) { twoFactorChallenge.value = result.challenge; phase.value = 'idle'; return }
       if (typeof result?.token !== 'string' || !result.token) throw new Error(t('oauthFailed'))
       server.setToken(server.activeServerId || 'local', result.token)
     }

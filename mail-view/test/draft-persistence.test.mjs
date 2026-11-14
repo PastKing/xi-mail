@@ -47,7 +47,7 @@ test('cleared sent drafts remove both draft and attachment records', async () =>
   await persist({draftId: 7, subject: '', content: '', receiveEmail: [], cc: []});
   assert.deepEqual(calls, [['deleteDraft', 7], ['deleteAttachments', 7]]);
   assert.equal(store.refreshList, 1);
-  assert.match(source, /form\.cc = \[\]\s+await persistExistingDraft/);
+  assert.match(source, /form\.cc = \[\]\s+form\.bcc = \[\]\s+await persistExistingDraft/);
 });
 
 test('storage failures propagate without reporting a refreshed draft list', async () => {

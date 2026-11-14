@@ -60,7 +60,7 @@ it('enforces login, read permission, and separate save/test permissions', async 
 });
 
 it('does not include WeCom configuration in public site settings', async () => {
-	vi.spyOn(settingService, 'get').mockResolvedValue({ domainList: [], wecom: { webhookUrl: 'fake-secret' } });
+	vi.spyOn(settingService, 'query').mockResolvedValue({ domainList: [], wecom: { webhookUrl: 'fake-secret' } });
 	state.authenticated = false;
 	const response = await app.request('/setting/websiteConfig', {}, env);
 	const body = await response.json();

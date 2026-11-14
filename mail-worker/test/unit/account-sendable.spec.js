@@ -7,43 +7,28 @@ import {writeRoleDomainPolicy} from '../../src/service/role-domain-policy';
 
 const c = { env: { admin: 'admin@a.com' } };
 
-function mock({ user, role, settings = {} }) {
+function mock({ user, role, sendProviders = {}, domainList = ['@a.com', '@q.com', '@sf.com'] }) {
 	vi.spyOn(settingService, 'query').mockResolvedValue({
 		resendTokens: { 'a.com': 're_1' },
 		queenTokens: { 'q.com': 'qs_1' },
 		sendflareTokens: { 'sf.com': 'sf_1' },
-		sendProviders: { 'cf.com': 'cloudflare' },
-		domainList: ['@a.com', '@q.com', '@sf.com', '@cf.com'],
-		...settings,
+		sendProviders,
+		domainList,
 	});
 	vi.spyOn(userService, 'selectById').mockResolvedValue(user);
 	vi.spyOn(roleService, 'selectById').mockResolvedValue(role);
 }
 
 describe('accountService.sendableChecker', () => {
-	afterEach(() => vi.restoreAllMocks());
+	afterEach(() => { delete c.env.EMAIL; vi.restoreAllMocks(); });
 
-	it('管理员：只要域名配置了统一发件服务就能发', async () => {
+	it('管理员：只要域名配置了 Resend 或 QueenSMTP 就能发', async () => {
 		mock({ user: { email: 'admin@a.com', type: 0 } });
 		const can = await accountService.sendableChecker(c, 1);
 		expect(can('x@a.com')).toBe(true);
 		expect(can('x@q.com')).toBe(true);
 		expect(can('x@sf.com')).toBe(true);
-		expect(can('x@cf.com')).toBe(true);
 		expect(can('x@none.com')).toBe(false);
-	});
-
-	it.each(['resend', 'queensmtp', 'sendflare', 'invalid'])('没有 Token 时不能仅凭服务名称 %s 发信', async provider => {
-		mock({ user: { email: 'admin@a.com', type: 0 }, settings: { sendProviders: { 'cf.com': provider } } });
-		const can = await accountService.sendableChecker(c, 1);
-		expect(can('x@cf.com')).toBe(false);
-	});
-
-	it('Cloudflare-only 域名仍受等级可用域名限制', async () => {
-		mock({ user: { email: 'u@a.com', type: 2 }, role: { sendType: 'count', availDomain: 'cf.com' } });
-		const can = await accountService.sendableChecker(c, 1);
-		expect(can('x@cf.com')).toBe(true);
-		expect(can('x@a.com')).toBe(false);
 	});
 
 	it('普通用户：还要受等级可用域名限制', async () => {
@@ -68,5 +53,14 @@ describe('accountService.sendableChecker', () => {
 		expect(can('x@a.com')).toBe(true);
 		expect(can('x@sf.com')).toBe(true);
 		expect(can('x@unconfigured.example')).toBe(false);
+	});
+	it('Cloudflare Email is sendable only for mapped domains with the Worker binding', async () => {
+		mock({ user: { email: 'admin@a.com', type: 0 }, sendProviders: { 'cf.com': 'cloudflare' }, domainList: ['@cf.com'] });
+		c.env.EMAIL = { send: vi.fn() };
+		const can = await accountService.sendableChecker(c, 1);
+		expect(can('x@cf.com')).toBe(true);
+		delete c.env.EMAIL;
+		expect(can('x@cf.com')).toBe(false);
+		expect(can('x@other.com')).toBe(false);
 	});
 });

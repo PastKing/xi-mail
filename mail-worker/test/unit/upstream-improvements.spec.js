@@ -225,7 +225,7 @@ describe('Indexed daily analytics',()=>{
 
 describe('Hidden public domain lists',()=>{
  it('hides suffixes in the anonymous configuration even when a caller supplies a fabricated Authorization header',async()=>{
-  vi.spyOn(settingService,'get').mockResolvedValue({loginDomain:1,domainList:['@private.example'],loginTemplate:'minimal'});
+  vi.spyOn(settingService,'query').mockResolvedValue({loginDomain:1,domainList:['@private.example'],loginTemplate:'minimal'});
   c.req={header:()=> 'fabricated-session'};
   expect((await settingService.websiteConfig(c)).domainList).toEqual([]);
  });

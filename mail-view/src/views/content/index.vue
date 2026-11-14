@@ -39,11 +39,12 @@
                 </div>
               </div>
               <div class="receive"><span class="source">{{$t('recipient')}}</span><span class="receive-email">{{  formateReceive(email.recipient) }}</span></div>
-              <div class="receive" v-if="formateReceive(email.cc)"><span class="source">{{$t('cc')}}</span><span class="receive-email">{{ formateReceive(email.cc) }}</span></div>
               <div class="status-row">
                 <span class="source">{{$t('tabStatus')}}</span>
                 <el-tag :type="statusMeta(email.status).type" size="small">{{ statusMeta(email.status).label }}</el-tag>
               </div>
+              <div class="receive" v-if="formatRecipientList(email.cc)"><span class="source">{{$t('cc')}}</span><span class="receive-email">{{ formatRecipientList(email.cc) }}</span></div>
+              <div class="receive" v-if="email.type === 1 && formatRecipientList(email.bcc)"><span class="source">{{$t('bcc')}}</span><span class="receive-email">{{ formatRecipientList(email.bcc) }}</span></div>
               <div class="date">
                 <div>{{ formatDetailDate(email.createTime) }}</div>
               </div>
@@ -230,11 +231,16 @@ async function downloadAttachment(att) {
 
 function formateReceive(recipient) {
   try {
-    const addresses = JSON.parse(recipient || '[]')
-    return Array.isArray(addresses) ? addresses.map(item => item.address).filter(Boolean).join(', ') : ''
-  } catch {
-    return ''
-  }
+    recipient = typeof recipient === 'string' ? JSON.parse(recipient) : recipient
+    return Array.isArray(recipient) ? recipient.map(item => item.address || item).join(', ') : ''
+  } catch { return '' }
+}
+
+function formatRecipientList(recipients) {
+  try {
+    const parsed = typeof recipients === 'string' ? JSON.parse(recipients) : recipients
+    return Array.isArray(parsed) ? parsed.map(item => item.address || item).join(', ') : ''
+  } catch { return '' }
 }
 
 function changeStar() {

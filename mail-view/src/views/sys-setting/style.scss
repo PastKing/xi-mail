@@ -409,6 +409,18 @@
 
 .sending-services-dialog.el-dialog {
   width: min(740px, calc(100% - 32px));
+  margin-top: min(8dvh, 64px);
+  max-height: calc(100dvh - min(8dvh, 64px) - 16px);
+  display:flex;
+  flex-direction:column;
+  .el-dialog__header { flex-shrink:0; }
+  .el-dialog__body { min-height:0; overflow-y:auto; }
+  &:not(.is-editing) .el-dialog__body { display:flex; flex-direction:column; }
+  .provider-toolbar, .provider-list-footer { flex-shrink:0; }
+  .provider-domain-list { min-height:0; }
+}
+.sending-services-dialog.is-editing.el-dialog {
+  width: min(480px, calc(100% - 32px));
 }
 
 .notice-popup.el-dialog {

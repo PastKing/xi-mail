@@ -141,6 +141,79 @@ describe.skipIf(!DatabaseSync)('Outbound sender identity', () => {
     expect(sql.prepare('SELECT send_email,resend_email_id FROM email').get()).toEqual({send_email:'sender@allowed.example',resend_email_id:'sendflare:flare-one'});
     expect(deliver).not.toHaveBeenCalled();
   });
+  it('passes CC and BCC to Resend and stores them on the sender copy', async () => {
+    mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};
+    settings.resendTokens = { 'allowed.example': 're_local_test' };
+    const send = vi.spyOn(Resend.prototype, 'post').mockResolvedValue({ data: { id: 'local-cc' }, error: null });
+    const cc = ['copy@external.example'], bcc = ['hidden@external.example'];
+    await emailService.send(c, { ...params(), cc, bcc }, 10);
+    expect(send).toHaveBeenCalledWith('/emails', expect.objectContaining({ to: params().receiveEmail, cc, bcc }), expect.anything());
+    const row = sql.prepare('SELECT cc,bcc FROM email').get();
+    expect(JSON.parse(row.cc)).toEqual(cc);
+    expect(JSON.parse(row.bcc)).toEqual(bcc);
+  });
+  it('passes CC and BCC through SendFlare', async () => {
+    mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};
+    settings.sendflareTokens = { 'allowed.example': 'local-flare-token' };
+    const request = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ success: true, data: { emilId: 'flare-cc' } }));
+    await emailService.send(c, { ...params(), cc: ['copy@external.example'], bcc: ['hidden@external.example'] }, 10);
+    expect(JSON.parse(request.mock.calls[0][1].body)).toMatchObject({
+      cc: ['copy@external.example'], bcc: ['hidden@external.example'],
+    });
+  });
+  it('sends through the Cloudflare binding only for the selected domain and persists its message ID', async () => {
+    mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};
+    settings.resendTokens = {}; settings.sendflareTokens = {};
+    settings.sendProviders = { 'allowed.example': 'cloudflare' };
+    const send = vi.fn().mockResolvedValue({ messageId: 'cf-message-1' });
+    c.env.EMAIL = { send };
+    vi.spyOn(attService, 'saveSendAtt').mockResolvedValue(undefined);
+    const attachment = { content: 'SGVsbG8=', filename: 'hello.txt', size: 5, contentType: 'text/plain' };
+    const cc = ['copy@external.example'], bcc = ['hidden@external.example'];
+    await emailService.send(c, { ...params(), cc, bcc, attachments: [attachment] }, 10);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      from: { email: 'sender@allowed.example', name: 'Sender' },
+      to: ['recipient@external.example'], cc, bcc,
+      attachments: [{ content: 'SGVsbG8=', filename: 'hello.txt', type: 'text/plain', disposition: 'attachment' }],
+    }));
+    expect(sql.prepare('SELECT send_email,resend_email_id,bcc FROM email').get()).toEqual({
+      send_email: 'sender@allowed.example', resend_email_id: 'cloudflare:cf-message-1', bcc: JSON.stringify(bcc),
+    });
+  });
+  it('enforces Cloudflare’s 50-recipient limit before calling the binding', async () => {
+    mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};
+    settings.resendTokens = {}; settings.sendflareTokens = {};
+    settings.sendProviders = { 'allowed.example': 'cloudflare' };
+    const send = vi.fn(); c.env.EMAIL = { send };
+    const recipients = Array.from({ length: 51 }, (_, index) => `r${index}@external.example`);
+    await expect(emailService.send(c, { ...params(), receiveEmail: recipients }, 10))
+      .rejects.toMatchObject({ code: 400, message: expect.stringContaining('50') });
+    expect(send).not.toHaveBeenCalled();
+    expect(sql.prepare('SELECT COUNT(*) AS count FROM email').get().count).toBe(0);
+  });
+  it('refuses CC/BCC when QueenSMTP is the selected provider', async () => {
+    mailbox(1, 10, 'sender@allowed.example');
+    await expect(emailService.send(c, { ...params(), cc: ['copy@external.example'] }, 10))
+      .rejects.toMatchObject({ code: 400, message: expect.stringContaining('QueenSMTP') });
+    expect(deliver).not.toHaveBeenCalled();
+    expect(sql.prepare('SELECT COUNT(*) AS count FROM email').get().count).toBe(0);
+  });
+  it('keeps BCC only on the sender copy for internal deliveries', async () => {
+    mailbox(1, 10, 'sender@allowed.example');
+    mailbox(2, 20, 'to@allowed.example');
+    mailbox(3, 30, 'copy@allowed.example');
+    mailbox(4, 40, 'hidden@allowed.example');
+    vi.spyOn(roleService, 'selectByUserIds').mockResolvedValue([20, 30, 40].map(userId => ({
+      ...role, userId, userEmail: `user${userId}@allowed.example`, banEmail: '', availDomain: 'allowed.example',
+    })));
+    await emailService.send(c, { ...params(), receiveEmail: ['to@allowed.example'], cc: ['copy@allowed.example'], bcc: ['hidden@allowed.example'] }, 10);
+    const rows = sql.prepare('SELECT user_id,to_email,cc,bcc FROM email ORDER BY email_id').all();
+    expect(rows).toHaveLength(4);
+    expect(JSON.parse(rows[0].bcc)).toEqual(['hidden@allowed.example']);
+    expect(rows.slice(1).every(row => JSON.parse(row.bcc).length === 0)).toBe(true);
+    expect(rows.slice(1).map(row => row.to_email)).toEqual(['to@allowed.example', 'copy@allowed.example', 'hidden@allowed.example']);
+    expect(deliver).not.toHaveBeenCalled();
+  });
   it.each([
     [{ success: true, code: 0, data: [{ emailId: 'first' }, { emailId: 'second' }] }, 'sendflare:first,second'],
     [{ success: true, code: 0, requestId: 'batch-receipt', data: null }, 'sendflare:request:batch-receipt'],
@@ -332,7 +405,7 @@ describe.skipIf(!DatabaseSync)('Atomic login throttling and credential responses
     expect(count).toBe(1);
   });
   it('does not exempt lookalike public route prefixes from authentication', async () => {
-    for (const path of ['/login-anything', '/setting/websiteConfig-private', '/webhooks-extra', '/public/genToken-extra']) {
+    for (const path of ['/login-anything', '/setting/websiteConfig-private', '/setting/clientConfig', '/webhooks-extra', '/public/genToken-extra']) {
       const response = await worker.fetch(new Request('https://local.test/api' + path), c.env, {});
       expect((await response.json()).code).toBe(401);
     }
@@ -379,6 +452,7 @@ describe.skipIf(!DatabaseSync)('Resend signed webhook boundary', () => {
     await expect(resendService.webhooks(c, payload, signed(payload))).resolves.toBeUndefined();
   });
   it('exposes only the configured flag in settings and no signing secret in public config', async () => {
+    c.req.url = 'https://mail.example/api/setting/websiteConfig';
     await webhookConfig.save(c, { resendWebhookSecret: signingSecret });
     settingService.query.mockRestore();
     values.set('setting:', JSON.stringify({ aiCode: 0, aiModel: 'test', queenTokens: {}, sendProviders: {},
@@ -386,14 +460,25 @@ describe.skipIf(!DatabaseSync)('Resend signed webhook boundary', () => {
     const queried = await settingService.query(c);
     expect(queried.hasResendWebhookSecret).toBe(true);
     expect(JSON.stringify(queried)).not.toContain(signingSecret);
-    vi.spyOn(settingService, 'get').mockResolvedValue({ ...queried, title: 'Xi-Mail', siteKey: 'public-turnstile-site-key',
-      domainList: ['@allowed.example'], secretKey: 'private-turnstile-secret', resendWebhookSecret: signingSecret, linuxdoClientSecret: 'private-client-secret' });
+    const publicFixture={ ...queried, title: 'Xi-Mail', objectProxyBase: 'https://mail.example', r2Domain:'r2.example.test', notice:true, noticeTitle:'private-title', noticeContent:'private-notice-body',
+      siteKey: 'public-turnstile-site-key', domainList: ['@allowed.example'], secretKey: 'private-turnstile-secret', resendWebhookSecret: signingSecret, linuxdoClientSecret: 'private-client-secret' };
+    vi.spyOn(settingService, 'query').mockResolvedValue(publicFixture);
     const publicConfig = await settingService.websiteConfig(c);
     expect(publicConfig.siteKey).toBe('public-turnstile-site-key');
+    expect(publicConfig.r2Domain).toBeUndefined();
+    expect(publicConfig.objectProxyBase).toBeUndefined();
+    expect(publicConfig.noticeContent).toBeUndefined();
+    expect(publicConfig.noticeTitle).toBeUndefined();
+    expect(publicConfig.autoRefresh).toBeUndefined();
+    expect(publicConfig.addEmailVerify).toBeUndefined();
+    expect(publicConfig.translation.mailTranslation).toBeUndefined();
     expect(publicConfig.domainList).toEqual(['@allowed.example']);
     expect(JSON.stringify(publicConfig)).not.toContain('private-');
     expect(JSON.stringify(publicConfig)).not.toContain(signingSecret);
     expect(publicConfig.hasResendWebhookSecret).toBeUndefined();
+    const clientConfig=await settingService.clientConfig(c);
+    expect(clientConfig.noticeContent).toBe('private-notice-body');
+    expect(clientConfig.objectProxyBase).toBe('https://mail.example');
   });
   it('acknowledges valid unrelated events without exposing whether an email exists', async () => {
     await webhookConfig.save(c, { resendWebhookSecret: signingSecret });
