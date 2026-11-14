@@ -49,29 +49,11 @@ const settingService = {
 		}
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
 		settingRow.queenTokens = JSON.parse(settingRow.queenTokens || '{}');
-		settingRow.sendProviders = await this.migrateSendChannels(
-			c,
-			JSON.parse(settingRow.sendProviders || '{}'),
-		);
+		settingRow.sendProviders = JSON.parse(settingRow.sendProviders || '{}');
 		settingRow.subWorkerDomains = await subWorkerService.domains(c, true);
 		settingRow.loginTemplate = normalizeLoginTemplate(settingRow.loginTemplate);
 		c.set('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
-	},
-
-	async migrateSendChannels(c, sendProviders) {
-		const legacyChannels = await c.env.kv.get(KvConst.SEND_CHANNELS, { type: 'json' }) || {};
-		const entries = Object.entries(legacyChannels)
-			.filter(([, channel]) => channel === 'cloudflare' || channel === 'resend');
-		if (!entries.length) return sendProviders;
-
-		const migrated = { ...sendProviders };
-		for (const [domain, channel] of entries) {
-			if (channel === 'cloudflare') migrated[domain] = 'cloudflare';
-		}
-		await c.env.db.prepare('UPDATE setting SET send_providers = ?').bind(JSON.stringify(migrated)).run();
-		await c.env.kv.delete(KvConst.SEND_CHANNELS);
-		return migrated;
 	},
 
 	async query(c) {
@@ -114,11 +96,6 @@ const settingService = {
 			} catch (e) {}
 			settingRow.queenTokens = settingRow.queenTokens || {};
 			settingRow.sendProviders = settingRow.sendProviders || {};
-		}
-		const migratedSendProviders = await this.migrateSendChannels(c, settingRow.sendProviders);
-		if (migratedSendProviders !== settingRow.sendProviders) {
-			settingRow.sendProviders = migratedSendProviders;
-			await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 		}
 
 		// Parse managed domains (web-configured), fall back to env domain
@@ -215,7 +192,6 @@ const settingService = {
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
 		settingRow.hasR2 = !!c.env.r2
 		settingRow.hasAi = !!c.env.ai
-		settingRow.hasCloudflareEmail = typeof c.env.EMAIL?.send === 'function';
 		settingRow.aiModel = resolveAiModel(settingRow.aiModel, c.env.ai_model)
 		settingRow.aiModels = AI_CODE_MODELS
 
@@ -256,7 +232,6 @@ const settingService = {
 		for (const provider of OAUTH_PROVIDERS) await oauthConfigService.save(c, params, provider.id);
 		if (Object.hasOwn(params, 'loginTemplate')) params.loginTemplate = normalizeLoginTemplate(params.loginTemplate);
 		delete params.hasAi
-		delete params.hasCloudflareEmail
 		delete params.hasR2
 		delete params.aiModels
 		delete params.domainList
@@ -297,17 +272,10 @@ const settingService = {
 			if (!queenTokens[domain]) delete queenTokens[domain];
 		});
 
-		// 每个域名选用的发件服务：cloudflare / resend / queensmtp / sendflare
+		// 每个域名选用的发件服务：resend / queensmtp，空值表示自动（优先 Resend）
 		let sendProviders = { ...settingData.sendProviders, ...params.sendProviders };
-		const validDomains = new Set(settingData.domainList.map(domain => domain.replace(/^@/, '')));
 		Object.keys(sendProviders).forEach(domain => {
-			if (!validDomains.has(domain) || !SEND_PROVIDERS.includes(sendProviders[domain])) {
-				if (Object.hasOwn(params.sendProviders || {}, domain)) throw new BizError(t('invalidSendChannel'));
-				delete sendProviders[domain];
-			}
-			if (sendProviders[domain] === 'cloudflare' && typeof c.env.EMAIL?.send !== 'function') {
-				throw new BizError(t('cloudflareEmailNotBound'));
-			}
+			if (!SEND_PROVIDERS.includes(sendProviders[domain])) delete sendProviders[domain];
 		});
 		if (Object.values(params.sendProviders || {}).includes('cloudflare') && typeof c.env.EMAIL?.send !== 'function') {
 			throw new BizError(t('cloudflareEmailNotConfigured'), 400);

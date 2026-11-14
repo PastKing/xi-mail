@@ -1,7 +1,6 @@
 const KvConst = {
 	AUTH_INFO: 'auth-uid:',
 	SETTING: 'setting:',
-	SEND_CHANNELS: 'setting:send_channels',
 	WECOM: 'setting:wecom',
 	WEBSITE_SUBTITLE: 'website:subtitle',
 	SEND_DAY_COUNT: 'send_day_count:',

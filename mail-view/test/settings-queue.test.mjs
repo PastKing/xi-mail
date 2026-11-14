@@ -10,7 +10,6 @@ function settingsEditor({ failFirst = false } = {}) {
   const server = {
     sendProviders: { 'sender.example': 'cloudflare' },
     domainList: ['@sender.example'],
-    hasCloudflareEmail: true,
     send: 0,
     receive: 0,
     websiteName: 'Original',
@@ -65,7 +64,6 @@ test('failed queued saves roll back only their own field without blocking later 
 test('unrelated setting changes never resubmit provider routing or binding metadata', async () => {
   const { context, setting, writes } = settingsEditor();
   await context.getSettings();
-  setting.value.hasCloudflareEmail = false;
   setting.value.sendProviders = { 'sender.example': 'resend' };
   setting.value.websiteName = 'Updated';
   assert.equal(await context.change(), true);

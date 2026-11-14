@@ -172,7 +172,6 @@
           <div class="provider-domain-info">
             <strong :title="row.domain">{{ row.domain }}</strong>
             <div class="provider-credentials">
-              <span v-if="!row.providers.length" class="provider-empty">{{ t(row.value === 'cloudflare' ? 'sendTokenNotRequired' : 'sendTokenMissing') }}</span>
               <el-button
                 v-for="provider in row.providers"
                 :key="provider.id"
@@ -188,7 +187,7 @@
             </div>
           </div>
           <label class="provider-routing"
-            ><span>{{ t('sendingService') }}</span
+            ><span>{{ t('sendingDefault') }}</span
             ><el-select
               :model-value="row.value"
               :empty-values="[null, undefined]"
@@ -526,16 +525,6 @@ async function saveEmailPrefix() {
 .provider-toolbar > .el-button {
   flex-shrink: 0;
 }
-.provider-cloudflare-status {
-  margin-top: 8px;
-}
-.provider-cloudflare-hint {
-  max-width: 620px;
-  margin: 8px 0 0;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  line-height: 1.6;
-}
 .provider-domain-list {
   border-top: 1px solid var(--el-border-color-lighter);
   max-height: min(56vh, 500px);
@@ -562,27 +551,12 @@ async function saveEmailPrefix() {
   white-space:nowrap;
   text-overflow:ellipsis;
 }
-.provider-channel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-}
-.provider-channel .el-select {
-  width: 140px;
-}
 .provider-credentials {
   display: flex;
   flex-wrap: wrap;
   align-items:center;
   gap: 6px;
   margin-top: 7px;
-}
-.provider-empty {
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
 }
 .provider-credentials .el-button {
   margin-left: 0;

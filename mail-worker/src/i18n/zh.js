@@ -3,8 +3,6 @@ const zh = {
 	wecomWebhookRequired: '请先填写企业微信机器人 Webhook 地址',
 	wecomSendFailed: '企业微信推送失败，请检查机器人地址、机器人状态和发送频率后重试',
 	wecomSendFailedDetails: '企业微信推送失败（错误码 {{code}}）：{{reason}}',
-	invalidSendChannel: "发信渠道或域名配置无效",
-	cloudflareEmailNotBound: "Cloudflare 发信绑定未配置，请先绑定 EMAIL",
 	cloudflareDomainNotReady: "该域名尚未完成 Cloudflare Email Sending 开通或验证",
 	cloudflareRecipientNotAllowed: "Cloudflare 暂不允许向该收件人发信，请开通发件域名或验证目标地址",
 	cloudflareRecipientSuppressed: "收件人在 Cloudflare 拒绝发送名单中",

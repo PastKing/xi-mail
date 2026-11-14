@@ -95,7 +95,6 @@ function createContext() {
     delete settingForm.objectProxyBase
     delete settingForm.hasAi
     delete settingForm.aiModels
-    delete settingForm.hasCloudflareEmail
     delete settingForm.domainList
     delete settingForm.hasResendWebhookSecret
     delete settingForm.translation
