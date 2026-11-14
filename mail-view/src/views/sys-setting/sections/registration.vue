@@ -131,7 +131,7 @@
                 tokens: configurationCount,
               })
             }}</span
-            ><el-button @click="providerDialogShow = true">{{
+            ><el-button @click="openProviderManager">{{
               t('sendingManage')
             }}</el-button>
           </div>
@@ -140,11 +140,18 @@
     </div>
     <el-dialog
       class="sys-setting-dialog sending-services-dialog"
+      :class="{'is-editing': tokenDialogShow}"
       v-model="providerDialogShow"
-      :title="t('sendProvider')"
+      :title="tokenDialogShow ? t(tokenForm.existing ? 'sendingEdit' : 'sendingAdd') : t('sendProvider')"
+      :close-on-click-modal="false"
+      :before-close="closeProviderManager"
+      @closed="resetProviderManager"
     >
+      <template v-if="!tokenDialogShow">
       <div class="provider-toolbar">
-        <p>{{ t('sendingServicesHint') }}</p>
+        <el-input v-model="providerSearch" clearable :placeholder="t('sendingSearch')" :aria-label="t('sendingSearch')">
+          <template #prefix><Icon icon="mingcute:search-line" width="16" /></template>
+        </el-input>
         <el-button type="primary" @click="openTokenForm()"
           ><Icon icon="mingcute:add-line" width="18" />{{
             t('sendingAdd')
@@ -152,26 +159,31 @@
         >
       </div>
       <el-empty
-        v-if="!providerDomains.length"
-        :description="t('sendProviderEmpty')"
+        v-if="!filteredProviderDomains.length"
+        :description="t(providerDomains.length ? 'sendingNoMatches' : 'sendProviderEmpty')"
         :image-size="72"
       />
       <div v-else class="provider-domain-list">
         <article
-          v-for="row in providerDomains"
+          v-for="row in pagedProviderDomains"
           :key="row.domain"
           class="provider-domain-row"
         >
           <div class="provider-domain-info">
-            <strong>{{ row.domain }}</strong>
+            <strong :title="row.domain">{{ row.domain }}</strong>
             <div class="provider-credentials">
               <el-button
                 v-for="provider in row.providers"
                 :key="provider.id"
+                :class="{'is-default-provider': effectiveProvider(row) === provider.id}"
+                :disabled="settingLoading"
                 @click="openTokenForm(provider.id, row.domain)"
-                >{{ provider.name
+                ><span class="provider-dot" :data-provider="provider.id" aria-hidden="true"></span>{{ provider.name
                 }}<Icon icon="mingcute:edit-2-line" width="15"
               /></el-button>
+              <el-tooltip :content="t('sendingAddForDomain')" :trigger-keys="[]">
+                <button type="button" class="xi-icon-button provider-add" :aria-label="t('sendingAddForDomain') + ' ' + row.domain" :disabled="settingLoading" @click="openTokenForm('',row.domain)"><Icon icon="mingcute:add-line" width="16" /></button>
+              </el-tooltip>
             </div>
           </div>
           <label class="provider-routing"
@@ -180,27 +192,24 @@
               :model-value="row.value"
               :empty-values="[null, undefined]"
               :aria-label="t('sendingDefault') + ' ' + row.domain"
-              :disabled="!!tokenAction"
+              :disabled="settingLoading"
               popper-class="sys-setting-popper"
               @change="
                 (value) =>
                   editSetting({ sendProviders: { [row.domain]: value } })
               "
-              ><el-option :label="t('sendProviderAuto')" value="" /><el-option
-                v-for="provider in row.providers"
+              ><el-option :label="t('sendingAutoChannel', { service: automaticProvider(row) })" value="" /><el-option
+                v-for="provider in routeProviders(row)"
                 :key="provider.id"
                 :label="provider.name"
                 :value="provider.id" /></el-select
-          ></label>
+          ><small v-if="row.value === 'cloudflare' && !setting.cloudflareEmailAvailable" class="provider-unavailable">{{ t('cloudflareEmailUnavailable') }}</small></label>
         </article>
       </div>
-    </el-dialog>
-    <el-dialog
-      class="sys-setting-dialog ss-dialog-sm"
-      v-model="tokenDialogShow"
-      :title="t(tokenForm.existing ? 'sendingEdit' : 'sendingAdd')"
-      @closed="tokenForm.token = ''"
-    >
+      <div class="provider-list-footer"><span>{{ t('sendingConfigCount',{domains:providerDomains.length,tokens:configurationCount}) }}</span><el-pagination v-if="filteredProviderDomains.length > providerPageSize" v-model:current-page="providerPage" :page-size="providerPageSize" :total="filteredProviderDomains.length" layout="prev, pager, next" :pager-count="5" small /></div>
+      </template>
+      <div v-else class="provider-editor">
+      <button type="button" class="provider-back" :disabled="!!tokenAction" @click="backToProviderList"><Icon icon="mingcute:arrow-left-line" width="16" />{{ t('sendingBack') }}</button>
       <el-form label-position="top" @submit.prevent="saveToken">
         <el-form-item :label="t('sendingService')"
           ><el-select
@@ -212,7 +221,8 @@
               v-for="provider in providers"
               :key="provider.id"
               :label="provider.name"
-              :value="provider.id" /></el-select
+              :value="provider.id"
+              :disabled="provider.id === 'cloudflare' && !setting.cloudflareEmailAvailable" /></el-select
         ></el-form-item>
         <el-form-item :label="t('domain')"
           ><el-select
@@ -227,7 +237,8 @@
               :label="domain"
               :value="domain" /></el-select
         ></el-form-item>
-        <el-form-item label="API Token"
+        <p class="provider-service-hint">{{ t(tokenForm.service === 'cloudflare' ? 'cloudflareEmailDomainHint' : 'sendingTokenHint') }}</p>
+        <el-form-item v-if="tokenForm.service !== 'cloudflare'" label="API Token"
           ><el-input
             v-model="tokenForm.token"
             :disabled="!!tokenAction"
@@ -252,20 +263,21 @@
             :disabled="!!tokenAction && tokenAction !== 'delete'"
             @click="deleteToken"
             >{{ t('delete') }}</el-button
-          ><el-button
+          ><el-button :disabled="!!tokenAction" @click="backToProviderList">{{ t('cancel') }}</el-button><el-button
             type="primary"
             native-type="submit"
             :loading="tokenAction === 'save'"
-            :disabled="!!tokenAction && tokenAction !== 'save' || !tokenForm.domain || !tokenForm.token.trim()"
+            :disabled="!!tokenAction && tokenAction !== 'save' || !tokenForm.domain || (tokenForm.service !== 'cloudflare' && !tokenForm.token.trim()) || (tokenForm.service === 'cloudflare' && !setting.cloudflareEmailAvailable)"
             >{{ t('save') }}</el-button
           >
         </div>
       </el-form>
+      </div>
     </el-dialog>
   </div>
 </template>
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import { useI18n } from 'vue-i18n';
@@ -285,6 +297,7 @@ const {
   setting,
   settingStore,
   isSaving,
+  settingLoading,
   editSetting,
   change,
   beforeChange,
@@ -298,10 +311,12 @@ const prefixSnapshot = () => JSON.stringify({minEmailPrefix:minEmailPrefix.value
 const providerDialogShow = ref(false),
   tokenDialogShow = ref(false);
 const tokenAction = ref('');
+const providerSearch = ref(''), providerPage = ref(1), providerPageSize = 10;
 const providers = [
   { id: 'resend', name: 'Resend', field: 'resendTokens' },
   { id: 'queensmtp', name: 'QueenSMTP', field: 'queenTokens' },
   { id: 'sendflare', name: 'SendFlare', field: 'sendflareTokens' },
+  { id: 'cloudflare', name: 'Cloudflare Email', field: null },
 ];
 const tokenForm = reactive({
   service: 'resend',
@@ -313,19 +328,35 @@ const tokenForm = reactive({
 const providerDomains = computed(() => {
   const domains = [
     ...new Set(
-      providers.flatMap((provider) =>
-        Object.keys(setting.value[provider.field] || {}),
-      ),
+      providers.flatMap((provider) => provider.field
+        ? Object.keys(setting.value[provider.field] || {})
+        : Object.entries(setting.value.sendProviders || {}).filter(([, value]) => value === provider.id).map(([domain]) => domain)),
     ),
   ];
-  return domains.map((domain) => ({
+  return domains.filter(domain => providers.some(provider => provider.field ? !!setting.value[provider.field]?.[domain] : setting.value.sendProviders?.[domain] === provider.id)).map((domain) => ({
     domain,
     providers: providers.filter(
-      (provider) => !!setting.value[provider.field]?.[domain],
+      (provider) => provider.field
+        ? !!setting.value[provider.field]?.[domain]
+        : setting.value.sendProviders?.[domain] === provider.id,
     ),
     value: setting.value.sendProviders?.[domain] || '',
   }));
 });
+const filteredProviderDomains = computed(() => {
+  const query = providerSearch.value.trim().toLowerCase();
+  return providerDomains.value.filter(row => !query || row.domain.toLowerCase().includes(query) || row.providers.some(provider => provider.name.toLowerCase().includes(query)));
+});
+const pagedProviderDomains = computed(() => filteredProviderDomains.value.slice((providerPage.value-1)*providerPageSize,providerPage.value*providerPageSize));
+watch(providerSearch,()=>{providerPage.value=1;});
+watch(()=>filteredProviderDomains.value.length, length=>{providerPage.value=Math.min(providerPage.value,Math.max(1,Math.ceil(length/providerPageSize)));});
+function automaticProvider(row) { return providers.find(provider=>provider.field && row.providers.some(item=>item.id===provider.id))?.name || t('sendingNoChannel'); }
+function effectiveProvider(row) { return row.value || providers.find(provider=>provider.field && row.providers.some(item=>item.id===provider.id))?.id; }
+function routeProviders(row) {
+  return setting.value.cloudflareEmailAvailable && !row.providers.some(provider => provider.id === 'cloudflare')
+    ? [...row.providers, providers.find(provider => provider.id === 'cloudflare')]
+    : row.providers;
+}
 const configurationCount = computed(() =>
   providerDomains.value.reduce((count, row) => count + row.providers.length, 0),
 );
@@ -342,22 +373,45 @@ const autoRefreshOptions = computed(() => [
   ...[3, 5, 10, 15, 20].map((value) => ({ label: value + 's', value })),
 ]);
 function openTokenForm(service = 'resend', domain = '') {
+  const existing = !!service && !!domain;
+  service = service || providers.find(provider => !provider.field ? setting.value.cloudflareEmailAvailable && setting.value.sendProviders?.[domain] !== provider.id : !setting.value[provider.field]?.[domain])?.id || 'resend';
   Object.assign(tokenForm, {
     service,
     domain: domain || availableDomains.value[0] || '',
     token: '',
-    existing: !!domain,
-    originalService: domain ? service : '',
+    existing,
+    originalService: existing ? service : '',
   });
   tokenDialogShow.value = true;
+}
+function openProviderManager() {
+  resetProviderManager(); providerDialogShow.value = true;
+}
+function resetProviderManager() {
+  tokenForm.token = ''; tokenDialogShow.value = false; providerSearch.value = ''; providerPage.value = 1;
+}
+async function backToProviderList() {
+  if (tokenAction.value) return;
+  if (tokenForm.token.trim()) {
+    try { await ElMessageBox.confirm(t('sendingDiscardToken'), {confirmButtonText:t('confirm'),cancelButtonText:t('cancel'),type:'warning'}); }
+    catch { return; }
+  }
+  tokenForm.token = ''; tokenDialogShow.value = false;
+}
+async function closeProviderManager(done) {
+  if (tokenAction.value) return;
+  if (tokenDialogShow.value) { await backToProviderList(); return; }
+  done();
 }
 async function saveToken() {
   if (tokenAction.value) return;
   const provider = providers.find((item) => item.id === tokenForm.service);
-  if (!provider || !tokenForm.domain || !tokenForm.token.trim()) return;
+  if (!provider || !tokenForm.domain) return;
+  if (provider.id === 'cloudflare' && !setting.value.cloudflareEmailAvailable) return;
+  if (provider.field && !tokenForm.token.trim()) return;
   const original = providers.find((item) => item.id === tokenForm.originalService);
   const switching = original && original.id !== provider.id;
-  if (switching && setting.value[provider.field]?.[tokenForm.domain]) {
+  if (provider.field && switching && setting.value[provider.field]?.[tokenForm.domain]) {
     try {
       await ElMessageBox.confirm(t('sendingOverwriteConfirm', {
         service: provider.name,
@@ -371,11 +425,14 @@ async function saveToken() {
       return;
     }
   }
-  const payload = {
-    [provider.field]: { [tokenForm.domain]: tokenForm.token.trim() },
-  };
-  if (switching) {
-    payload[original.field] = { [tokenForm.domain]: '' };
+  const payload = {};
+  if (provider.field) {
+    payload[provider.field] = { [tokenForm.domain]: tokenForm.token.trim() };
+  }
+  if (provider.id === 'cloudflare' || (switching && original?.id === 'cloudflare')) {
+    payload.sendProviders = { [tokenForm.domain]: provider.id };
+  } else if (switching) {
+    if (original?.field) payload[original.field] = { [tokenForm.domain]: '' };
     if (setting.value.sendProviders?.[tokenForm.domain] === original.id)
       payload.sendProviders = { [tokenForm.domain]: provider.id };
   }
@@ -406,11 +463,11 @@ async function deleteToken() {
   } catch {
     return;
   }
-  const payload = { [provider.field]: { [tokenForm.domain]: '' } };
+  const payload = provider.field ? { [provider.field]: { [tokenForm.domain]: '' } } : {};
   if (setting.value.sendProviders?.[tokenForm.domain] === provider.id)
     payload.sendProviders = { [tokenForm.domain]: '' };
   tokenAction.value = 'delete';
-  try { if (await editSetting(payload)) tokenDialogShow.value = false; } finally { tokenAction.value = ''; }
+  try { if (await editSetting(payload)) { tokenForm.token = ''; tokenDialogShow.value = false; } } finally { tokenAction.value = ''; }
 }
 function resetEmailPrefix() {
   minEmailPrefix.value = setting.value.minEmailPrefix;
@@ -449,60 +506,85 @@ async function saveEmailPrefix() {
 .provider-toolbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 18px;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
-.provider-toolbar p {
+.provider-service-hint {
+  margin: -6px 0 16px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
-  line-height: 1.7;
-  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
 }
+.provider-toolbar .el-input { min-width:0; }
 .provider-toolbar > .el-button {
   flex-shrink: 0;
 }
 .provider-domain-list {
   border-top: 1px solid var(--el-border-color-lighter);
-  max-height: min(60vh, 520px);
+  max-height: min(56vh, 500px);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .provider-domain-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 18px 0;
+  gap: 16px;
+  padding: 12px 2px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .provider-domain-info {
   min-width: 0;
+  flex:1;
 }
 .provider-domain-info > strong {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  overflow-wrap: anywhere;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
 }
 .provider-credentials {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  align-items:center;
+  gap: 6px;
+  margin-top: 7px;
 }
 .provider-credentials .el-button {
   margin-left: 0;
   gap: 6px;
+  padding:5px 8px;
+  height:28px;
+  border-color:var(--el-border-color-lighter);
+  color:var(--el-text-color-regular);
+  font-size:12px;
 }
-.provider-credentials .el-button :deep(svg) { margin-left: 6px; }
+.provider-credentials .is-default-provider { background:var(--el-color-primary-light-9); border-color:var(--el-color-primary-light-7); color:var(--el-color-primary); }
+.provider-credentials .el-button :deep(svg) { margin-left: 5px; opacity:.6; }
+.provider-dot { width:6px; height:6px; margin-right:6px; border-radius:50%; background:var(--el-text-color-placeholder); }
+.provider-dot[data-provider=resend] { background:#64748b; }
+.provider-dot[data-provider=queensmtp] { background:#9580bd; }
+.provider-dot[data-provider=sendflare] { background:#54a696; }
+.provider-dot[data-provider=cloudflare] { background:#e49c53; }
 .provider-toolbar .el-button :deep(svg) { margin-right: 6px; }
 .provider-routing {
   display: grid;
-  flex: 0 0 168px;
-  gap: 8px;
-  font-size: 14px;
+  flex: 0 0 184px;
+  gap: 5px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
+.provider-unavailable { color:var(--el-color-warning); font-size:12px; line-height:1.5; }
+.provider-list-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding-top:12px; color:var(--el-text-color-secondary); font-size:12px; }
+.provider-editor { max-width:440px; margin:0 auto; }
+.provider-back { display:inline-flex; align-items:center; gap:5px; padding:0; border:0; background:none; color:var(--el-text-color-secondary); font:inherit; font-size:13px; cursor:pointer; margin:0 0 16px; }
+.provider-back:hover { color:var(--el-color-primary); }
+.provider-back:focus-visible { outline:2px solid var(--el-color-primary); outline-offset:4px; }
+.provider-form-actions > .el-button:first-child { margin-right:auto; }
+.provider-form-actions > .el-button:only-child { margin-right:0; }
 .provider-form-actions {
   display: flex;
   justify-content: flex-end;
@@ -513,16 +595,20 @@ async function saveEmailPrefix() {
 }
 @media (max-width: 540px) {
   .provider-toolbar {
-    flex-direction: column;
-    gap: 12px;
+    gap: 8px;
   }
   .provider-domain-row {
     align-items: stretch;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
   .provider-routing {
     flex-basis: auto;
+    grid-template-columns: auto minmax(0,1fr);
+    align-items:center;
+    gap:8px;
   }
+  .provider-routing > small { grid-column:1 / -1; }
+  .provider-credentials .el-button { height:32px; }
 }
 </style>

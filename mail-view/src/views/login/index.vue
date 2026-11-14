@@ -1,5 +1,6 @@
 <template>
   <div :class="['login-page', 'template-' + loginTemplate]" v-loading="oauthLoading" element-loading-text="登录中...">
+    <TwoFactorChallenge :challenge="twoFactorChallenge" @verified="finishTwoFactor" @cancel="twoFactorChallenge = ''" />
     <!-- Each scene has its own composition; authentication stays shared. -->
     <header v-if="loginTemplate === 'minimal'" class="minimal-masthead">
       <div class="minimal-brand">
@@ -243,6 +244,7 @@
 
 <script setup>
 import BrandMark from '@/components/BrandMark.vue';
+import TwoFactorChallenge from '@/components/TwoFactorChallenge.vue';
 import PasswordRequirements from '@/components/PasswordRequirements.vue';
 import router from "@/router";
 import {computed, nextTick, onMounted, reactive, ref, watch} from "vue";
@@ -261,7 +263,7 @@ import {registrationHint} from '@/i18n/language.js';
 import {startOAuth} from '@/utils/oauth.js';
 import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 import {useServerStore} from "@/store/server.js";
-import {websiteConfig} from "@/request/setting.js";
+import {websiteConfig,clientConfig} from "@/request/setting.js";
 import {normalizeLoginTemplate} from '@/config/login-templates.js';
 
 const {t} = useI18n();
@@ -294,6 +296,8 @@ const showPwd = ref(false);
 const showConfirmPwd = ref(false);
 
 const form = reactive({ email: '', password: '' });
+const twoFactorChallenge = ref('');
+async function finishTwoFactor(token) { twoFactorChallenge.value = ''; await saveToken(token); }
 const mySelect = ref();
 const suffix = ref('');
 const registerForm = reactive({ email: '', password: '', confirmPassword: '', code: null });
@@ -348,7 +352,7 @@ const submit = () => {
   if (!form.password) { ElMessage({ message: t('emptyPwdMsg'), type: 'error', plain: true }); return; }
   loginLoading.value = true;
   login(email, form.password)
-    .then(async data => { await saveToken(data.token); })
+    .then(async data => { if (data.requiresTwoFactor) { form.password = ''; twoFactorChallenge.value = data.challenge; } else await saveToken(data.token); })
     .catch(() => { /* The request interceptor displays credential and rate-limit errors. */ })
     .finally(() => { loginLoading.value = false; });
 };
@@ -357,6 +361,8 @@ async function saveToken(token) {
   const sid = serverStore.activeServer?.id || 'local'
   serverStore.setToken(sid, token)
   const user = await loginUserInfo();
+  const privateConfig = await clientConfig().catch(() => null);
+  if (privateConfig) settingStore.settings = { ...settingStore.settings, ...privateConfig };
   accountStore.currentAccountId = user.account.accountId || 0;
   accountStore.currentAccount = user.account;
   userStore.user = user;

@@ -29,7 +29,14 @@ app.get('/setting/query', async (c) => {
 });
 
 app.get('/setting/websiteConfig', async (c) => {
+	c.header('Cache-Control', 'no-store');
 	const setting = await settingService.websiteConfig(c);
+	return c.json(result.ok(setting));
+})
+
+app.get('/setting/clientConfig', async (c) => {
+	c.header('Cache-Control', 'no-store');
+	const setting = await settingService.clientConfig(c);
 	return c.json(result.ok(setting));
 })
 

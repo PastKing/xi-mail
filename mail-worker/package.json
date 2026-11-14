@@ -23,6 +23,7 @@
 		"i18next": "^25.3.2",
 		"jose": "^6.2.15",
 		"linkedom": "^0.18.10",
+		"otpauth": "^9.6.0",
 		"postal-mime": "^2.4.3",
 		"resend": "^6.4.1",
 		"ua-parser-js": "^2.0.3",

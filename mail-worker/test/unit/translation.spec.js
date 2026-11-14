@@ -154,7 +154,7 @@ describe('Single-source public registration hint',()=>{
     const pack=await translation.pack(c,'en');expect(pack.publicCopy.regKeyHintSource).toBe('前往帮助页面获取注册码');expect(translate).toHaveBeenCalledTimes(2);
   });
   it('omits the deprecated English field from the public website configuration',async()=>{
-    vi.spyOn(settingService,'get').mockResolvedValue({regKeyHint:'中文提示',regKeyHintEn:'Legacy English hint',domainList:[],loginDomain:0});
+    vi.spyOn(settingService,'query').mockResolvedValue({regKeyHint:'中文提示',regKeyHintEn:'Legacy English hint',domainList:[],loginDomain:0});
     const config=await settingService.websiteConfig(c);
     expect(config.regKeyHint).toBe('中文提示');expect(config).not.toHaveProperty('regKeyHintEn');
   });

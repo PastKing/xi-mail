@@ -33,6 +33,13 @@ describe('resolveSendProvider', () => {
 	it('其他域名的 Token 不会被使用', () => {
 		expect(emailService.resolveSendProvider(setting({ 'b.com': 're_1' }, { 'b.com': 'qs_1' }), 'a.com', false)).toBeNull();
 	});
+
+	it('Cloudflare Email 只在指定域名且 Worker 有绑定时启用', () => {
+		const config = setting({}, {}, { 'a.com': 'cloudflare' });
+		expect(emailService.resolveSendProvider(config, 'a.com', false, { send: vi.fn() })).toEqual({ type: 'cloudflare' });
+		expect(() => emailService.resolveSendProvider(config, 'a.com', false)).toThrow(/Cloudflare Email/);
+		expect(emailService.resolveSendProvider(config, 'b.com', false, { send: vi.fn() })).toBeNull();
+	});
 });
 
 describe('queenSmtpService.send', () => {

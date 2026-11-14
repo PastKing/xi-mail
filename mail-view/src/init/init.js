@@ -5,7 +5,7 @@ import {useServerStore} from "@/store/server.js";
 import {loginUserInfo} from "@/request/my.js";
 import {permsToRouter} from "@/perm/perm.js";
 import router from "@/router";
-import {websiteConfig} from "@/request/setting.js";
+import {websiteConfig,clientConfig} from "@/request/setting.js";
 import i18n from "@/i18n/index.js";
 import {watch} from 'vue';
 import {activateLanguage} from '@/i18n/language.js';
@@ -46,10 +46,11 @@ export async function init() {
             console.error(e);
             return null;
         });
+        const clientConfigPromise = clientConfig().catch(() => null);
 
-        const [s, user] = await Promise.all([websiteConfig(), userPromise]);
+        const [s, user, client] = await Promise.all([websiteConfig(), userPromise, clientConfigPromise]);
         setting = s;
-        settingStore.settings = setting;
+        settingStore.settings = { ...setting, ...(user && client ? client : {}) };
         settingStore.domainList = setting.domainList;
 
         if (user) {

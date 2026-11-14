@@ -23,6 +23,7 @@ import sessionService from './session-service';
 import securityRateLimit from './security-rate-limit-service';
 import { createRegistration } from './registration-service';
 import { assertStrongPassword } from '../utils/password-policy';
+import twoFactor from './two-factor-service';
 
 const loginService = {
 
@@ -219,9 +220,21 @@ const loginService = {
 
 		if (!noVerifyPwd) {
 			await securityRateLimit.loginSuccess(c, email);
-			await userService.upgradePasswordHash(c, userRow, password);
+			const upgraded = await userService.upgradePasswordHash(c, userRow, password);
+			if (upgraded) Object.assign(userRow, upgraded);
 		}
 
+		const challenge = await twoFactor.challenge(c, userRow, noVerifyPwd ? 'oauth' : 'password');
+		if (challenge) return challenge;
+		return this.createSession(c, userRow, noVerifyPwd ? 'oauth' : 'password');
+	},
+
+	async completeTwoFactor(c, params) {
+		const { user, method } = await twoFactor.verifyLogin(c, params?.challenge, params?.code);
+		return this.createSession(c, user, method);
+	},
+
+	async createSession(c, userRow, method) {
 		const uuid = uuidv4();
 		const jwt = await JwtUtils.generateToken(c,{ userId: userRow.userId, token: uuid });
 
@@ -236,7 +249,7 @@ const loginService = {
 			};
 		}
 
-		sessionService.add(c, authInfo, uuid, noVerifyPwd ? 'oauth' : 'password');
+		sessionService.add(c, authInfo, uuid, method);
 
 		await userService.updateUserInfo(c, userRow.userId);
 

@@ -8,7 +8,7 @@
 
 A fork of [cloud-mail](https://github.com/maillab/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.11-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -39,7 +39,7 @@ Register at [mail.azx.us](https://mail.azx.us) using invite code `viewUser`.
 
 ## ✨ Highlights
 
-- **Mail**: multiple mailboxes, compose and reply, code extraction; Resend, QueenSMTP and SendFlare sending.
+- **Mail**: multiple mailboxes, compose and reply, code extraction; Resend, QueenSMTP, SendFlare and Cloudflare Email sending.
 - **Domains and filtering**: manage domains in the dashboard, with sender allowlists, blocklists and keyword filters.
 - **Users and permissions**: tiered roles, invitation codes, mailbox transfers, expiring inbox-sharing links and session management.
 - **Provider sign-in**: connect NodeLoc, Telegram, Discord, GitHub, Google or LinuxDo to an existing mailbox.
@@ -90,6 +90,8 @@ cp wrangler.example.toml wrangler.toml
 # Enter two independent random secrets, at least 32 characters each
 npx wrangler secret put jwt_secret
 npx wrangler secret put init_secret
+# For two-step verification, set a separate random key (32+ characters); back it up and keep it stable
+npx wrangler secret put two_factor_key
 
 # Build the frontend and deploy
 cd ../mail-view && npm install && npm run build

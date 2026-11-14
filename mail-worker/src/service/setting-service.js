@@ -18,7 +18,7 @@ import sendflareService from './sendflare-service';
 import translationService from './translation-service';
 import {ensureStorageColumns,normalizeStoragePrefix,validateS3Config,objectProxyBase} from './storage-config-service';
 
-const SEND_PROVIDERS = ['resend', 'queensmtp', 'sendflare'];
+const SEND_PROVIDERS = ['resend', 'queensmtp', 'sendflare', 'cloudflare'];
 
 function generateToken(len = 32) {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -186,6 +186,7 @@ const settingService = {
 			settingRow.queenTokens[key] = `${settingRow.queenTokens[key].slice(0, 12)}******`;
 		});
 		settingRow.sendflareTokens = Object.fromEntries(Object.keys(settingRow.sendflareTokens || {}).map(domain => [domain, '******']));
+		settingRow.cloudflareEmailAvailable = typeof c.env.EMAIL?.send === 'function';
 
 		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
@@ -276,6 +277,9 @@ const settingService = {
 		Object.keys(sendProviders).forEach(domain => {
 			if (!SEND_PROVIDERS.includes(sendProviders[domain])) delete sendProviders[domain];
 		});
+		if (Object.values(params.sendProviders || {}).includes('cloudflare') && typeof c.env.EMAIL?.send !== 'function') {
+			throw new BizError(t('cloudflareEmailNotConfigured'), 400);
+		}
 
 		if (Array.isArray(params.emailPrefixFilter)) {
 			params.emailPrefixFilter = params.emailPrefixFilter + '';
@@ -371,47 +375,59 @@ const settingService = {
 		return token;
 	},
 
-	// 未登录可访问，只放登录/注册页和普通用户界面必需的字段；后台配置走 /setting/query
+	// Anonymous clients receive only fields needed to render login and registration.
 	async websiteConfig(c) {
+		const settingRow = await this.query(c);
+		return this.loginConfig(settingRow);
+	},
 
-		const settingRow = await this.get(c, true);
+	loginConfig(settingRow) {
 
 		return {
 			register: settingRow.register,
 			title: settingRow.title,
 			subtitle: settingRow.subtitle || '',
-			translation: settingRow.translation,
-			manyEmail: settingRow.manyEmail,
-			addEmail: settingRow.addEmail,
-			autoRefresh: settingRow.autoRefresh,
-			addEmailVerify: settingRow.addEmailVerify,
+			translation: { languages: settingRow.translation?.languages || [{ id: 'zh', serviceId: 'zh-Hans' }] },
 			registerVerify: settingRow.registerVerify,
-			send: settingRow.send,
-			r2Domain: settingRow.r2Domain,
-			objectProxyBase: settingRow.objectProxyBase,
 			siteKey: settingRow.siteKey,
 			domainList: settingRow.loginDomain === 1 ? [] : settingRow.domainList,
 			regKey: settingRow.regKey,
 			regVerifyOpen: settingRow.regVerifyOpen,
-			addVerifyOpen: settingRow.addVerifyOpen,
-			noticeTitle: settingRow.noticeTitle,
-			noticeContent: settingRow.noticeContent,
-			noticeType: settingRow.noticeType,
-			noticeDuration: settingRow.noticeDuration,
-			noticePosition: settingRow.noticePosition,
-			noticeWidth: settingRow.noticeWidth,
-			noticeOffset: settingRow.noticeOffset,
-			notice: settingRow.notice,
 			loginDomain: settingRow.loginDomain,
 			...Object.fromEntries(OAUTH_PROVIDERS.map(provider => [provider.id + 'Switch', settingRow[provider.id + 'Switch']])),
 			minEmailPrefix: settingRow.minEmailPrefix,
-			randomPrefixLength: settingRow.randomPrefixLength,
 			regKeyHint: settingRow.regKeyHint || '',
 			regKeyLink: settingRow.regKeyLink || '',
 			colorTheme: settingRow.colorTheme || 'indigo',
 			loginTemplate: normalizeLoginTemplate(settingRow.loginTemplate),
-			layoutMode: settingRow.layoutMode || 'default',
-			newEmailNotify: settingRow.newEmailNotify ?? 0,
+		};
+	},
+
+	// Session-authenticated client configuration. Keep public login copy and
+	// ordinary mailbox UI settings separate from the anonymous bootstrap.
+	async clientConfig(c) {
+		const row = await this.query(c);
+		return {
+			...this.loginConfig(row),
+			manyEmail: row.manyEmail,
+			addEmail: row.addEmail,
+			autoRefresh: row.autoRefresh,
+			addEmailVerify: row.addEmailVerify,
+			addVerifyOpen: row.addVerifyOpen,
+			send: row.send,
+			objectProxyBase: row.objectProxyBase,
+			noticeTitle: row.noticeTitle,
+			noticeContent: row.noticeContent,
+			noticeType: row.noticeType,
+			noticeDuration: row.noticeDuration,
+			noticePosition: row.noticePosition,
+			noticeWidth: row.noticeWidth,
+			noticeOffset: row.noticeOffset,
+			notice: row.notice,
+			randomPrefixLength: row.randomPrefixLength,
+			translation: row.translation,
+			layoutMode: row.layoutMode || 'default',
+			newEmailNotify: row.newEmailNotify ?? 0,
 		};
 	},
 

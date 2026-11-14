@@ -16,6 +16,7 @@ const publicExact = [
 	'/mail-share/content',
 	'/mail-share/attachment',
 	'/login',
+	'/login/two-factor',
 	'/register',
 	'/setting/websiteConfig',
 	'/webhooks',

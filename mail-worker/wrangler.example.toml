@@ -1,6 +1,9 @@
 name = "xi-mail"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
+
+[[send_email]]
+name = "EMAIL"
 keep_vars = true
 
 [observability]
@@ -39,6 +42,9 @@ admin = "admin@example.com"
 # Configure two different random secrets (at least 32 characters each):
 # npx wrangler secret put jwt_secret
 # npx wrangler secret put init_secret
+# Enable authenticator two-step verification with a separate random secret (32+ characters).
+# Keep this key stable and backed up; changing it prevents decrypting enrolled authenticators.
+# npx wrangler secret put two_factor_key
 
 # Resend webhook signature verification is required. Configure Signing Secret in
 # System Settings → Service Integration, or use the secret below (comma-separated values supported).

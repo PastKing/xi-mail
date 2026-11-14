@@ -8,7 +8,7 @@
 
 衍生自 [cloud-mail](https://github.com/maillab/cloud-mail)，重新設計介面並持續擴充功能
 
-[![Version](https://img.shields.io/badge/Version-v3.6.11-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -39,7 +39,7 @@
 
 ## ✨ 主要特色
 
-- **郵件收發**：多信箱管理、郵件搜尋、撰寫與回覆、驗證碼擷取；相容 Resend、QueenSMTP、SendFlare。
+- **郵件收發**：多信箱管理、郵件搜尋、撰寫與回覆、驗證碼擷取；相容 Resend、QueenSMTP、SendFlare 與 Cloudflare Email。
 - **網域與篩選**：在後台管理多個網域，支援寄件者允許清單、封鎖清單及關鍵字篩選。
 - **使用者與權限**：角色分級、註冊碼註冊、信箱移轉、限時收件匣分享及工作階段管理。
 - **第三方登入**：支援 NodeLoc、Telegram、Discord、GitHub、Google、LinuxDo，綁定既有信箱後即可登入。
@@ -90,6 +90,8 @@ cp wrangler.example.toml wrangler.toml
 # 分別輸入兩個獨立隨機密鑰，至少 32 位
 npx wrangler secret put jwt_secret
 npx wrangler secret put init_secret
+# 開啟兩步驗證時設定獨立隨機金鑰（至少 32 位），妥善備份，啟用後請勿更換
+npx wrangler secret put two_factor_key
 
 # 建置前端並部署
 cd ../mail-view && npm install && npm run build

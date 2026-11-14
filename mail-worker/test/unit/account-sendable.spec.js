@@ -7,19 +7,20 @@ import {writeRoleDomainPolicy} from '../../src/service/role-domain-policy';
 
 const c = { env: { admin: 'admin@a.com' } };
 
-function mock({ user, role }) {
+function mock({ user, role, sendProviders = {}, domainList = ['@a.com', '@q.com', '@sf.com'] }) {
 	vi.spyOn(settingService, 'query').mockResolvedValue({
 		resendTokens: { 'a.com': 're_1' },
 		queenTokens: { 'q.com': 'qs_1' },
 		sendflareTokens: { 'sf.com': 'sf_1' },
-		domainList: ['@a.com', '@q.com', '@sf.com'],
+		sendProviders,
+		domainList,
 	});
 	vi.spyOn(userService, 'selectById').mockResolvedValue(user);
 	vi.spyOn(roleService, 'selectById').mockResolvedValue(role);
 }
 
 describe('accountService.sendableChecker', () => {
-	afterEach(() => vi.restoreAllMocks());
+	afterEach(() => { delete c.env.EMAIL; vi.restoreAllMocks(); });
 
 	it('管理员：只要域名配置了 Resend 或 QueenSMTP 就能发', async () => {
 		mock({ user: { email: 'admin@a.com', type: 0 } });
@@ -52,5 +53,14 @@ describe('accountService.sendableChecker', () => {
 		expect(can('x@a.com')).toBe(true);
 		expect(can('x@sf.com')).toBe(true);
 		expect(can('x@unconfigured.example')).toBe(false);
+	});
+	it('Cloudflare Email is sendable only for mapped domains with the Worker binding', async () => {
+		mock({ user: { email: 'admin@a.com', type: 0 }, sendProviders: { 'cf.com': 'cloudflare' }, domainList: ['@cf.com'] });
+		c.env.EMAIL = { send: vi.fn() };
+		const can = await accountService.sendableChecker(c, 1);
+		expect(can('x@cf.com')).toBe(true);
+		delete c.env.EMAIL;
+		expect(can('x@cf.com')).toBe(false);
+		expect(can('x@other.com')).toBe(false);
 	});
 });

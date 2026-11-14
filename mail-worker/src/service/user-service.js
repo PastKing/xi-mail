@@ -86,6 +86,7 @@ const userService = {
 		if (!userRow?.userId || !cryptoUtils.needsRehash(userRow.password)) return;
 		const { salt, hash } = await cryptoUtils.hashPassword(password);
 		await orm(c).update(user).set({ password: hash, salt }).where(and(eq(user.userId, userRow.userId), eq(user.password, userRow.password))).run();
+		return { password: hash, salt };
 	},
 
 	// 改密码后只保留当前会话，其他设备上的旧凭证全部失效

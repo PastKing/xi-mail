@@ -19,6 +19,10 @@ export function websiteConfig() {
     return http.get('/setting/websiteConfig')
 }
 
+export function clientConfig() {
+    return http.get('/setting/clientConfig')
+}
+
 export function setBackground(background) {
     return http.put('/setting/setBackground',{background})
 }
