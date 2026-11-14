@@ -8,7 +8,6 @@ import settingService from './setting-service';
 import accountService from './account-service';
 import BizError from '../error/biz-error';
 import emailUtils from '../utils/email-utils';
-import verifyUtils from '../utils/verify-utils';
 import { Resend } from 'resend';
 import attService from './att-service';
 import attachmentAccess from './attachment-access-service';
@@ -26,6 +25,7 @@ import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import permService from './perm-service';
+import verifyUtils from '../utils/verify-utils';
 import subWorkerService from './sub-worker-service';
 import queenSmtpService from './queen-smtp-service';
 import sendflareService from './sendflare-service';
@@ -34,7 +34,7 @@ import { mailFilterConditions, personalMailConditions } from './mail-filter-serv
 import { ensureMailIndexes } from './mail-index-service';
 import starSchemaService from './star-schema-service';
 
-// QueenSMTP 的消息 id 存在 resend_email_id 字段，加前缀区分来源，避免和 Resend 的状态回调混淆
+	// QueenSMTP 的消息 id 存在 resend_email_id 字段，加前缀区分来源，避免和 Resend 的状态回调混淆
 const QUEEN_ID_PREFIX = 'queensmtp:';
 
 const emailService = {
@@ -337,8 +337,10 @@ const emailService = {
 		//没有发件人名字自动截取
 		name = typeof name === 'string' ? name.replace(/[\x00-\x1f\x7f]/g, ' ').trim() : '';
 		if (!name) {
-			name = emailUtils.getName(accountRow.email);
+			name = accountRow.name || emailUtils.getName(accountRow.email);
 		}
+		name = (name || accountRow.name || '').replace(/[<>\x00-\x1f\x7f]/g, '').trim()
+			|| emailUtils.getName(accountRow.email);
 
 		let emailRow = {
 			messageId: null
@@ -389,7 +391,7 @@ const emailService = {
 			const id = await sendflareService.send(provider.token, {
 				from: accountRow.email, to: receiveEmail, subject, html, text,
 				cc, bcc,
-				attachments: [...imageDataList, ...attachments],
+				attachments: [...imageDataList, ...(attachments || [])],
 				inReplyTo: sendType === 'reply' ? emailRow.messageId : null,
 			});
 			resendResult = { data: { id: 'sendflare:' + id } };
@@ -419,8 +421,6 @@ const emailService = {
 			}
 		} else if (!allInternal) {
 
-			const resend = new Resend(provider.token);
-
 			const sendForm = {
 				from: `"${name.replace(/["\\]/g, '\\$&')}" <${accountRow.email}>`,
 				to: [...receiveEmail],
@@ -429,23 +429,22 @@ const emailService = {
 				subject: subject,
 				text: text,
 				html: html,
-				attachments: [...imageDataList, ...attachments]
+				attachments: [...imageDataList, ...(attachments || [])]
 			};
 
-			if (sendType === 'reply') {
+			if (sendType === 'reply' && emailRow.messageId) {
 				sendForm.headers = {
 					'in-reply-to': emailRow.messageId,
 					'references': emailRow.messageId
 				};
 			}
 
+			const resend = new Resend(provider.token);
 			resendResult = await resend.emails.send(sendForm);
 
 		}
 
 		const { data, error } = resendResult;
-
-
 		if (error) {
 			throw new BizError(error.message);
 		}

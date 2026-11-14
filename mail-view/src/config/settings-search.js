@@ -12,9 +12,9 @@ export const SETTINGS_SEARCH_ALIASES = {
  senderDomainBlacklist:['senderDomainWhitelist','senderDomainWhitelistDesc','senderFilterModeDesc'],
  emailPrefix:['mustNotContain','mustNotContainDesc'],
  autoCleanEmail:['autoCleanExclude'],
- sendProvider:['Resend QueenSMTP SendFlare token SMTP'],
+ sendProvider:['Cloudflare Resend QueenSMTP SendFlare token SMTP'],
  signUpVerification:['Cloudflare Turnstile CAPTCHA Site Key Secret Key'],
  addEmailVerification:['Cloudflare Turnstile CAPTCHA'],
  oauthIntegration:['NodeLoc Telegram Discord DC LinuxDo GitHub Google OAuth Client ID Client Secret'],
- s3Configuration:['S3 R2 AWS storage'],tgBot:['Telegram Bot token Chat ID'],
+ s3Configuration:['S3 R2 AWS storage'],tgBot:['Telegram Bot token Chat ID','wecomBot','wecomDesc'],
 };

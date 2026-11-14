@@ -15,7 +15,7 @@ beforeEach(()=>{
  const statement=(sql,args=[])=>({bind:(...values)=>statement(sql,values),run:async()=>({meta:db.prepare(sql).run(...args)}),all:async()=>({results:db.prepare(sql).all(...args)}),first:async()=>db.prepare(sql).get(...args)||null,raw:async()=>{const statement=db.prepare(sql);statement.setReturnArrays(true);return statement.all(...args)}});
  r2=new Map();remote=new Map();kv=new Map();fail=null;
  c={env:{db:{prepare:statement},r2:{put:vi.fn(async(key,content,options)=>r2.set(key,{content,metadata:options.httpMetadata})),get:vi.fn(async key=>{const item=r2.get(key);return item?{arrayBuffer:async()=>item.content,httpMetadata:item.metadata}:null}),delete:vi.fn(async keys=>{for(const key of Array.isArray(keys)?keys:[keys])r2.delete(key)})},kv:{put:async(key,value,options)=>kv.set(key,{value,metadata:options?.metadata}),getWithMetadata:async key=>kv.get(key)||{value:null},delete:async key=>kv.delete(key)}}};
- config={bucket:'test-bucket',endpoint:'https://s3.example.test',region:'us-west-4',s3AccessKey:'local-key',s3SecretKey:'local-secret',forcePathStyle:0,s3Prefix:'xi-mail/',attachmentStorage:'R2'};
+ config={bucket:'test-bucket',endpoint:'https://s3.example.test',region:'us-west-4',s3AccessKey:'local-key',s3SecretKey:'local-secret',forcePathStyle:0,s3Prefix:'xi-mail/',attachmentStorage:'R2',domainList:[],sendProviders:{}};
  vi.spyOn(settings,'query').mockImplementation(async()=>({...config}));
  vi.spyOn(S3Client.prototype,'send').mockImplementation(async command=>{
   if(fail){const error=fail(command);if(error)throw error;}
@@ -76,8 +76,11 @@ describe('S3 configuration and connection probe',()=>{
   db.exec('DROP TABLE setting');
   db.exec('CREATE TABLE setting('+Object.values(getTableColumns(settingEntity)).map(column=>`"${column.name}" ${column.dataType==='number'?'INTEGER':'TEXT'}`).join(',')+');INSERT INTO setting DEFAULT VALUES');
   vi.spyOn(settings,'refresh').mockResolvedValue(undefined);
+  config.domainList=['@sender.example'];config.sendProviders={'sender.example':'cloudflare'};
+  c.env.EMAIL={send:vi.fn()};
   await settings.set(c,{bucket:config.bucket,endpoint:config.endpoint,region:config.region,s3AccessKey:config.s3AccessKey,s3SecretKey:config.s3SecretKey,forcePathStyle:0,s3Prefix:'/xi-mail/',attachmentStorage:'R2'});
   expect(db.prepare('SELECT attachment_storage,s3_prefix,bucket FROM setting').get()).toEqual({attachment_storage:'R2',s3_prefix:'xi-mail/',bucket:config.bucket});
+  expect(JSON.parse(db.prepare('SELECT send_providers FROM setting').get().send_providers)).toEqual({'sender.example':'cloudflare'});
  });
  it('refuses activation of an incomplete S3 connection before updating settings',async()=>{
   config.s3AccessKey='';

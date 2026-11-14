@@ -116,6 +116,7 @@
     <div v-if="inArea('forward')" class="settings-card">
       <div class="card-title"><Icon icon="mingcute:notification-line" width="15" height="15"/>{{ $t('emailPush') }}</div>
       <div class="card-content">
+        <wecom-setting/>
         <div class="setting-item">
           <div><span>{{ $t('tgBot') }}</span></div>
           <div class="forward">
@@ -350,6 +351,7 @@ import {isEmail} from "@/utils/verify-utils.js";
 import {useUiStore} from "@/store/ui.js";
 import {useSysSetting} from "../use-sys-setting.js";
 import NoticeEditor from "../components/notice-editor.vue";
+import WecomSetting from "../components/wecom-setting.vue";
 import { useServerStore } from '@/store/server.js';
 import { useRoute } from 'vue-router';
 import {testS3Connection} from '@/request/setting';

@@ -127,7 +127,7 @@ describe.skipIf(!DatabaseSync)('Outbound sender identity', () => {
     const send = vi.spyOn(Resend.prototype, 'post').mockResolvedValue({ data: { id: 'local-test' }, error: null });
     await emailService.send(c, { ...params(), name: 'Example "Team" \\ <forged@outside.invalid>\r\n' }, 10);
     expect(send).toHaveBeenCalledWith('/emails', expect.objectContaining({
-      from: '"Example \\"Team\\" \\\\ <forged@outside.invalid>" <sender@allowed.example>',
+      from: '"Example \\"Team\\" \\\\ forged@outside.invalid" <sender@allowed.example>',
     }), expect.anything());
     expect(deliver).not.toHaveBeenCalled();
     expect(sql.prepare('SELECT send_email FROM email').get().send_email).toBe('sender@allowed.example');

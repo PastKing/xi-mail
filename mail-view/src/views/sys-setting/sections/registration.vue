@@ -281,6 +281,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import { useI18n } from 'vue-i18n';
+import { ElMessageBox } from 'element-plus';
 import { useSysSetting } from '../use-sys-setting.js';
 defineOptions({ name: 'sys-setting-registration' });
 const props = defineProps({settingsArea:{type:String,default:''}});
@@ -304,6 +305,14 @@ const {
   onSettingsLoaded,
   onSettingsDirty,
 } = useSysSetting();
+const autoRefreshOptions = computed(() => [
+  { label: t('disable'), value: 0 },
+  ...[3, 5, 10, 15, 20].map((value) => ({
+    label: value + 's',
+    value,
+  })),
+]);
+
 const minEmailPrefix = ref(0),
   emailPrefixFilter = ref([]);
 let prefixBaseline;
@@ -367,10 +376,6 @@ const availableDomains = computed(() => [
     ),
     ...providerDomains.value.map((row) => row.domain),
   ]),
-]);
-const autoRefreshOptions = computed(() => [
-  { label: t('disable'), value: 0 },
-  ...[3, 5, 10, 15, 20].map((value) => ({ label: value + 's', value })),
 ]);
 function openTokenForm(service = 'resend', domain = '') {
   const existing = !!service && !!domain;

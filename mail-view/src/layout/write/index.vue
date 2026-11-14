@@ -13,7 +13,7 @@
       <div class="container">
         <div class="sender-row">
           <span class="sender-label">{{ $t('sender') }}</span>
-          <el-select v-model="form.accountId" class="sender-select" popper-class="sender-select-popper" filterable :filter-method="filterSenders" :aria-label="$t('sender')" :placeholder="$t('senderSearchPlaceholder')" :loading="accountsLoading" :no-match-text="$t('senderNoMatches')" @visible-change="senderVisibleChange" @change="changeSender">
+          <el-select v-model="form.accountId" class="sender-select" popper-class="sender-select-popper" filterable :filter-method="filterSenders" :aria-label="$t('sender')" :placeholder="$t('senderSearchPlaceholder')" :disabled="senderNameLoading || accountsLoading" :loading="accountsLoading" :no-match-text="$t('senderNoMatches')" @visible-change="senderVisibleChange" @change="changeSender">
             <template #label="{label}"><span class="sender-selected"><span class="sender-selected-label" :title="form.sendEmail">{{ form.sendEmail || label }}</span><span v-if="form.name && form.name !== form.sendEmail" class="sender-selected-name">{{ form.name }}</span></span></template>
             <el-option v-for="item in filteredSenderOptions" :key="item.accountId" :value="item.accountId" :label="item.email">
               <div class="sender-option"><Icon icon="mingcute:mail-line" width="18" height="18" /><div class="sender-option-text"><span class="sender-option-email">{{ item.email }}</span><span v-if="item.name && item.name !== item.email" class="sender-option-name">{{ item.name }}</span></div><Icon v-if="form.accountId === item.accountId" class="sender-option-check" icon="mingcute:check-line" width="18" height="18" /></div>
@@ -30,7 +30,7 @@
           </div>
         </div>
         <div class="recipient-stack">
-          <el-input-tag class="recipient-field" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
+          <el-input-tag class="recipient-field" @paste="pasteRecipients" @add-tag="addTagChange" tag-type="primary" @input="inputChange" size="default" v-model="form.receiveEmail" >
             <template #prefix>
               <div class="item-title" >{{ $t('recipient') }}</div>
               <el-select
@@ -66,6 +66,9 @@
             <template #prefix><div class="item-title">{{ $t('bcc') }}</div></template>
           </el-input-tag>
         </div>
+        <el-input id="compose-sender-name" class="sender-name-field recipient-field" v-model="form.name" :placeholder="$t('senderNamePlaceholder')" :title="$t('composeSenderNameHint')" :maxlength="80" clearable :disabled="senderNameLoading || accountsLoading" @blur="saveSenderName(false)">
+          <template #prefix><div class="item-title">{{ $t('senderName') }}</div></template>
+        </el-input>
         <el-input class="subject-field" v-model="form.subject" :aria-label="t('subject')" :placeholder="t('subject')" />
         <tinyEditor :def-value="defValue" ref="editor" @change="change" @focus="focusChange" />
         <div class="button-item">
@@ -117,7 +120,7 @@ import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed} fro
 import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
 import {emailSend, ensureEmailContent} from "@/request/email.js";
-import {isEmail} from "@/utils/verify-utils.js";
+import {parseRecipientText} from "@/utils/recipient-utils.js";
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
 import {fileToBase64, formatBytes} from "@/utils/file-utils.js";
@@ -133,7 +136,7 @@ import dayjs from "dayjs";
 import {useI18n} from "vue-i18n";
 import router from "@/router/index.js";
 import {ElMessageBox} from "element-plus";
-import {accountList as fetchAccountList} from "@/request/account.js";
+import {accountList as fetchAccountList, accountSetName} from "@/request/account.js";
 import {useServerStore} from "@/store/server.js";
 
 defineExpose({
@@ -186,6 +189,8 @@ const form = reactive({
 
 const selectRecipientList = ref([])
 const accountOptions = ref([])
+const savedSenderName = ref('')
+const senderNameLoading = ref(false)
 const accountsLoaded = ref(false)
 const accountsLoading = ref(false)
 const senderQuery = ref('')
@@ -265,6 +270,7 @@ function selectStatusChange(status) {
 async function loadAccounts() {
   if (accountsLoading.value) return
   accountsLoading.value = true
+  savedSenderName.value = form.name || ''
   accountsLoaded.value = false
   try {
     // 先用当前账户填充，保证选择框立即有值显示
@@ -280,14 +286,16 @@ async function loadAccounts() {
       if (!exists && form.sendEmail) {
         accountOptions.value = [{ accountId: form.accountId, email: form.sendEmail, name: form.name }, ...list]
       }
+      changeSender(form.accountId)
     }
   } catch (e) {
     if (form.sendEmail) {
       accountOptions.value = [{ accountId: form.accountId, email: form.sendEmail, name: form.name }]
     }
+  } finally {
+    accountsLoading.value = false
   }
   accountsLoaded.value = true
-  accountsLoading.value = false
 
   // 当前邮箱不能对外发件时，默认换成第一个能发的邮箱
   const sendable = sendableAccounts.value
@@ -301,7 +309,34 @@ function changeSender(accountId) {
   if (account) {
     form.sendEmail = account.email
     form.accountId = account.accountId
-    form.name = account.name || account.email
+    form.name = account.name || ''
+    savedSenderName.value = form.name
+  }
+}
+
+async function saveSenderName(notify = true) {
+  if (senderNameLoading.value || accountsLoading.value) return false
+  const name = (form.name || '').trim()
+  if (name === savedSenderName.value) return true
+  senderNameLoading.value = true
+  try {
+    const saved = await accountSetName(form.accountId, name)
+    form.name = saved.name
+    savedSenderName.value = saved.name
+    const account = accountOptions.value.find(item => item.accountId === form.accountId)
+    if (account) account.name = saved.name
+    if (accountStore.currentAccount.accountId === form.accountId) accountStore.currentAccount.name = saved.name
+    if (userStore.user.account?.accountId === form.accountId) {
+      userStore.user.name = saved.name
+      userStore.user.account.name = saved.name
+    }
+    accountStore.changeAccountName = {accountId: form.accountId, name: saved.name}
+    if (notify) ElMessage({message: t('saveSuccessMsg'), type: 'success', plain: true})
+    return true
+  } catch {
+    return false
+  } finally {
+    senderNameLoading.value = false
   }
 }
 
@@ -323,9 +358,37 @@ function inputChange(value) {
 
 }
 
-function addTagChange(val) {
-  const has = addRecipientTags(val, 'receiveEmail')
-  if (selectStatus && has) openSelect()
+function addRecipients(value, field = 'receiveEmail') {
+  const existing = field === 'cc' ? [...form.receiveEmail, ...form.cc] : form.receiveEmail
+  const {emails, invalid} = parseRecipientText(value, existing)
+  form[field].push(...emails)
+  // To takes precedence when the same address is also in CC.
+  if (field === 'receiveEmail' && form.cc) {
+    const to = new Set(form.receiveEmail.map(email => email.toLowerCase()))
+    form.cc = form.cc.filter(email => !to.has(email.toLowerCase()))
+  }
+  if (field === 'receiveEmail' && selectStatus) openSelect()
+  if (invalid.length) {
+    ElMessage({message: t('recipientInvalidMsg'), type: 'warning', plain: true})
+  }
+  return invalid
+}
+
+function pasteRecipients(event, field = 'receiveEmail') {
+  const text = event.clipboardData?.getData('text/plain')
+  if (!text) return
+  const input = event.target
+  const value = input.value.slice(0, input.selectionStart) + text + input.value.slice(input.selectionEnd)
+  event.preventDefault()
+  const invalid = addRecipients(value, field)
+  // Keep invalid entries editable and synchronise InputTag's pending input.
+  input.value = invalid.join(', ')
+  input.dispatchEvent(new Event('input', {bubbles: true}))
+}
+
+function addTagChange(val, field = 'receiveEmail') {
+  form[field].pop()
+  addRecipients(val, field)
 }
 
 function addRecipientTags(val, field) {
@@ -438,6 +501,8 @@ async function sendEmail() {
     return
   }
 
+  if (!await saveSenderName(false)) return
+
   percentMessage = ElMessage({
     message: () => h(sendPercent, {value: percent.value, desc: t('sending')}),
     dangerouslyUseHTMLString: true,
@@ -450,7 +515,8 @@ async function sendEmail() {
 
   show.value = false
 
-  emailSend(form, (e) => {
+  // 名称由服务端读取，避免旧草稿或已打开的写信窗口覆盖最新设置。
+  emailSend({...form, name: undefined}, (e) => {
     percent.value = Math.round((e.loaded * 98) / e.total)
   }).then(async emailList => {
     const email = emailList[0]
@@ -681,6 +747,7 @@ async function persistExistingDraft(snapshot) {
 }
 
 async function close() {
+  if (senderNameLoading.value) return
 
   if (selectStatus) openSelect();
 
@@ -709,7 +776,7 @@ async function close() {
     if (backReply.sendType === 'forward' && form.receiveEmail.length === 0 && form.cc.length === 0 && form.bcc.length === 0) {
       receiveFlag = true;
     }
-    if (subjectFlag && contentFlag && receiveFlag) {
+    if (subjectFlag && contentFlag && receiveFlag && form.cc.length === 0) {
       resetForm();
       close()
       return;
@@ -850,6 +917,7 @@ async function close() {
         gap: 9px;
         min-width: 0;
         flex: 1;
+        flex-wrap: wrap;
       }
 
       .title-text {
@@ -872,7 +940,7 @@ async function close() {
     .sender-selected-name { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--el-text-color-secondary); font-size:12px; }
     .sender-internal-tag { flex-shrink:0; font-size:11px; line-height:22px; padding:0 6px; border-radius:4px; color:var(--el-color-warning); background:var(--el-color-warning-light-9); }
     .item-title { min-width:52px; color:var(--el-text-color-secondary); font-size:13px; }
-    .recipient-field :deep(.el-input-tag__wrapper), .subject-field :deep(.el-input__wrapper) { min-height:40px; }
+    .recipient-field :deep(.el-input-tag__wrapper), .recipient-field :deep(.el-input__wrapper), .subject-field :deep(.el-input__wrapper) { min-height:40px; }
     .recipient-stack { display:grid; gap:7px; min-width:0; }
     .recipient-extra-actions { display:flex; gap:2px; flex-shrink:0; min-height:24px; align-items:center; }
     .recipient-extra-actions button { min-height:24px; border:1px solid transparent; border-radius:5px; padding:0 7px; background:transparent; color:var(--el-text-color-secondary); font:inherit; font-size:12px; cursor:pointer; }
@@ -883,9 +951,13 @@ async function close() {
       height: 100%;
       min-height: 0;
       display: grid;
-      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+      grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
       gap: 9px;
 
+      .recipient-input {
+        max-height: min(180px, 25vh);
+        overflow-y: auto;
+      }
 
       .button-item {
         display: grid;

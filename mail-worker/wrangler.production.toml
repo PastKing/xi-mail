@@ -1,0 +1,36 @@
+name = "xi-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+
+# Keep system settings and secrets already stored on the Worker. The native
+# email binding is part of every production deployment, so it is not a manual
+# Cloudflare dashboard step.
+keep_vars = true
+
+[[send_email]]
+name = "EMAIL"
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "db"
+database_name = "xi-mail"
+database_id = "c9ab79ce-8b60-4497-b30c-038837f72cff"
+
+[[kv_namespaces]]
+binding = "kv"
+id = "654f546aea5a4fe687b4509c39110d22"
+
+[[r2_buckets]]
+binding = "r2"
+bucket_name = "xi-mail"
+
+[assets]
+binding = "assets"
+directory = "./dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+crons = ["0 16 * * *"]

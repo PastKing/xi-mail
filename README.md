@@ -100,6 +100,8 @@ cd ../mail-worker && npx wrangler deploy
 
 部署完成后访问 `https://your-worker.workers.dev/api/init/<INIT_SECRET>` 初始化 / 迁移数据库表结构。登录签名与初始化使用独立的 Cloudflare Secret，不要沿用示例密钥。
 
+Cloudflare 原生发信渠道可在后台按域名选择；使用前请完成 [Cloudflare 发信配置](doc/CLOUDFLARE-SENDING.md)。
+
 `wrangler.toml` 关键字段：
 
 ```toml

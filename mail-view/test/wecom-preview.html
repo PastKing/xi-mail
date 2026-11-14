@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>企业微信推送本地验证</title>
+<div id="app"></div>
+<script type="module">
+import { createApp, h } from 'vue';
+import { createI18n } from 'vue-i18n';
+import ElementPlus from 'element-plus';
+import 'element-plus/dist/index.css';
+import Integration from '../src/views/sys-setting/sections/integration.vue';
+import zh from '../src/i18n/zh.js';
+import en from '../src/i18n/en.js';
+import '../src/views/sys-setting/style.scss';
+const locale = new URLSearchParams(location.search).get('lang') || 'zh';
+createApp({ render: () => h('main', { class: 'sys-setting' }, [
+  h('h1', locale === 'en' ? 'Integration preview' : '集成设置'),
+  h('p', locale === 'en' ? 'Local mock only. No real notifications.' : '本地模拟：仅使用假地址，不发送真实通知。'),
+  h(Integration),
+]) }).use(ElementPlus).use(createI18n({ legacy: false, locale, messages: { zh, en } })).mount('#app');
+</script>
+<style>
+body { font-family: sans-serif; background: #f5f7fa; color: #303133; margin: 0; }
+main { max-width: 850px; margin: 24px auto; padding: 24px; box-sizing: border-box; }
+h1 { font-size: 22px; }
+@media(max-width: 500px) { main { margin: 0; padding: 16px; } }
+</style>
+</html>

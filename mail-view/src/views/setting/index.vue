@@ -25,22 +25,21 @@
         </div>
       </div>
       <div class="item">
-        <div>{{$t('username')}}</div>
+        <div>{{$t('senderName')}}</div>
         <div>
           <span v-if="setNameShow" class="edit-name-input">
-            <el-input v-model="accountName"  ></el-input>
-            <span class="edit-name" @click="setName">
-             {{$t('save')}}
-            </span>
+            <el-input v-model="accountName" :aria-label="$t('senderName')" :placeholder="$t('senderNamePlaceholder')" :maxlength="80" clearable @keyup.enter="setName" />
+            <el-button link type="primary" :loading="setNameLoading" @click="setName">{{$t('save')}}</el-button>
           </span>
           <span v-else class="user-name">
-            <span >{{ userStore.user.name }}</span>
+            <span >{{ userStore.user.name || userStore.user.email?.split('@')[0] }}</span>
             <span v-if="userStore.user.account?.accountId" class="edit-name" @click="showSetName">
              {{$t('change')}}
             </span>
           </span>
         </div>
       </div>
+      <p class="sender-name-hint">{{$t('senderNameHint')}}</p>
       <div class="item">
         <div>{{$t('password')}}</div>
         <div>
@@ -102,6 +101,7 @@ const accountStore = useAccountStore()
 const userStore = useUserStore();
 const setPwdLoading = ref(false)
 const setNameShow = ref(false)
+const setNameLoading = ref(false)
 const accountName = ref(null)
 const providerLogo = id => OAUTH_PROVIDERS.find(provider => provider.id === id)?.logo
 const oauthProviders = ref([])
@@ -147,43 +147,38 @@ async function copyText(text) {
 }
 
 function showSetName() {
-  accountName.value = userStore.user.name
+  accountName.value = userStore.user.name || ''
   setNameShow.value = true
 }
 
 function setName() {
-
-  if (!accountName.value) {
-    ElMessage({
-      message: t('emptyUserNameMsg'),
-      type: 'error',
-      plain: true,
-    })
-    return;
-  }
-
-  setNameShow.value = false
-  const previousName = userStore.user.name
-  const name = accountName.value
-
-  if (name === userStore.user.name) {
+  if (setNameLoading.value) return
+  const name = accountName.value.trim()
+  if (!name) {
+    ElMessage({message: t('emptyUserNameMsg'), type: 'error', plain: true})
     return
   }
-
-  userStore.user.name = accountName.value
-
-  accountSetName(userStore.user.account.accountId,name).then(() => {
+  if (name === userStore.user.name) {
+    setNameShow.value = false
+    return
+  }
+  setNameLoading.value = true
+  accountSetName(userStore.user.account.accountId,name).then(saved => {
+    userStore.user.name = saved.name
+    userStore.user.account.name = saved.name
+    if (accountStore.currentAccount.accountId === userStore.user.account.accountId) {
+      accountStore.currentAccount.name = saved.name
+    }
+    setNameShow.value = false
     ElMessage({
       message: t('saveSuccessMsg'),
       type: 'success',
       plain: true,
     })
 
-    accountStore.changeUserAccountName = name
+    accountStore.changeUserAccountName = saved.name
 
-  }).catch(() => {
-    userStore.user.name = previousName
-  })
+  }).catch(() => {}).finally(() => { setNameLoading.value = false })
 }
 
 const pwdShow = ref(false)
@@ -271,6 +266,12 @@ function submitPwd() {
 
 </script>
 <style scoped lang="scss">
+.sender-name-hint {
+  margin: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
 .box {
   width: 100%; max-width: 1280px; margin: 0 auto; padding: 20px;
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; align-items: start;
