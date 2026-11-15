@@ -8,7 +8,7 @@
 
 A fork of [cloud-mail](https://github.com/maillab/cloud-mail) with a full UI redesign and a growing feature set
 
-[![Version](https://img.shields.io/badge/Version-v3.6.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.13-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -29,13 +29,7 @@ With a single domain hosted on Cloudflare you can deploy a complete mail platfor
 | **Domain management** | **Analytics** |
 | ![Domain management](doc/images/system-setting-domain.png) | ![Analytics](doc/images/analysis.png) |
 
-More templates, layouts and feature screenshots: [Screenshots](doc/PREVIEW-en.md).
-
-## 🔑 Live demo
-
-Register at [mail.azx.us](https://mail.azx.us) using invite code `viewUser`.
-
----
+More screenshots: [online preview](https://xi-mail-docs.azx.us/en/guide/preview).
 
 ## ✨ Highlights
 
@@ -47,78 +41,29 @@ Register at [mail.azx.us](https://mail.azx.us) using invite code `viewUser`.
 - **Flexible deployment**: deploy together or with a standalone frontend; connect multiple Workers and receiving sub-workers.
 - **API integration**: query mail with a global API token for use in other tools.
 
-Setup instructions and request examples: [OAuth and API integration](doc/INTEGRATIONS-en.md).
-
 ---
 
 ## 🧩 Browser extension
 
-A companion Chrome extension for reading mail, copying verification codes, writing mail and managing mailboxes without opening the website.
+A companion Chrome extension for reading mail, copying verification codes and managing mailboxes in the browser.
 
 | Inbox | Reading | Dark · switch mailbox |
 |:---:|:---:|:---:|
 | ![Extension inbox](doc/images/plug-in/inbox.png) | ![Extension reader](doc/images/plug-in/reader.png) | ![Extension dark mode](doc/images/plug-in/mailbox-dropdown-dark.png) |
 
-- Inbox, sent, compose and reply; verification codes shown in the list with one-click copy
-- Switch, create and delete mailboxes; multiple accounts stay separate
-- Draggable floating button on the right edge of any page that opens the full mailbox window
-- New mail notifications; light / dark / follow system
-- Passwords are never stored and the login token is encrypted locally; mail bodies render in a sandbox with remote images blocked
+- Inbox, sent, compose and reply, with one-click code copying
+- Mailbox management, multiple accounts and new mail notifications
+- Floating window with light and dark themes
 
-**Install**: download [`doc/plug-in/chrome-plug.zip`](doc/plug-in/chrome-plug.zip) and unzip it → open `chrome://extensions` and turn on Developer mode → click "Load unpacked" and pick the unzipped folder → click the Xi-Mail toolbar icon and sign in with your site URL (e.g. `https://mail.example.com`), email and password.
+**Install**: download the [browser extension](doc/plug-in/chrome-plug.zip), unzip it, enable Developer mode at `chrome://extensions`, load the folder, then sign in with your own site URL and account.
 
-Requires Chrome 120 or later. Attachments cannot be sent yet; actions that need a CAPTCHA (such as some mailbox creation) should be done on the website.
+Requires Chrome 120 or later.
 
 ---
 
 ## 🚀 Deployment
 
-Prerequisites: Node.js ≥ 20, `npx wrangler login` completed, and a domain hosted on Cloudflare with Email Routing enabled.
-
-```bash
-git clone https://github.com/PastKing/xi-mail.git
-cd xi-mail/mail-worker && npm install
-
-# Create Cloudflare resources and note the returned IDs
-npx wrangler d1 create xi-mail
-npx wrangler kv namespace create kv
-npx wrangler r2 bucket create xi-mail
-
-# Fill in the configuration
-cp wrangler.example.toml wrangler.toml
-
-# Enter two independent random secrets, at least 32 characters each
-npx wrangler secret put jwt_secret
-npx wrangler secret put init_secret
-# For two-step verification, set a separate random key (32+ characters); back it up and keep it stable
-npx wrangler secret put two_factor_key
-
-# Build the frontend and deploy
-cd ../mail-view && npm install && npm run build
-cd ../mail-worker && npx wrangler deploy
-```
-
-After deploying, visit `https://your-worker.workers.dev/api/init/<INIT_SECRET>` to initialize or migrate the database schema. Use separate Cloudflare Secrets for login signing and initialization; never reuse example keys.
-
-Key `wrangler.toml` fields:
-
-```toml
-[vars]
-domain      = ["mail.example.com"]   # Domain list; may be left empty once domains are managed in system settings
-admin       = "admin@example.com"    # Admin address, immutable after initialization
-```
-
-### Standalone frontend
-
-```bash
-cd mail-view
-VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
-# Deploy dist/ to CF Pages, Vercel or any static host
-```
-
-Without `VITE_BASE_URL`, the first visit redirects to `/setup` so the Worker address can be entered manually.
-
-For a more detailed walkthrough, see the upstream [cloud-mail docs](https://github.com/maillab/cloud-mail).
+See the [Xi-Mail deployment guide](https://xi-mail-docs.azx.us/guide/deploy) for Cloudflare dashboard setup, CLI deployment, first-time initialization, receiving domains, and project updates.
 
 ---
 
@@ -128,6 +73,7 @@ Backend: Cloudflare Workers with Hono, Drizzle ORM and D1 / KV / R2. Frontend: V
 
 ```
 xi-mail/
+├── wrangler.toml      # Git dashboard deploy: build command is built in, leave Path empty
 ├── mail-worker/       # Main worker: API, business logic, auth, migrations
 ├── mail-view/         # Vue 3 frontend: layout, pages, login templates, themes, i18n
 ├── mail-worker-sub/   # Sub-worker template: mail receiving + API, with its own docs

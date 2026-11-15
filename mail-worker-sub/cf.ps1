@@ -49,5 +49,12 @@ $child = {
 	exit $LASTEXITCODE
 }
 
-powershell -NoProfile -Command $child -args $cfHome, $vars.CLOUDFLARE_ACCOUNT_ID, $vars.CLOUDFLARE_API_TOKEN, $wrangler, $root, $args
+$wranglerArgs = @($args)
+# 本机正式子 Worker 始终使用私有配置，公开模板仅供新部署。
+if ($wranglerArgs.Count -gt 0 -and $wranglerArgs[0] -in @('deploy', 'dev', 'versions') -and
+    $wranglerArgs -notcontains '--config' -and $wranglerArgs -notcontains '-c' -and
+    (Test-Path -LiteralPath (Join-Path $root 'wrangler.local.toml'))) {
+    $wranglerArgs += @('--config', 'wrangler.local.toml')
+}
+powershell -NoProfile -Command $child -args $cfHome, $vars.CLOUDFLARE_ACCOUNT_ID, $vars.CLOUDFLARE_API_TOKEN, $wrangler, $root, $wranglerArgs
 exit $LASTEXITCODE

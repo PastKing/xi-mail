@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "deploy:local": "wrangler deploy --config wrangler.local.toml"
   },
   "dependencies": {
     "hono": "^4.7.10",
     "postal-mime": "^2.4.1"
   },
   "devDependencies": {
-    "wrangler": "^4.90.0"
+    "wrangler": "^4.119.0"
   }
 }

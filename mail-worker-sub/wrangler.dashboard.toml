@@ -1,0 +1,12 @@
+# 网页部署：所有运行时变量、密钥、绑定在 Cloudflare 控制台设置。
+name = "xi-mail-sub"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[triggers]
+crons = ["0 16 * * *"]
+
+# 保留控制台设置的资源与凭据；不自动创建或替换 db。
+[unsafe.metadata]
+keep_bindings = ["plain_text", "json", "secret_text", "secret_key", "d1"]

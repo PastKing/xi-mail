@@ -1,0 +1,24 @@
+# 网页部署专用：管理员、密钥和资源绑定全部在 Cloudflare 控制台设置。
+# 构建页的部署命令：npx wrangler deploy --config wrangler.dashboard.toml
+name = "xi-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+[assets]
+binding = "assets"
+directory = "./dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+crons = ["0 16 * * *"]
+
+# 上传 API 的 keep_bindings 保留控制台管理的运行时配置。
+# 不在此声明 db/kv：首次部署后在控制台创建并绑定，后续更新仍沿用原绑定。
+# 此配置使用 Wrangler 的 unsafe.metadata 透传机制，升级 Wrangler 后应检查保留行为。
+[unsafe.metadata]
+keep_bindings = ["plain_text", "json", "secret_text", "secret_key", "d1", "kv_namespace", "r2_bucket", "send_email", "service"]

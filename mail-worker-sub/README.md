@@ -42,34 +42,32 @@ CLOUDFLARE_API_TOKEN=...
 
 > 下文命令里的 `npx wrangler` 在这种方式下都换成 `./cf.ps1`，例如 `./cf.ps1 deploy`。
 
-## 3. 创建数据库并填写配置
+## 3. 配置运行时参数
 
-```bash
-npx wrangler d1 create xi-mail-sub   # 记录输出的 database_id
-cp wrangler.example.toml wrangler.toml
-```
+仓库已经提供可直接部署的 `wrangler.toml`，与 `wrangler.example.toml` 内容一致，不需要复制示例或预先创建数据库。首次命令行部署由项目自带 Wrangler 创建 D1；原 Worker 已有 `db` 绑定时会沿用它。
 
-编辑 `wrangler.toml`（已被 gitignore）：
-
-```toml
-account_id = "子账号的 Account ID"   # 可选，写上可以防止部署到错误的账号
-
-[[d1_databases]]
-binding = "db"
-database_name = "xi-mail-sub"
-database_id = "上一步的 database_id"
-
-[vars]
-api_token = "至少 32 位的随机字符串"   # 主 Worker 用它访问子 Worker
-domain = ["a.com", "b.com"]           # 子 Worker 负责收信的域名
-auto_clean_days = 0                    # 邮件保留天数，0 表示永久保留
-```
+如果复用已有数据库，在私有的 `wrangler.local.toml` 中填写原来的 `database_id`，不要绑定到新建的空库。现有站点也不要随意修改 Worker 名称、账号或绑定名 `db`。
 
 ## 4. 部署并初始化
 
 ```bash
 npx wrangler deploy
 
+# 按提示输入至少 32 位的随机字符串，不将 Token 写进公开配置
+npx wrangler secret put api_token
+```
+
+进入 Cloudflare → **Workers & Pages → xi-mail-sub → Settings → Runtime variables and secrets**（地址通常以 `/production/settings` 结尾）：
+
+| 类型 | 名称 | 内容 |
+| --- | --- | --- |
+| Secret | `api_token` | 上一步设置的随机凭据，主站连接子服务器时也填写它 |
+| Text | `domain` | 子 Worker 向主站提供的邮箱后缀，例如 `a.com,b.com`；收信由 Email Routing 决定 |
+| Text | `auto_clean_days` | 保留天数，`0` 表示永久保留，可不填 |
+
+保存并部署生效。也可以直接在这里添加 `api_token`，省去 `secret put` 命令。运行时参数与构建变量不同，不要只填到 Build variables。
+
+```bash
 # 初始化数据库（只需执行一次）
 curl -H "x-api-token: <api_token>" https://xi-mail-sub.<你的子域>.workers.dev/init
 # 返回 Database initialized 即成功
@@ -78,12 +76,20 @@ curl -H "x-api-token: <api_token>" https://xi-mail-sub.<你的子域>.workers.de
 curl -H "x-api-token: <api_token>" https://xi-mail-sub.<你的子域>.workers.dev/api/info
 ```
 
+子 Worker 推荐用上面的命令行完成部署。完整步骤见[命令部署](https://xi-mail-docs.azx.us/guide/cli)。
+
+若仍要用网页连接 Git：Cloudflare → **Compute → Workers & Pages → Create application → Continue with GitHub**，选择 Fork，根目录填 `mail-worker-sub`，无需前端构建命令，部署命令填 `npx wrangler deploy`。默认 `wrangler.toml` 会自动创建 D1 绑定 `db`。然后按上表在 **Settings** 添加 `api_token`、`domain`。浏览器直接打开 `/init` 不会成功，该接口要求 `x-api-token` 请求头。
+
+### 后续更新
+
+保留原 Worker 名称与原 `db` 绑定，更新代码后再次部署，再携带 `x-api-token` 调用 `/init` 完成幂等升级。命令行建议把成功部署后的配置保存在被 Git 忽略的 `wrangler.local.toml`，执行 `npm run deploy:local`。本机隔离账号的 `cf.ps1 deploy` 会优先使用这个私有配置。
+
 ## 5. 配置 Email Routing
 
 对 `domain` 里的每个域名：
 
-1. Cloudflare 控制台 → 选择域名 → **Email → Email Routing**，首次使用点「启用」，按提示添加 MX / TXT 记录
-2. **Routing rules → Catch-all address** → 编辑：Action 选 **Send to a Worker**，Worker 选 `xi-mail-sub`，并启用
+1. Cloudflare 控制台 → **Email Service → Email Routing**，选择域名，首次使用点「启用」，按提示添加 MX / TXT 记录
+2. **Routing rules → Catch-all** → 编辑：把默认的 Drop 改为 **Send to a Worker**，Worker 选 `xi-mail-sub`，并启用
 
 配置完成后给该域名任意地址发一封信，执行下面的命令能看到邮件即说明收信正常：
 
