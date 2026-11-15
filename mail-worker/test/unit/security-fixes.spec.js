@@ -6,6 +6,7 @@ import worker from '../../src/index';
 import accountService from '../../src/service/account-service';
 import emailService from '../../src/service/email-service';
 import attService from '../../src/service/att-service';
+import r2Service from '../../src/service/r2-service';
 import queenSmtpService from '../../src/service/queen-smtp-service';
 import { Resend } from 'resend';
 import loginService from '../../src/service/login-service';
@@ -61,7 +62,9 @@ beforeEach(() => {
   sql.exec(`CREATE TABLE account (account_id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL COLLATE NOCASE UNIQUE,
     name TEXT NOT NULL DEFAULT '', status INTEGER NOT NULL DEFAULT 0, latest_email_time TEXT, create_time TEXT DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER NOT NULL, all_receive INTEGER NOT NULL DEFAULT 0, sort INTEGER NOT NULL DEFAULT 0, is_del INTEGER NOT NULL DEFAULT 0);
-    CREATE TABLE attachments(att_id INTEGER PRIMARY KEY, account_id INTEGER, user_id INTEGER, email_id INTEGER, key TEXT);`);
+    CREATE TABLE attachments(att_id INTEGER PRIMARY KEY, account_id INTEGER, user_id INTEGER, email_id INTEGER, key TEXT,
+      filename TEXT, size INTEGER, mime_type TEXT, status TEXT DEFAULT 0 NOT NULL, type INTEGER DEFAULT 0 NOT NULL,
+      disposition TEXT, related TEXT, content_id TEXT, encoding TEXT, create_time TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL);`);
   // Real entity column names ensure queries fail if a fix uses an incomplete or incorrect schema.
   const columns = getTableConfig(emailTable).columns.map(column => `${column.name} ${column.getSQLType()}${column.primary ? ' PRIMARY KEY' : ''}`);
   sql.exec('CREATE TABLE email (' + columns.join(',') + ')');
@@ -140,6 +143,16 @@ describe.skipIf(!DatabaseSync)('Outbound sender identity', () => {
     expect(JSON.parse(request.mock.calls[0][1].body).from).toBe('sender@allowed.example');
     expect(sql.prepare('SELECT send_email,resend_email_id FROM email').get()).toEqual({send_email:'sender@allowed.example',resend_email_id:'sendflare:flare-one'});
     expect(deliver).not.toHaveBeenCalled();
+  });
+  it('stores ordinary attachment MIME metadata from the composer payload', async () => {
+    const put = vi.spyOn(r2Service, 'putObj').mockResolvedValue(undefined);
+    await attService.saveSendAtt(c, [{ content: 'SGVsbG8=', filename: 'hello.txt', contentType: 'text/plain' }], 10, 1, 99);
+    expect(sql.prepare('SELECT filename,size,mime_type,type FROM attachments').get()).toEqual({
+      filename: 'hello.txt', size: 5, mime_type: 'text/plain', type: 0,
+    });
+    expect(put).toHaveBeenCalledWith(c, expect.stringMatching(/^attachments\//), expect.any(Uint8Array), expect.objectContaining({
+      contentType: 'text/plain',
+    }));
   });
   it('passes CC and BCC to Resend and stores them on the sender copy', async () => {
     mailbox(1, 10, 'sender@allowed.example'); settings.queenTokens = {};

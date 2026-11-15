@@ -226,6 +226,11 @@ const emailService = {
 			attachments //附件
 		} = params;
 
+		attachments = (attachments || []).map(attachment => ({
+			...attachment,
+			contentType: attachment.mimeType || attachment.contentType || attachment.type || 'application/octet-stream',
+		}));
+
 		const recipientGroups = [];
 		const seenRecipients = new Set();
 		for (const [field, value] of [['receiveEmail', receiveEmail], ['cc', cc], ['bcc', bcc]]) {
