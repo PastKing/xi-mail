@@ -1,47 +1,32 @@
-name = "${NAME}"
+name = "xi-mail"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
+keep_vars = true
 
 [observability]
 enabled = true
 
-[[routes]]
-pattern = "${CUSTOM_DOMAIN}"
-custom_domain = true
-
 [[d1_databases]]
 binding = "db"
-database_name = "cloud-mail" # 数据库的名称
-database_id = "${D1_DATABASE_ID}" # 使用占位符引用环境变量
 
 [[kv_namespaces]]
 binding = "kv"
-id = "${KV_NAMESPACE_ID}" # 使用占位符引用环境变量
-
-[[r2_buckets]]
-binding = "r2"
-bucket_name = "${R2_BUCKET_NAME}" # 使用占位符引用环境变量
 
 [assets]
-binding = "assets"		#静态资源绑定名默认不可修改
-directory = "./dist"	#前端vue项目打包的静态资源存放位置,默认dist
+binding = "assets"
+directory = "./dist"
 not_found_handling = "single-page-application"
 run_worker_first = true
 
 [triggers]
-crons = ["0 16 * * *", "* * * * *"]	#每天晚上12点执行清理任务；每分钟同步子 Worker 邮件
-
+crons = ["0 16 * * *"]
 
 [vars]
-#orm_log = false
-domain = "${DOMAIN}"				#邮件域名可可配置多个 示例: ["example1.com","example2.com"]
-admin = "${ADMIN}"				#管理员的邮箱	示例: admin@example.com
-# Set jwt_secret and init_secret using Cloudflare Secrets (local development: .dev.vars).
+orm_log = false
+# admin 在 Worker 运行时变量中设置，也可在本地配置中填写。
 
-linuxdo_client_id = "${LINUXDO_CLIENT_ID}"
-linuxdo_client_secret = "${LINUXDO_CLIENT_SECRET}"
-linuxdo_callback_url = "${LINUXDO_CALLBACK_URL}"
-linuxdo_switch = "${LINUXDO_SWITCH}"
+# 首次部署时，将 jwt_secret 和 init_secret 设置为 Cloudflare Secret。
+# 邮箱域名、OAuth、R2 存储和 Cloudflare Email 发件服务均可部署后再配置。
 
 [build]
-command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"
+command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"

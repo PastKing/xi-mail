@@ -30,8 +30,7 @@ mail-vue/dist
 .venv
 mail-worker/wrangler.local.toml
 task.md
-mail-worker/wrangler.toml
-mail-worker-sub/wrangler.toml
+mail-worker-sub/wrangler.local.toml
 mail-worker-sub/.cf.env
 mail-worker-sub/.cf-home
 
@@ -40,3 +39,5 @@ error.md
 # Local Worker secrets must never be committed.
 **/.dev.vars
 **/.dev.vars.*
+
+docs

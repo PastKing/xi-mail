@@ -36,9 +36,8 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
-    "@tailwindcss/oxide-win32-x64-msvc": "^4.2.2",
     "@tailwindcss/vite": "^4.2.2",
-    "@vitejs/plugin-vue": "^5.2.1",
+    "@vitejs/plugin-vue": "^6.0.1",
     "less": "^4.2.2",
     "sass": "^1.82.0",
     "tailwindcss": "^4.2.2",

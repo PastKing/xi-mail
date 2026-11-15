@@ -8,7 +8,7 @@
 
 二次开发自 [cloud-mail](https://github.com/maillab/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.6.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.13-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -73,52 +73,7 @@
 
 ## 🚀 部署
 
-前置条件：Node.js ≥ 20、已 `npx wrangler login`、一个托管在 Cloudflare 并开启 Email Routing 的域名。
-
-```bash
-git clone https://github.com/PastKing/xi-mail.git
-cd xi-mail/mail-worker && npm install
-
-# 创建 Cloudflare 资源，记录输出的 ID
-npx wrangler d1 create xi-mail
-npx wrangler kv namespace create kv
-npx wrangler r2 bucket create xi-mail
-
-# 填写配置
-cp wrangler.example.toml wrangler.toml
-
-# 分别输入两个独立随机密钥，至少 32 位
-npx wrangler secret put jwt_secret
-npx wrangler secret put init_secret
-# 开启两步验证时配置独立随机密钥（至少 32 位），妥善备份，启用后不要更换
-npx wrangler secret put two_factor_key
-
-# 构建前端并部署
-cd ../mail-view && npm install && npm run build
-cd ../mail-worker && npx wrangler deploy
-```
-
-部署完成后访问 `https://your-worker.workers.dev/api/init/<INIT_SECRET>` 初始化 / 迁移数据库表结构。登录签名与初始化使用独立的 Cloudflare Secret，不要沿用示例密钥。
-
-`wrangler.toml` 关键字段：
-
-```toml
-[vars]
-domain      = ["mail.example.com"]   # 域名列表；改用系统设置管理域名后可留空
-admin       = "admin@example.com"    # 管理员邮箱，初始化后无法更改
-```
-
-### 独立部署前端
-
-```bash
-cd mail-view
-VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
-# 将 dist/ 部署到 CF Pages / Vercel 等静态托管
-```
-
-未配置 `VITE_BASE_URL` 时，首次打开会跳转 `/setup` 引导手动填写 Worker 地址。
-
-更详细的部署说明可参考上游项目 [cloud-mail 文档](https://github.com/maillab/cloud-mail)。
+查看 [Xi-Mail 在线文档](https://xi-mail-docs.azx.us/guide/deploy)，包含 Cloudflare 图形界面部署、命令行部署、首次初始化、域名收信配置和后续更新教程。
 
 ---
 

@@ -1,0 +1,47 @@
+name = "xi-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "db"
+
+[[kv_namespaces]]
+binding = "kv"
+
+# 静态资源（一体化部署模式）
+# 若前后端分离部署，可注释整个 [assets] 区块，让 Worker 仅运行接口。
+[assets]
+binding = "assets"
+directory = "./dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+# 每天 0 点（UTC+8）执行清理任务
+crons = ["0 16 * * *"]
+
+[vars]
+orm_log = false
+# admin 在 Cloudflare → Worker → Settings → Variables and Secrets 设置。
+# 命令行部署也可在这里填写 admin = "你的完整管理员邮箱"。
+
+# 首次部署时，将 jwt_secret 和 init_secret 设置为彼此不同且至少 32 字符的随机密钥。
+# 邮箱域名、OAuth、存储方式和可选发件绑定均可部署后再配置。
+# 启用认证器两步验证前设置 two_factor_key 并妥善备份；用户绑定后请勿更换。
+# 使用 Resend 收信时，在系统设置中填写 Webhook 签名密钥。
+
+# 仅在后台启用 Cloudflare Email 发件服务时才需要此绑定。
+# [[send_email]]
+# name = "EMAIL"
+
+# 如需将附件存入 R2 而非 KV，再添加此绑定。
+# [[r2_buckets]]
+# binding = "r2"
+# bucket_name = "xi-mail"
+
+# [build]
+# command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"

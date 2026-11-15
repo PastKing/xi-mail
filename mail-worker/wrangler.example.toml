@@ -1,9 +1,6 @@
 name = "xi-mail"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
-
-[[send_email]]
-name = "EMAIL"
 keep_vars = true
 
 [observability]
@@ -11,20 +8,12 @@ enabled = true
 
 [[d1_databases]]
 binding = "db"
-database_name = "xi-mail"
-database_id = "<YOUR_D1_DATABASE_ID>"
 
 [[kv_namespaces]]
 binding = "kv"
-id = "<YOUR_KV_NAMESPACE_ID>"
 
-[[r2_buckets]]
-binding = "r2"
-bucket_name = "xi-mail"
-
-# ── Static assets (一体化部署模式) ──
-# 如果前后端分离部署（mail-view 单独部署到 Pages / Vercel 等），
-# 注释掉下方整个 [assets] 块即可，Worker 将作为纯 API 运行。
+# 静态资源（一体化部署模式）
+# 若前后端分离部署，可注释整个 [assets] 区块，让 Worker 仅运行接口。
 [assets]
 binding = "assets"
 directory = "./dist"
@@ -32,52 +21,27 @@ not_found_handling = "single-page-application"
 run_worker_first = true
 
 [triggers]
-# 每天 0 点（UTC+8）执行清理任务；每分钟同步子 Worker 邮件，不用子 Worker 可删掉第二项
-crons = ["0 16 * * *", "* * * * *"]
+# 每天 0 点（UTC+8）执行清理任务
+crons = ["0 16 * * *"]
 
 [vars]
 orm_log = false
-domain = ["example.com", "mail.example.com"]
-admin = "admin@example.com"
-# Configure two different random secrets (at least 32 characters each):
-# npx wrangler secret put jwt_secret
-# npx wrangler secret put init_secret
-# Enable authenticator two-step verification with a separate random secret (32+ characters).
-# Keep this key stable and backed up; changing it prevents decrypting enrolled authenticators.
-# npx wrangler secret put two_factor_key
+# admin 在 Cloudflare → Worker → Settings → Variables and Secrets 设置。
+# 命令行部署也可在这里填写 admin = "你的完整管理员邮箱"。
 
-# Resend webhook signature verification is required. Configure Signing Secret in
-# System Settings → Service Integration, or use the secret below (comma-separated values supported).
-# npx wrangler secret put resend_webhook_secret
+# 首次部署时，将 jwt_secret 和 init_secret 设置为彼此不同且至少 32 字符的随机密钥。
+# 邮箱域名、OAuth、存储方式和可选发件绑定均可部署后再配置。
+# 启用认证器两步验证前设置 two_factor_key 并妥善备份；用户绑定后请勿更换。
+# 使用 Resend 收信时，在系统设置中填写 Webhook 签名密钥。
 
-# OAuth can be configured in System Settings → OAuth Integration.
-# These variables remain supported as a fallback for existing installations.
-# linuxdo_switch = "false"
-# linuxdo_client_id = "<YOUR_LINUXDO_CLIENT_ID>"
-# linuxdo_callback_url = "https://your-frontend.example.com/oauth/linuxdo"
-# Store linuxdo_client_secret with `npx wrangler secret put linuxdo_client_secret`.
-# telegram_switch = "false"
-# telegram_client_id = "<BOTFATHER_CLIENT_ID>"
-# telegram_callback_url = "https://your-frontend.example.com/oauth/telegram"
-# Store telegram_client_secret with `npx wrangler secret put telegram_client_secret`.
-# nodeloc_switch = "false"
-# nodeloc_client_id = "<YOUR_NODELOC_CLIENT_ID>"
-# nodeloc_callback_url = "https://your-frontend.example.com/oauth/nodeloc"
-# Store nodeloc_client_secret with `npx wrangler secret put nodeloc_client_secret`.
-# github_switch = "false"
-# github_client_id = "<YOUR_GITHUB_CLIENT_ID>"
-# github_callback_url = "https://your-frontend.example.com/oauth/github"
-# Store github_client_secret with `npx wrangler secret put github_client_secret`.
-# google_switch = "false"
-# google_client_id = "<YOUR_GOOGLE_CLIENT_ID>"
-# google_callback_url = "https://your-frontend.example.com/oauth/google"
-# Store google_client_secret with `npx wrangler secret put google_client_secret`.
+# 仅在后台启用 Cloudflare Email 发件服务时才需要此绑定。
+# [[send_email]]
+# name = "EMAIL"
 
-# Optional Discord login; can also be configured under System settings > OAuth.
-# discord_switch = "false"
-# discord_client_id = "<YOUR_DISCORD_APPLICATION_ID>"
-# discord_callback_url = "https://your-frontend.example.com/oauth/discord"
-# Store discord_client_secret with `npx wrangler secret put discord_client_secret`.
+# 如需将附件存入 R2 而非 KV，再添加此绑定。
+# [[r2_buckets]]
+# binding = "r2"
+# bucket_name = "xi-mail"
 
 # [build]
 # command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"
