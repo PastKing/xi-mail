@@ -1,4 +1,4 @@
-name = "test-mail"
+name = "xi-mail-test"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
 keep_vars = true
@@ -8,17 +8,14 @@ enabled = true
 
 [[d1_databases]]
 binding = "db"			#d1数据库绑定名默认不可修改
-database_name = "test-email"		#d1数据库名字
-database_id = "e65f099d-796d-4eaa-8dff-529b368b20db"		#d1数据库id
 
 [[kv_namespaces]]
 binding = "kv"			#kv绑定名默认不可修改
-id = "9be10cd058e04c55b526f8c0c116f50c"					#kv数据库id
 
-#(可选)
+# 可选：需要时绑定 R2 存储。
 #[[r2_buckets]]
-#binding = "r2"			#r2对象存储绑定名默认不可修改
-#bucket_name = "test-email"		#r2对象存储桶的名字
+#binding = "r2"			# R2 绑定名
+#bucket_name = "xi-mail-test"	# R2 储存桶名称
 
 [assets]
 binding = "assets"		#静态资源绑定名默认不可修改
@@ -32,9 +29,8 @@ crons = ["0 16 * * *"]	#定时任务每天晚上12点执行
 
 [vars]
 orm_log = false
-domain = ["example.com"]				#邮件域名可可配置多个 示例: ["example1.com","example2.com"]
 admin = "admin@example.com"				#管理员的邮箱	示例: admin@example.com
-# Set jwt_secret and init_secret using Cloudflare Secrets (local development: .dev.vars).
+# 使用 Cloudflare Secret 设置 jwt_secret 和 init_secret；本地开发值放入 .dev.vars。
 
 [build]
-command = "pnpm --prefix ../mail-vue install && pnpm --prefix ../mail-vue run build"
+command = "pnpm --prefix ../mail-view install && pnpm --prefix ../mail-view run build"

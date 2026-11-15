@@ -1,4 +1,4 @@
-name = "cloud-mail-dev"
+name = "xi-mail-dev"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
 keep_vars = true
@@ -11,16 +11,13 @@ ip = "0.0.0.0"
 
 [[d1_databases]]
 binding = "db"
-database_name = "email"
-database_id = "a4c1a63a-6ef5-4e6d-8e8c-b6d9e8feb810"
 
 [[kv_namespaces]]
 binding = "kv"
-id = "2io01d4b299e481b9de060ece9e7785c"
 
 #[[r2_buckets]]
 #binding = "r2"
-#bucket_name = "email"
+#bucket_name = "xi-mail-dev"
 
 [assets]
 binding = "assets"
@@ -31,6 +28,5 @@ run_worker_first = true
 
 [vars]
 orm_log = false
-domain = ["example.com", "example2.com", "example3.com", "example4.com"]
 admin = "admin@example.com"
-# Set jwt_secret and init_secret using Cloudflare Secrets (local development: .dev.vars).
+# 使用 Cloudflare Secret 设置 jwt_secret 和 init_secret；本地开发值放入 .dev.vars。

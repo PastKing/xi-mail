@@ -8,7 +8,7 @@
 
 二次开发自 [cloud-mail](https://github.com/maillab/cloud-mail)，UI 全面重设计，功能持续扩展
 
-[![Version](https://img.shields.io/badge/Version-v3.6.12-6366f1)](https://github.com/PastKing/xi-mail/releases)
+[![Version](https://img.shields.io/badge/Version-v3.6.13-6366f1)](https://github.com/PastKing/xi-mail/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/PastKing/xi-mail?style=flat&color=6366f1)](https://github.com/PastKing/xi-mail/stargazers)
 [![Telegram](https://img.shields.io/badge/Telegram-@pk__oa-26A5E4?logo=telegram)](https://t.me/pk_oa)
@@ -29,13 +29,7 @@
 | **域名管理** | **数据分析** |
 | ![域名管理](doc/images/system-setting-domain.png) | ![数据分析](doc/images/analysis.png) |
 
-更多模板、布局与功能截图见 [界面预览](doc/PREVIEW.md)。
-
-## 🔑 在线体验
-
-演示站 [mail.azx.us](https://mail.azx.us)，使用注册码 `viewUser` 注册。
-
----
+更多界面截图见[在线预览](https://xi-mail-docs.azx.us/guide/preview)。
 
 ## ✨ 主要特性
 
@@ -47,80 +41,29 @@
 - **灵活部署**：支持一体部署、独立前端、多 Worker 实例与收信子 Worker。
 - **API 集成**：通过全局 API Token 查询邮件，方便接入其他工具。
 
-配置方法与接口示例见 [OAuth 与 API 集成说明](doc/INTEGRATIONS.md)。
-
 ---
 
 ## 🧩 浏览器插件
 
-配套的 Chrome 插件，不用打开网页就能收信、看验证码、写信和管理邮箱。
+配套 Chrome 插件可在浏览器中查看邮件、复制验证码和管理邮箱。
 
 | 收件箱 | 阅读邮件 | 深色 · 切换邮箱 |
 |:---:|:---:|:---:|
 | ![插件收件箱](doc/images/plug-in/inbox.png) | ![插件阅读邮件](doc/images/plug-in/reader.png) | ![插件深色模式](doc/images/plug-in/mailbox-dropdown-dark.png) |
 
-- 收件箱、已发送、写信与回复，邮件列表直接显示验证码，一键复制
-- 多个邮箱切换、新建与删除，多账号登录互不干扰
-- 任意网页右侧的悬浮入口，可拖动，展开后是完整的邮箱窗口
-- 新邮件通知，浅色 / 深色 / 跟随系统
-- 密码不保存，登录凭证加密存在本地；邮件正文在沙箱中显示，默认不加载远程图片
+- 收件、已发送、写信与回复，列表可直接复制验证码
+- 多邮箱切换、管理及新邮件提醒
+- 支持悬浮窗口、浅色和深色外观
 
-**安装**：下载 [`doc/plug-in/chrome-plug.zip`](doc/plug-in/chrome-plug.zip) 并解压 → 打开 `chrome://extensions`，开启「开发者模式」→「加载已解压的扩展程序」，选择解压后的文件夹 → 点击工具栏的 Xi-Mail 图标，填写站点地址（如 `https://mail.example.com`）、邮箱和密码登录。
+**安装**：下载[浏览器插件](doc/plug-in/chrome-plug.zip)并解压，在 `chrome://extensions` 开启「开发者模式」后加载解压目录，再填写自己的站点地址和账号登录。
 
-需要 Chrome 120 及以上。暂不支持发送附件；需要人机验证的操作（如部分新建邮箱）请到网页版完成。
+需要 Chrome 120 及以上。
 
 ---
 
 ## 🚀 部署
 
-前置条件：Node.js ≥ 20、已 `npx wrangler login`、一个托管在 Cloudflare 并开启 Email Routing 的域名。
-
-```bash
-git clone https://github.com/PastKing/xi-mail.git
-cd xi-mail/mail-worker && npm install
-
-# 创建 Cloudflare 资源，记录输出的 ID
-npx wrangler d1 create xi-mail
-npx wrangler kv namespace create kv
-npx wrangler r2 bucket create xi-mail
-
-# 填写配置
-cp wrangler.example.toml wrangler.toml
-
-# 分别输入两个独立随机密钥，至少 32 位
-npx wrangler secret put jwt_secret
-npx wrangler secret put init_secret
-# 开启两步验证时配置独立随机密钥（至少 32 位），妥善备份，启用后不要更换
-npx wrangler secret put two_factor_key
-
-# 构建前端并部署
-cd ../mail-view && npm install && npm run build
-cd ../mail-worker && npx wrangler deploy
-```
-
-部署完成后访问 `https://your-worker.workers.dev/api/init/<INIT_SECRET>` 初始化 / 迁移数据库表结构。登录签名与初始化使用独立的 Cloudflare Secret，不要沿用示例密钥。
-
-Cloudflare 原生发信渠道可在后台按域名选择；使用前请完成 [Cloudflare 发信配置](doc/CLOUDFLARE-SENDING.md)。
-
-`wrangler.toml` 关键字段：
-
-```toml
-[vars]
-domain      = ["mail.example.com"]   # 域名列表；改用系统设置管理域名后可留空
-admin       = "admin@example.com"    # 管理员邮箱，初始化后无法更改
-```
-
-### 独立部署前端
-
-```bash
-cd mail-view
-VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
-# 将 dist/ 部署到 CF Pages / Vercel 等静态托管
-```
-
-未配置 `VITE_BASE_URL` 时，首次打开会跳转 `/setup` 引导手动填写 Worker 地址。
-
-更详细的部署说明可参考上游项目 [cloud-mail 文档](https://github.com/maillab/cloud-mail)。
+查看 [Xi-Mail 在线文档](https://xi-mail-docs.azx.us/guide/deploy)，包含 Cloudflare 图形界面部署、命令行部署、首次初始化、域名收信配置和后续更新教程。
 
 ---
 
@@ -130,6 +73,7 @@ VITE_BASE_URL=https://your-worker.workers.dev/api npm run build:standalone
 
 ```
 xi-mail/
+├── wrangler.toml      # Git 界面部署：构建命令已内置，控制台不用填 Path
 ├── mail-worker/       # 主 Worker：API、业务逻辑、鉴权、数据库迁移
 ├── mail-view/         # Vue 3 前端：布局、页面、登录模板、主题色、i18n
 ├── mail-worker-sub/   # 子 Worker 模板：仅收信 + API，附部署与接口文档

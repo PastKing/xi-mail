@@ -1,0 +1,42 @@
+# Git 界面部署读取仓库根目录这份配置。
+# Path、Build command 留空；Deploy command 保持默认 npx wrangler deploy。
+name = "xi-mail"
+main = "mail-worker/src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "db"
+
+[[kv_namespaces]]
+binding = "kv"
+
+# 静态资源（一体化部署）。前后端分离时可注释整个 [assets]。
+[assets]
+binding = "assets"
+directory = "mail-worker/dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+# 每天 0 点（UTC+8）清理
+crons = ["0 16 * * *"]
+
+[vars]
+orm_log = false
+# admin、jwt_secret、init_secret 在 Cloudflare Settings 填写，不要写进仓库。
+
+# 仅在后台启用 Cloudflare Email 发件时才需要。
+# [[send_email]]
+# name = "EMAIL"
+
+# 附件存 R2 时再添加。
+# [[r2_buckets]]
+# binding = "r2"
+# bucket_name = "xi-mail"
+
+[build]
+command = "npm --prefix mail-worker install && npm --prefix mail-view install && npm --prefix mail-view run build"

@@ -1,18 +1,18 @@
 name = "xi-mail-sub"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
+keep_vars = true
 
 [[d1_databases]]
 binding = "db"
-database_name = "xi-mail-sub"
-database_id = "<YOUR_D1_DATABASE_ID>"
+# 首次命令行部署自动创建；更新原 Worker 时沿用原 db 绑定。
+# 已有数据库也可以显式填写 database_name 和 database_id。
 
 [triggers]
 crons = ["0 16 * * *"]
 
 [vars]
-api_token = "<YOUR_API_TOKEN_MIN_32_CHARS>"
-# 多个域名：["a.com", "b.com"]；在控制台手动填写时也可以写成 a.com,b.com
-domain = ["sub-domain.com"]
+# api_token 使用 npx wrangler secret put api_token 设置，至少 32 位。
+# domain 在 Worker 运行时变量中设置，多个域名用 a.com,b.com。
 # 邮件保留天数，超过后由定时任务自动删除；0 或不配置表示永久保留
 auto_clean_days = 0
