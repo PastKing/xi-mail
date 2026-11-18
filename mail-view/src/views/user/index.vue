@@ -274,7 +274,12 @@
       <div class="add-user-form">
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('emailAccount') }}</label>
-          <el-input v-model="addForm.email" type="text" :placeholder="$t('emailAccount')" autocomplete="off" />
+          <div class="password-input-row">
+            <el-input v-model="addForm.email" type="text" :placeholder="$t('emailAccount')" autocomplete="off" :disabled="addLoading"/>
+            <el-tooltip :content="$t('randomPrefix')" placement="top" :trigger-keys="[]">
+              <button type="button" class="xi-icon-button" :aria-label="$t('randomPrefix')" :disabled="addLoading" @click="randomizePrefix"><Icon icon="mingcute:refresh-2-line" width="16" height="16"/></button>
+            </el-tooltip>
+          </div>
         </div>
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('select') }}</label>
@@ -847,6 +852,16 @@ function resetAddForm() {
   addForm.suffix = settingStore.domainList[0]
   addForm.type = null
   addForm.password = ''
+}
+
+function randomizePrefix() {
+  const len = settingStore.settings.randomPrefixLength || 8;
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const first = 'abcdefghijklmnopqrstuvwxyz';
+  result += first.charAt(Math.floor(Math.random() * first.length));
+  for (let index = 1; index < len; index++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+  addForm.email = result;
 }
 
 function openAdd() {
