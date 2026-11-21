@@ -1,10 +1,28 @@
 import app from '../hono/hono';
 import result from '../model/result';
 import settingService from '../service/setting-service';
+import BizError from '../error/biz-error';
+import { t } from '../i18n/i18n';
+import wecomService from '../service/wecom-service';
 import {blockSenderDomain} from '../service/sender-domain-block-service';
 import s3Service from '../service/s3-service';
 import rateLimit from '../service/security-rate-limit-service';
 import userContext from '../security/user-context';
+
+app.get('/setting/wecom/query', async (c) => {
+	c.header('Cache-Control', 'no-store');
+	return c.json(result.ok(await wecomService.get(c)));
+});
+
+app.put('/setting/wecom/set', async (c) => {
+	await wecomService.set(c, await c.req.json());
+	return c.json(result.ok());
+});
+
+app.post('/setting/wecom/test', async (c) => {
+	await wecomService.test(c, await c.req.json());
+	return c.json(result.ok());
+});
 
 app.post('/setting/s3/test',async(c)=>{
 	c.header('Cache-Control','no-store');
@@ -26,6 +44,15 @@ app.put('/setting/set', async (c) => {
 app.get('/setting/query', async (c) => {
 	const setting = await settingService.get(c);
 	return c.json(result.ok(setting));
+});
+
+app.get('/setting/resendToken', async (c) => {
+	c.header('Cache-Control', 'no-store');
+	if (c.get('user')?.email !== c.env.admin) {
+		throw new BizError(t('unauthorized'), 403);
+	}
+	const data = await settingService.getResendToken(c, c.req.query('domain'));
+	return c.json(result.ok(data));
 });
 
 app.get('/setting/websiteConfig', async (c) => {

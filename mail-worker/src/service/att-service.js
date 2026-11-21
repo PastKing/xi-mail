@@ -13,6 +13,10 @@ import { attachmentDisposition } from '../utils/object-policy';
 import attachmentAccess, {attachmentKeyFromUrl} from './attachment-access-service';
 import BizError from '../error/biz-error';
 
+function attachmentMimeType(attachment) {
+	return attachment.mimeType || attachment.contentType || attachment.type || 'application/octet-stream';
+}
+
 const attService = {
 
 	async addAtt(c, attachments) {
@@ -20,7 +24,7 @@ const attService = {
 		for (let attachment of attachments) {
 
 			let metadate = {
-				contentType: attachment.mimeType,
+				contentType: attachmentMimeType(attachment),
 			}
 
 			if (!attachment.contentId) {
@@ -202,7 +206,7 @@ const attService = {
 			attData.key = att.key;
 			attData.size = att.buff.length;
 			attData.filename = att.filename;
-			attData.mimeType = att.type;
+			attData.mimeType = attachmentMimeType(att);
 			attData.type = attConst.type.ATT;
 			attDataList.push(attData);
 		}
@@ -211,7 +215,7 @@ const attService = {
 
 		for (let att of attList) {
 			await r2Service.putObj(c, att.key, att.buff, {
-				contentType: att.type,
+				contentType: attachmentMimeType(att),
 				contentDisposition: attachmentDisposition(att.filename)
 			});
 		}

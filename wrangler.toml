@@ -29,9 +29,9 @@ crons = ["0 16 * * *"]
 orm_log = false
 # admin、jwt_secret、init_secret 在 Cloudflare Settings 填写，不要写进仓库。
 
-# 仅在后台启用 Cloudflare Email 发件时才需要。
-# [[send_email]]
-# name = "EMAIL"
+# Cloudflare Email Sending 绑定，供系统设置中选择 Cloudflare Email 的域名发信。
+[[send_email]]
+name = "EMAIL"
 
 # 附件存 R2 时再添加。
 # [[r2_buckets]]

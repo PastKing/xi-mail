@@ -11,6 +11,7 @@ import roleService from '../service/role-service';
 import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
+import wecomService from '../service/wecom-service';
 import { managedSender, authenticatedSender, managedDomainList } from '../utils/sender-auth';
 
 import { matchSenderList as matchDomainList, safeSenderName } from '../utils/sender-filter';
@@ -68,16 +69,7 @@ export async function email(message, env, ctx) {
 			}
 		}
 
-		const reader = message.raw.getReader();
-		let content = '';
-
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			content += new TextDecoder().decode(value);
-		}
-
-		const email = await PostalMime.parse(content);
+		const email = await PostalMime.parse(await new Response(message.raw).arrayBuffer());
 		if (managedSender(email.from?.address, managedDomainList({ domainList, domainMapping }, env))
 			&& !authenticatedSender(email.from?.address, message.headers?.get('Authentication-Results'))) {
 			message.setReject('Sender authentication failed');
@@ -224,6 +216,8 @@ export async function email(message, env, ctx) {
 			}
 
 		}
+
+		ctx.waitUntil(wecomService.sendEmail({ env }, emailRow));
 
 		//转发到TG
 		if (tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
