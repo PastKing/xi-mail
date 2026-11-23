@@ -196,8 +196,6 @@ const en = {
     complained: 'Complained',
     delayed: 'Delayed',
     bounced: 'Bounced',
-    failed: 'Failed',
-    emailProcessing: 'Processing',
     attachments: 'Attachments',
     attCount: 'Total {total}',
     emailCount: 'Total {total}',

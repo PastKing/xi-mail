@@ -979,7 +979,7 @@ function handleList(list) {
       1: { icon: 'mingcute:send-fill',         color: '#51C76B', content: t('sent') },
       2: { icon: 'mingcute:check-circle-fill', color: '#51C76B', content: t('delivered') },
       3: { icon: 'mingcute:close-circle-fill', color: '#F56C6C', content: t('bounced') },
-      8: { icon: 'mingcute:close-circle-fill', color: '#F56C6C', content: t('failed') },
+      8: { icon: 'mingcute:close-circle-fill', color: '#F56C6C', content: t('bounced') },
       4: { icon: 'mingcute:warning-fill',      color: '#FBBD08', content: t('complained') },
       5: { icon: 'mingcute:time-fill',         color: '#FBBD08', content: t('delayed') },
       7: { icon: 'mingcute:user-x-line',       color: 'var(--el-color-warning)', content: t('noRecipient') },
