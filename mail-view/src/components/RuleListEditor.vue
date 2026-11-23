@@ -23,17 +23,21 @@ const pageItems=computed(()=>filtered.value.slice((page.value-1)*20,page.value*2
 watch(query,()=>page.value=1);
 watch(()=>filtered.value.length,()=>page.value=Math.max(1,Math.min(page.value,Math.ceil(filtered.value.length/20))));
 function commitPending(){
-  if(!pending.value.trim())return true;
   if(props.disabled)return false;
   const normalize=value=>props.kind==='domain'?String(value).trim().replace(/^@/,'').replace(/\.$/,'').toLowerCase():String(value).trim();
   const added=pending.value.split(/[\r\n,，;；]+/).map(value=>value.trim()).filter(Boolean).map(normalize);
   if(added.some(value=>value.length>(props.kind==='domain'?320:512)||(props.kind==='domain'&&!/^(?:[a-z0-9!#$%&'*+=?^_`{}~.-]{1,64}@)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?$/i.test(value)))){
     ElMessage.error(t('ruleListInvalid'));return false;
   }
-  const seen=new Set(props.modelValue.map(value=>normalize(value).toLowerCase())),values=[...props.modelValue];
+  const seen=new Set(),values=[];
+  for(const current of props.modelValue){
+    const value=normalize(current),key=value.toLowerCase();
+    if(value&&!seen.has(key)){seen.add(key);values.push(value)}
+  }
   for(const value of added)if(!seen.has(value.toLowerCase())){seen.add(value.toLowerCase());values.push(value)}
   if(values.length>5000){ElMessage.error(t('ruleListLimit'));return false}
-  emit('update:modelValue',values);pending.value='';return true;
+  if(values.length!==props.modelValue.length||values.some((value,index)=>value!==props.modelValue[index]))emit('update:modelValue',values);
+  pending.value='';return true;
 }
 function remove(value){emit('update:modelValue',props.modelValue.filter(item=>item!==value))}
 defineExpose({commitPending,hasPending:()=>!!pending.value.trim(),resetPending:()=>{pending.value='';query.value='';page.value=1}});

@@ -29,6 +29,7 @@ const analysisService = {
 			numberCount,
 			nameRatio,
 			userDayCountRaw,
+			accountDayCountRaw,
 			receiveDayCountRaw,
 			sendDayCountRaw,
 			daySendTotalRaw
@@ -45,6 +46,7 @@ const analysisService = {
 
 
 			analysisDao.userDayCount(c, diffHours),
+			analysisDao.accountDayCount(c, diffHours),
 			analysisDao.receiveDayCount(c, diffHours),
 			analysisDao.sendDayCount(c, diffHours),
 
@@ -53,6 +55,7 @@ const analysisService = {
 
 
 		const userDayCount = this.filterEmptyDay(userDayCountRaw, timeZone);
+		const accountDayCount = this.filterEmptyDay(accountDayCountRaw, timeZone);
 		const receiveDayCount = this.filterEmptyDay(receiveDayCountRaw, timeZone);
 		const sendDayCount = this.filterEmptyDay(sendDayCountRaw, timeZone);
 
@@ -61,6 +64,7 @@ const analysisService = {
 		return {
 			numberCount,
 			userDayCount,
+			accountDayCount,
 			receiveRatio: {
 				nameRatio
 			},

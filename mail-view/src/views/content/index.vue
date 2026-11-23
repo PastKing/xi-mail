@@ -35,7 +35,7 @@
               <div class="send"><span class="send-source">{{$t('from')}}</span>
                 <div class="send-name">
                   <span class="send-name-title">{{ email.name }}</span>
-                  <span><{{ email.sendEmail }}></span>
+                  <span class="send-address">&lt;{{ email.sendEmail }}&gt;</span>
                 </div>
               </div>
               <div class="receive"><span class="source">{{$t('recipient')}}</span><span class="receive-email">{{  formateReceive(email.recipient) }}</span></div>
@@ -455,9 +455,17 @@ const handleDelete = () => {
         margin-bottom: 6px;
 
         .send-name {
+          min-width: 0;
           color: var(--regular-text-color);
           display: flex;
           flex-wrap: wrap;
+          overflow-wrap: anywhere;
+        }
+
+        .send-name > span {
+          min-width: 0;
+          max-width: 100%;
+          overflow-wrap: anywhere;
         }
 
         .send-name-title {
@@ -484,6 +492,7 @@ const handleDelete = () => {
       }
 
       .send-source {
+        flex-shrink: 0;
         white-space: nowrap;
         font-weight: bold;
         padding-right: 10px;

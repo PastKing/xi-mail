@@ -134,6 +134,10 @@
               </div>
             </div>
 
+            <div v-if="showLoginVerify && settingStore.settings.siteKey">
+              <div ref="loginVerifyHost"></div>
+              <span v-if="loginVerifyError" class="err-text">{{ $t('verifyModuleFailed') }}</span>
+            </div>
             <button class="primary-btn" @click="submit" :disabled="loginLoading">
               <Icon v-if="loginLoading" icon="mingcute:loading-fill" class="spin" width="16" height="16" />
               <span v-else>{{ $t('loginBtn') }}</span>
@@ -240,7 +244,7 @@ import BrandMark from '@/components/BrandMark.vue';
 import TwoFactorChallenge from '@/components/TwoFactorChallenge.vue';
 import PasswordRequirements from '@/components/PasswordRequirements.vue';
 import router from "@/router";
-import {computed, nextTick, onMounted, reactive, ref, watch} from "vue";
+import {computed, nextTick, onBeforeUnmount, reactive, ref, watch} from "vue";
 import {login, register} from "@/request/login.js";
 import {isEmail} from "@/utils/verify-utils.js";
 import {isStrongPassword} from '@/utils/password.js';
@@ -252,7 +256,7 @@ import {Icon} from "@iconify/vue";
 import {loginUserInfo} from "@/request/my.js";
 import {permsToRouter} from "@/perm/perm.js";
 import {useI18n} from "vue-i18n";
-import {registrationHint} from '@/i18n/language.js';
+import {activateLanguage,registrationHint} from '@/i18n/language.js';
 import {startOAuth} from '@/utils/oauth.js';
 import {OAUTH_PROVIDERS} from '@/config/oauth-providers.js';
 import {useServerStore} from "@/store/server.js";
@@ -312,6 +316,42 @@ if (serverStore.isStandalone && !settingStore.settings?.title && serverStore.ser
 }
 
 const verifyShow = ref(false);
+const showLoginVerify = ref(false);
+const loginVerifyHost = ref(null);
+const loginVerifyError = ref(false);
+let loginWidgetId = null;
+let loginVerifyToken = '';
+
+function clearLoginVerification() {
+  loginVerifyToken = '';
+  if (loginWidgetId !== null) window.turnstile?.remove(loginWidgetId);
+  loginWidgetId = null;
+  loginVerifyError.value = false;
+}
+
+watch(loginVerifyHost, host => { if (!host) clearLoginVerification(); });
+watch(() => [serverStore.activeServerId, settingStore.settings.siteKey], clearLoginVerification);
+onBeforeUnmount(clearLoginVerification);
+
+async function prepareLoginVerification() {
+  showLoginVerify.value = true;
+  await nextTick();
+  if (!loginVerifyHost.value || loginWidgetId !== null) return;
+  try {
+    loginWidgetId = window.turnstile.render(loginVerifyHost.value, {
+      sitekey: settingStore.settings.siteKey,
+      action: 'login',
+      size: 'flexible',
+      callback: token => { loginVerifyError.value = false; loginVerifyToken = token; },
+      'expired-callback': () => { loginVerifyToken = ''; },
+      'error-callback': () => { loginVerifyToken = ''; loginVerifyError.value = true; },
+    });
+    loginVerifyError.value = false;
+  } catch {
+    loginVerifyError.value = true;
+  }
+}
+
 let verifyToken = '';
 let turnstileId = null;
 const botJsError = ref(false);
@@ -338,16 +378,34 @@ async function providerLogin(provider) {
   try { await startOAuth(provider); } catch { oauthLoading.value = false; }
 }
 
-const submit = () => {
+const submit = async () => {
+  if (loginLoading.value) return;
   if (!form.email) { ElMessage({ message: t('emptyEmailMsg'), type: 'error', plain: true }); return; }
   const email = form.email.trim() + (showLoginSuffix.value ? suffix.value : '');
   if (!isEmail(email)) { ElMessage({ message: t('notEmailMsg'), type: 'error', plain: true }); return; }
   if (!form.password) { ElMessage({ message: t('emptyPwdMsg'), type: 'error', plain: true }); return; }
   loginLoading.value = true;
-  login(email, form.password)
-    .then(async data => { if (data.requiresTwoFactor) { form.password = ''; twoFactorChallenge.value = data.challenge; } else await saveToken(data.token); })
-    .catch(() => { /* The request interceptor displays credential and rate-limit errors. */ })
-    .finally(() => { loginLoading.value = false; });
+  let submittedWidget = null;
+  try {
+    if (settingStore.settings.siteKey && !loginVerifyToken) {
+      await prepareLoginVerification();
+      if (loginWidgetId !== null && !loginVerifyError.value) ElMessage.info(t('botVerifyMsg'));
+      return;
+    }
+    const token = loginVerifyToken;
+    if (token) submittedWidget = loginWidgetId;
+    loginVerifyToken = '';
+    const data = await login(email, form.password, token);
+    if (data.requiresTwoFactor) {
+      form.password = '';
+      twoFactorChallenge.value = data.challenge;
+    } else await saveToken(data.token);
+  } catch {
+    // The request interceptor displays verification and credential errors.
+  } finally {
+    if (submittedWidget !== null && submittedWidget === loginWidgetId) window.turnstile?.reset(submittedWidget);
+    loginLoading.value = false;
+  }
 };
 
 async function saveToken(token) {
@@ -356,6 +414,7 @@ async function saveToken(token) {
   const user = await loginUserInfo();
   const privateConfig = await clientConfig().catch(() => null);
   if (privateConfig) settingStore.settings = { ...settingStore.settings, ...privateConfig };
+  try { await activateLanguage(settingStore.lang, { persist: false, publicOnly: false }); } catch {}
   accountStore.currentAccountId = user.account.accountId || 0;
   accountStore.currentAccount = user.account;
   userStore.user = user;

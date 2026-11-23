@@ -1,14 +1,8 @@
 import settingService from './setting-service';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-dayjs.extend(utc);
-dayjs.extend(timezone);
 import mailLinkService from './mail-link-service';
 import emailMsgTemplate from '../template/email-msg';
 import emailTextTemplate from '../template/email-text';
 import emailHtmlTemplate from '../template/email-html';
-import verifyUtils from '../utils/verify-utils';
 import domainUtils from "../utils/domain-uitls";
 import {objectProxyBase} from './storage-config-service';
 import {rewriteAttachmentImages} from './attachment-access-service';
@@ -42,17 +36,41 @@ const telegramService = {
 
 		const { tgBotToken, tgChatId, customDomain, tgMsgTo, tgMsgFrom, tgMsgText } = await settingService.query(c);
 
-		const tgChatIds = tgChatId.split(',');
+		const tgChatIds = (tgChatId || '').split(',').map(id => id.trim()).filter(Boolean);
+		if (!tgBotToken || !tgChatIds.length) return;
 
 		let viewOrigin = null;
 		try {
 			const url = new URL(domainUtils.toOssDomain(customDomain?.trim()));
 			if (url.protocol === 'https:' && !url.username && !url.password) viewOrigin = url.origin;
 		} catch { /* Missing/invalid viewer configuration must not create a broken button. */ }
-		const viewToken = viewOrigin ? await mailLinkService.issue(c, email) : null;
-		const webAppUrl = viewToken ? `${viewOrigin}/api/telegram/getEmail/${viewToken}` : null;
+		let viewToken;
+		if (viewOrigin) {
+			try {
+				viewToken = await mailLinkService.issue(c, email);
+			} catch {
+				console.error('生成 Telegram 邮件查看链接失败');
+			}
+		}
+
+		let code = '';
+		if (typeof email.code === 'string' && /^[A-Za-z0-9]{4,12}$/.test(email.code)) {
+			try {
+				if (await settingService.telegramCodeEnabled(c)) code = email.code;
+			} catch {
+				console.error('读取 Telegram 验证码推送设置失败');
+			}
+		}
+		const viewUrl = viewToken ? `${viewOrigin}/api/telegram/getEmail/${viewToken}` : null;
+		const text = emailMsgTemplate(email, tgMsgTo, tgMsgFrom, tgMsgText);
 
 		await Promise.all(tgChatIds.map(async chatId => {
+			const buttons = [];
+			if (code) buttons.push({text: '复制验证码', copy_text: {text: code}});
+			if (viewUrl) {
+				const action = /^[1-9]\d*$/.test(chatId) ? { web_app: {url: viewUrl} } : { url: viewUrl };
+				buttons.push({text: '查看原邮件', ...action});
+			}
 			try {
 				const res = await fetch(`https://api.telegram.org/bot${tgBotToken}/sendMessage`, {
 					method: 'POST',
@@ -62,17 +80,9 @@ const telegramService = {
 					body: JSON.stringify({
 						chat_id: chatId,
 						parse_mode: 'HTML',
-						text: emailMsgTemplate(email, tgMsgTo, tgMsgFrom, tgMsgText),
-						...(webAppUrl ? { reply_markup: {
-							inline_keyboard: [
-								[
-									{
-										text: '查看',
-										web_app: { url: webAppUrl }
-									}
-								]
-							]
-						} } : {})
+						text,
+						link_preview_options: {is_disabled: true},
+						...(buttons.length ? {reply_markup: {inline_keyboard: [buttons]}} : {}),
 					})
 				});
 				if (!res.ok) {

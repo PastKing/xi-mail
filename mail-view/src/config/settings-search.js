@@ -10,7 +10,6 @@ export const SETTINGS_SEARCH_KEYS = {
 export const SETTINGS_SEARCH_ALIASES = {
  languageSettings:['语言 翻译 多语言 国旗 English 日本語 Edge'],
  senderDomainBlacklist:['senderDomainWhitelist','senderDomainWhitelistDesc','senderFilterModeDesc'],
- emailPrefix:['mustNotContain','mustNotContainDesc'],
  autoCleanEmail:['autoCleanExclude'],
  sendProvider:['Cloudflare Resend QueenSMTP SendFlare token SMTP'],
  signUpVerification:['Cloudflare Turnstile CAPTCHA Site Key Secret Key'],

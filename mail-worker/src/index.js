@@ -9,6 +9,7 @@ import subWorkerService from './service/sub-worker-service';
 import securityRateLimit from './service/security-rate-limit-service';
 import mailShare from './service/mail-share-service';
 import twoFactor from './service/two-factor-service';
+import { secureResponse } from './security/response-headers';
 
 const SUB_SYNC_CRON = '* * * * *';
 export default {
@@ -19,21 +20,24 @@ export default {
 		if (url.pathname.startsWith('/api/')) {
 			url.pathname = url.pathname.replace('/api', '')
 			req = new Request(url.toString(), req)
-			return app.fetch(req, env, ctx);
+			return secureResponse(await app.fetch(req, env, ctx), url, false, true);
 		}
 
 		 if (url.pathname.startsWith('/attachments/')) {
 			url.pathname='/oss'+url.pathname;
-			return app.fetch(new Request(url.toString(),req),env,ctx);
+			return secureResponse(await app.fetch(new Request(url.toString(),req),env,ctx), url);
 		 }
 		 if (url.pathname.startsWith('/static/')) {
-			 return await r2Service.toObjResp( { env }, url.pathname.substring(1));
+			 return secureResponse(await r2Service.toObjResp({ env }, url.pathname.substring(1)), url);
 		 }
 
-		if (env.assets) return env.assets.fetch(req);
-		return new Response('Xi-Mail API is running. Frontend is deployed separately.', {
+		if (env.assets) {
+			const response = await env.assets.fetch(req);
+			return secureResponse(response, url, response.headers.get('Content-Type')?.startsWith('text/html'));
+		}
+		return secureResponse(new Response('Xi-Mail API is running. Frontend is deployed separately.', {
 			status: 200, headers: { 'Content-Type': 'text/plain' }
-		});
+		}), url);
 	},
 	email: email,
 	async scheduled(c, env, ctx) {

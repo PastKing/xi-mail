@@ -26,6 +26,8 @@ run_worker_first = true
 crons = ["0 16 * * *"]
 
 [vars]
+# 前后端分开部署时填写前端 Origin，多个用逗号隔开。同站部署无需填写。
+# CORS_ALLOWED_ORIGINS = "https://frontend.example.com"
 orm_log = false
 # admin、jwt_secret、init_secret 在 Cloudflare Settings 填写，不要写进仓库。
 

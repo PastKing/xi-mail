@@ -8,6 +8,7 @@ import loginService from '../../src/service/login-service';
 import userService from '../../src/service/user-service';
 import settingService from '../../src/service/setting-service';
 import oauthConfig from '../../src/service/oauth-config-service';
+import worker from '../../src/index';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 
 const telegramKeys = await generateKeyPair('RS256');
@@ -90,6 +91,7 @@ async function authorizeTelegram(intent = 'bind') {
 function d1(db) {
   const prepare = (sql, params = []) => ({
     bind: (...values) => prepare(sql, values),
+    first: async () => db.prepare(sql).get(...params) || null,
     run: async () => ({ success: true, meta: db.prepare(sql).run(...params) }),
     all: async () => ({ success: true, results: db.prepare(sql).all(...params) }),
     raw: async () => { const stmt = db.prepare(sql); stmt.setReturnArrays(true); return stmt.all(...params); },
@@ -120,6 +122,17 @@ beforeEach(async () => {
 });
 
 describe.skipIf(!DatabaseSync)('OAuth provider integrations', () => {
+  it('limits anonymous authorization across providers before allocating additional state', async () => {
+    await configureProvider('discord');
+    const requests = Array.from({length: 12}, (_, i) => worker.fetch(new Request(
+      `https://mail.example.com/api/oauth/${i % 2 ? 'discord' : 'linuxDo'}/authorize`,
+      {method: 'POST', headers: {'CF-Connecting-IP': '192.0.2.12'}},
+    ), c.env, {}));
+    const responses = await Promise.all(requests);
+    expect(responses.filter(response => response.status === 429)).toHaveLength(2);
+    expect(responses.filter(response => response.status === 200)).toHaveLength(10);
+    expect([...values.keys()].filter(key => /^oauth:(discord|linuxdo):state:/.test(key))).toHaveLength(10);
+  });
   it.each(['github','google','discord'])('configures %s independently, without exposing secrets',async id=>{
     await configureProvider(id); await oauthConfig.save(c,{[id+'ClientSecret']:''},id);
     expect((await oauthConfig.get(c,id)).clientSecret).toBe(id+'-fixture-secret');

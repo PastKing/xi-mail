@@ -4,116 +4,55 @@
   </div>
   <el-scrollbar v-else style="height: 100%;">
     <div class="analysis" :key="boxKey">
-      <div class="number">
-        <div class="number-item">
-          <div class="top">
-            <div class="left">
-              <div>{{ $t('totalReceived') }}</div>
-              <div>
-                <el-statistic :formatter="value => Math.round(value)" :value="receiveData"/>
-              </div>
-            </div>
-            <div class="right">
-              <div class="count-icon">
-                <Icon icon="mingcute:mailbox-line" width="25" height="25"></Icon>
-              </div>
-            </div>
-          </div>
-          <div class="delete-ratio">
-            <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalReceiveTotal }}</span></div>
-            <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delReceiveTotal }}</span></div>
-          </div>
-        </div>
-        <div class="number-item">
-          <div class="top">
-            <div class="left">
-              <div>{{ $t('totalSent') }}</div>
-              <div>
-                <el-statistic :formatter="value => Math.round(value)" :value="sendData"/>
-              </div>
-            </div>
-            <div class="right">
-              <div class="count-icon">
-                <Icon icon="mingcute:send-plane-line" width="25" height="25"></Icon>
-              </div>
-            </div>
-          </div>
-          <div class="delete-ratio">
-            <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalSendTotal }}</span></div>
-            <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delSendTotal }}</span></div>
-          </div>
-        </div>
-        <div class="number-item">
-          <div class="top">
-            <div class="left">
-              <div>{{ $t('totalMailboxes') }}</div>
-              <div>
-                <el-statistic :formatter="value => Math.round(value)" :value="accountData"/>
-              </div>
-            </div>
-            <div class="right">
-              <div class="count-icon">
-                <Icon icon="mingcute:mail-line" width="23" height="23"></Icon>
-              </div>
-            </div>
-          </div>
-          <div class="delete-ratio">
-            <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalAccountTotal }}</span></div>
-            <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delAccountTotal }}</span></div>
-          </div>
-        </div>
-        <div class="number-item">
-          <div class="top">
-            <div class="left">
-              <div>{{ $t('totalUsers') }}</div>
-              <div>
-                <el-statistic :formatter="value => Math.round(value)" :value="userData"/>
-              </div>
-            </div>
-            <div class="right">
-              <div class="count-icon">
-                <Icon icon="mingcute:user-3-line" width="25" height="25"></Icon>
-              </div>
-            </div>
-          </div>
-          <div class="delete-ratio">
-            <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalUserTotal }}</span></div>
-            <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delUserTotal }}</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="picture">
-        <div class="picture-item">
-          <div class="title" style="display: flex;justify-content: space-between;">
-            <span>{{ $t('emailSource') }}</span>
-            <span class="source-button" v-if="false">
-              <el-radio-group v-model="checkedSourceType">
-                <el-radio-button label="发件人" value="sender"/>
-                <el-radio-button label="邮箱" value="email"/>
-              </el-radio-group>
-            </span>
-          </div>
-          <div class="sender-pie">
+      <section class="analysis-overview" :aria-label="$t('totalReceived')">
+        <article class="overview-card">
+          <div class="overview-label"><span class="overview-mark received-mark"><Icon icon="mingcute:mailbox-line" width="17" height="17" /></span>{{ $t('totalReceived') }}</div>
+          <el-statistic :formatter="value => Math.round(value)" :value="receiveData" />
+          <div class="overview-meta"><span>{{ $t('active') }} <b class="normal">{{ numberCount.normalReceiveTotal }}</b></span><span>{{ $t('deleted') }} <b class="deleted">{{ numberCount.delReceiveTotal }}</b></span></div>
+        </article>
+        <article class="overview-card">
+          <div class="overview-label"><span class="overview-mark sent-mark"><Icon icon="mingcute:send-plane-line" width="17" height="17" /></span>{{ $t('totalSent') }}</div>
+          <el-statistic :formatter="value => Math.round(value)" :value="sendData" />
+          <div class="overview-meta"><span>{{ $t('active') }} <b class="normal">{{ numberCount.normalSendTotal }}</b></span><span>{{ $t('deleted') }} <b class="deleted">{{ numberCount.delSendTotal }}</b></span></div>
+        </article>
+        <article class="overview-card">
+          <div class="overview-label"><span class="overview-mark account-mark"><Icon icon="mingcute:mail-line" width="17" height="17" /></span>{{ $t('totalMailboxes') }}</div>
+          <el-statistic :formatter="value => Math.round(value)" :value="accountData" />
+          <div class="overview-meta"><span>{{ $t('active') }} <b class="normal">{{ numberCount.normalAccountTotal }}</b></span><span>{{ $t('deleted') }} <b class="deleted">{{ numberCount.delAccountTotal }}</b></span></div>
+        </article>
+        <article class="overview-card">
+          <div class="overview-label"><span class="overview-mark user-mark"><Icon icon="mingcute:user-3-line" width="17" height="17" /></span>{{ $t('totalUsers') }}</div>
+          <el-statistic :formatter="value => Math.round(value)" :value="userData" />
+          <div class="overview-meta"><span>{{ $t('active') }} <b class="normal">{{ numberCount.normalUserTotal }}</b></span><span>{{ $t('deleted') }} <b class="deleted">{{ numberCount.delUserTotal }}</b></span></div>
+        </article>
+        <article class="overview-card today-overview-card">
+          <div class="overview-label"><span class="overview-mark today-mark"><Icon icon="mingcute:send-plane-line" width="17" height="17" /></span>{{ $t('sentToday') }}</div>
+          <el-statistic :formatter="value => Math.round(value)" :value="todaySendData" />
+          <div class="overview-meta"><span>{{ $t('sentCountUnit') }}</span></div>
+        </article>
+      </section>
 
-          </div>
-        </div>
-        <div class="picture-item">
-          <div class="title">{{ $t('userGrowth') }}</div>
-          <div class="increase-line">
-
-          </div>
-        </div>
-      </div>
-      <div class="picture-cs">
-        <div class="picture-cs-item">
-          <div class="title">{{ $t('emailGrowth') }}</div>
+      <section class="analysis-primary-grid">
+        <article class="analysis-panel trend-panel">
+          <header class="panel-heading"><div><h2>{{ $t('emailGrowth') }}</h2><span>{{ $t('analysisRecentDays') }}</span></div><span class="panel-index">01</span></header>
           <div class="email-column"></div>
-        </div>
-        <div class="picture-cs-item">
-          <div class="title">{{ $t('sentToday') }}</div>
-          <div class="send-count"></div>
-        </div>
-      </div>
+        </article>
+        <article class="analysis-panel source-panel">
+          <header class="panel-heading"><div><h2>{{ $t('emailSource') }}</h2><span>{{ $t('analysisTopSenders') }}</span></div><span class="panel-index">02</span></header>
+          <div class="sender-pie"></div>
+        </article>
+      </section>
+
+      <section class="analysis-secondary-grid">
+        <article class="analysis-panel growth-panel">
+          <header class="panel-heading"><div><h2>{{ $t('userGrowth') }}</h2><span>{{ $t('analysisRecentDays') }}</span></div><span class="panel-index">03</span></header>
+          <div class="increase-line"></div>
+        </article>
+        <article class="analysis-panel mailbox-growth-panel">
+          <header class="panel-heading"><div><h2>{{ $t('mailboxGrowth') }}</h2><span>{{ $t('analysisRecentDays') }}</span></div><span class="panel-index">04</span></header>
+          <div class="account-line"></div>
+        </article>
+      </section>
     </div>
   </el-scrollbar>
 </template>
@@ -138,11 +77,11 @@ defineOptions({
 const {t} = useI18n();
 const route = useRoute();
 const uiStore = useUiStore()
-const checkedSourceType = ref('sender')
 const receiveTotal = ref(0)
 const sendTotal = ref(0)
 const accountTotal = ref(0)
 const userTotal = ref(0)
+const todaySendTotal = ref(0)
 const analysisLoading = ref(true)
 
 const numberCount = reactive({
@@ -172,12 +111,14 @@ const accountData = useTransition(accountTotal, {
 const userData = useTransition(userTotal, {
   duration: 1500,
 })
+const todaySendData = useTransition(todaySendTotal, { duration: 900 })
 
 const senderData = ref(null)
 const userLineData = reactive({
   xdata: [],
   sdata: []
 })
+const accountLineData = reactive({xdata: [], sdata: []})
 
 const emailColumnData = {
   receiveData: [],
@@ -200,11 +141,10 @@ let daySendTotal = 0
 let leaveWidth = 0
 let senderPie = null
 let increaseLine = null
+let accountLine = null
 let emailColumn = null
-let sendGauge = null
 let first = true
 let boxKey = ref(0)
-let senderPieLeft = window.innerWidth < 500 ? `${window.innerWidth - 110}` : '72%'
 let analysisDark = uiStore.dark
 
 onMounted(() => {
@@ -232,11 +172,14 @@ onMounted(() => {
 
     userLineData.xdata = data.userDayCount.map(item => dayjs(item.date).format("M.D"));
     userLineData.sdata = data.userDayCount.map(item => item.total)
+    accountLineData.xdata = (data.accountDayCount || []).map(item => dayjs(item.date).format('M.D'))
+    accountLineData.sdata = (data.accountDayCount || []).map(item => item.total)
 
     emailColumnData.daysData = data.emailDayCount.receiveDayCount.map(item => dayjs(item.date).format("M.D"))
     emailColumnData.receiveData = data.emailDayCount.receiveDayCount.map(item => item.total)
     emailColumnData.sendData = data.emailDayCount.sendDayCount.map(item => item.total)
     daySendTotal = data.daySendTotal
+    todaySendTotal.value = daySendTotal
     analysisLoading.value = false
     initPicture();
     first = false
@@ -289,13 +232,12 @@ function initPicture() {
   setTimeout(() => {
     createSenderPie()
     createIncreaseLine()
+    createAccountLine()
     createEmailColumnChart();
-    createSendGauge();
   })
 }
 
 function setStyle() {
-  senderPieLeft = window.innerWidth < 500 ? `${window.innerWidth - 110}` : '72%'
   emailColumnData.barWidth = window.innerWidth > 767 ? '40%' : '60%'
 }
 
@@ -323,64 +265,69 @@ function createSenderPie() {
     senderPie.dispose()
   }
   senderPie = echarts.init(document.querySelector(".sender-pie"))
-  let option = {
+  const total = (senderData.value || []).reduce((sum, item) => sum + Number(item.value || 0), 0)
+  const option = {
     tooltip: {
       trigger: 'item',
+      confine: true,
       textStyle: {
         color: topic.value.color
       },
       backgroundColor: topic.value.background,
       formatter: params => {
-        return `${params.marker} ${params.name}： ${params.value} (${params.percent}%)`;
+        const percent = total ? (Number(params.value) * 100 / total).toFixed(1).replace(/\.0$/, '') : '0'
+        return `${params.marker} ${escapeTooltipText(params.name)}： ${params.value} (${percent}%)`;
       }
     },
-    legend: {
-      type: 'scroll',
-      orient: 'vertical',
-      left: '10',
-      top: '20',
-      textStyle: {
-        color: topic.value.color
+    grid: {top: 8, right: 34, bottom: 18, left: 8, containLabel: true},
+    xAxis: {
+      type: 'value',
+      min: 0,
+      axisLabel: {show: false},
+      axisTick: {show: false},
+      axisLine: {show: false},
+      splitLine: {lineStyle: {color: topic.value.scaleLineColor, type: 'dashed'}},
+    },
+    yAxis: {
+      type: 'category',
+      inverse: true,
+      data: (senderData.value || []).map(item => item.name),
+      axisLabel: {
+        color: topic.value.color,
+        fontSize: 11,
+        margin: 10,
+        formatter: value => truncateTextByWidth(value, Math.max(76, senderPie.getWidth() * 0.34)),
       },
-      formatter: function (name) {
-        return truncateTextByWidth(name)
-      }
+      axisTick: {show: false},
+      axisLine: {show: false},
     },
     series: [
       {
-        data: senderData.value,
-        name: '',
-        type: 'pie',
-        radius: ['40%', '65%'],
-        center: [senderPieLeft, '45%'],
-        avoidLabelOverlap: false,
+        data: senderData.value || [],
+        type: 'bar',
+        barMaxWidth: 17,
+        showBackground: true,
+        backgroundStyle: {color: topic.value.containerBackground, borderRadius: [0, 8, 8, 0]},
         itemStyle: {
-          borderRadius: 4,
-          borderColor: topic.value.borderColor,
-          borderWidth: 2
+          borderRadius: [0, 7, 7, 0],
+          color: params => params.dataIndex === 0 ? '#4f76e8' : '#8ca5e8',
         },
         label: {
-          show: false,
-          position: 'outside', // 标签显示在外部
-          formatter: '{d}%',  // 显示名称和占比
-          color: '#333',
-          fontSize: 14  // 设置字体大小
+          show: true,
+          position: 'right',
+          color: topic.value.color,
+          fontSize: 11,
         },
-        emphasis: {
-          label: {
-            show: false,
-            fontSize: 40,
-            fontWeight: 'bold'
-          }
-        },
-        labelLine: {
-          show: true
-        },
-        color: ['#3CB2FF', '#13DEB9', '#FBBF24', '#FF7F50', '#BAE6FD', '#C084FC'] // 添加符合主题的配色
       }
     ]
   }
   senderPie.setOption(option)
+}
+
+function escapeTooltipText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
 }
 
 function createIncreaseLine() {
@@ -540,6 +487,45 @@ function createIncreaseLine() {
   });
 }
 
+function createAccountLine() {
+  if (accountLine) accountLine.dispose()
+  accountLine = echarts.init(document.querySelector('.account-line'))
+  accountLine.setOption({
+    tooltip: {
+      trigger: 'axis', confine: true,
+      axisPointer: {type: 'line', lineStyle: {color: topic.value.crossColor}},
+      backgroundColor: topic.value.background,
+      borderColor: topic.value.splitLineColor,
+      textStyle: {color: topic.value.color},
+      formatter: params => {
+        const point = params[0]
+        return `${point.axisValueLabel}<br>${point.marker} ${t('mailboxGrowth')}：${point.value}`
+      },
+    },
+    grid: {top: 18, right: 18, bottom: 28, left: 42, containLabel: true},
+    xAxis: {
+      type: 'category', data: accountLineData.xdata, boundaryGap: false,
+      axisTick: {show: false},
+      axisLine: {lineStyle: {color: topic.value.axisColor}},
+      axisLabel: {hideOverlap: true, color: topic.value.axisColor},
+    },
+    yAxis: {
+      type: 'value', minInterval: 1,
+      max: params => params.max < 8 ? 10 : undefined,
+      axisLine: {show: false}, axisTick: {show: false},
+      axisLabel: {color: topic.value.axisColor},
+      splitLine: {lineStyle: {color: topic.value.splitLineColor, type: 'dashed'}},
+    },
+    series: [{
+      name: t('mailboxGrowth'), type: 'line', smooth: 0.28, showSymbol: false,
+      lineStyle: {width: 2.3, color: '#8b64bb'},
+      itemStyle: {color: '#8b64bb'},
+      areaStyle: {color: 'rgba(139, 100, 187, 0.09)'},
+      data: accountLineData.sdata,
+    }],
+  })
+}
+
 function createEmailColumnChart() {
 
   if (emailColumn) {
@@ -550,13 +536,15 @@ function createEmailColumnChart() {
 
   const option = {
     tooltip: {
+      trigger: 'axis',
+      axisPointer: {type: 'line', lineStyle: {color: topic.value.crossColor}},
       textStyle: {
         color: topic.value.color
       },
       backgroundColor: topic.value.background,
       formatter: function (params) {
-        params.marker
-        return `${params.marker} ${params.seriesName}: ${params.value}`
+        const rows = Array.isArray(params) ? params : [params]
+        return rows.map(item => `${item.marker} ${escapeTooltipText(item.seriesName)}：${item.value}`).join('<br>')
       }
     },
     legend: {
@@ -567,10 +555,10 @@ function createEmailColumnChart() {
       }
     },
     grid: {
-      left: '18',
-      right: '18',
-      bottom: '15',
-      top: '50',
+      left: 12,
+      right: 14,
+      bottom: 18,
+      top: 46,
       containLabel: true
     },
     xAxis: {
@@ -579,13 +567,8 @@ function createEmailColumnChart() {
       axisTick: {
         show: false,
       },
-      axisLine: {
-        show: true,
-        lineStyle: {
-          color: topic.value.axisColor,
-          width: 1,
-        }
-      },
+      axisLine: {lineStyle: {color: topic.value.axisColor}},
+      axisLabel: {hideOverlap: true, color: topic.value.axisColor},
     },
     yAxis: {
       max: (params) => {
@@ -593,134 +576,46 @@ function createEmailColumnChart() {
           return 10
         }
       },
+      minInterval: 1,
       splitLine: {
         show: true,
         lineStyle: {
-          color: topic.value.splitLineColor,  // ← 横线颜色
-          type: 'solid',    // dashed=虚线，solid=实线
+          color: topic.value.splitLineColor,
+          type: 'dashed',
           width: 1
         }
       },
-      axisLine: {
-        show: true,
-        lineStyle: {
-          color: topic.value.axisColor,
-          width: 0,
-        }
-      },
+      axisLine: {show: false},
+      axisLabel: {color: topic.value.axisColor},
+      axisTick: {show: false},
       type: 'value',
       boundaryGap: [0, 0.1],
     },
     series: [
       {
         name: t('emailReceived'),
-        type: 'bar',
-        stack: 'total', // 堆叠组标识（必须相同）
-        barWidth: '60%',
-        barMaxWidth: 30,
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0,0,0,0.3)',
-          }
-        },
+        type: 'line',
+        smooth: 0.28,
+        showSymbol: false,
+        lineStyle: {width: 2.5, color: '#4f76e8'},
+        itemStyle: {color: '#4f76e8'},
+        areaStyle: {color: 'rgba(79, 118, 232, 0.09)'},
         data: emailColumnData.receiveData,
-        itemStyle: {
-          color: '#3CB2FF',
-        }
       },
       {
         name: t('emailSent'),
-        type: 'bar',
-        stack: 'total', // 堆叠组标识（必须相同）
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0,0,0,0.3)'
-          }
-        },
+        type: 'line',
+        smooth: 0.28,
+        showSymbol: false,
+        lineStyle: {width: 2.5, color: '#24a88b'},
+        itemStyle: {color: '#24a88b'},
         data: emailColumnData.sendData,
-        itemStyle: {
-          color: '#13deb9',
-        }
       }
     ]
   };
 
   emailColumn.setOption(option);
 }
-
-function createSendGauge() {
-  if (sendGauge) {
-    sendGauge.dispose()
-  }
-  sendGauge = echarts.init(document.querySelector(".send-count"));
-  let option = {
-    tooltip: {
-      textStyle: {
-        color: topic.value.color
-      },
-      backgroundColor: topic.value.background
-    },
-    series: [{
-      name: t('sentToday'),
-      type: 'gauge',
-      max: 100,
-      // 进度条颜色（新增）
-      progress: {
-        show: true,
-        roundCap: true,
-        itemStyle: {
-          color: '#3CB2FF'
-        }
-      },
-      // 指针颜色（新增）
-      pointer: {
-        itemStyle: {
-          color: '#3CB2FF'
-        }
-      },
-      axisLabel: {
-        color: topic.value.gaugeSplitLine,
-      },
-      // 轴线背景色（新增）
-      axisLine: {
-        roundCap: true,
-        lineStyle: {
-          color: [[1, topic.value.containerBackground]]
-        }
-      },
-      splitLine: {
-        lineStyle: {
-          color: topic.value.gaugeSplitLine, // 大刻度线颜色
-        }
-      },
-      // 刻度颜色（新增）
-      axisTick: {
-        lineStyle: {
-          color: topic.value.axisColor
-        }
-      },
-      // 中心文字颜色（新增）
-      detail: {
-        valueAnimation: true,
-        formatter: '{value}',
-        color: topic.value.color // 黑色文字
-      },
-      data: [{
-        value: daySendTotal,
-        name: t('total'),
-        // 名称标签颜色（新增）
-        title: {
-          color: topic.value.color  // 灰色标签
-        }
-      }]
-    }],
-    color: ['#3CB2FF']
-  };
-  sendGauge.setOption(option);
-}
-
 
 </script>
 <style>
@@ -746,179 +641,143 @@ function createSendGauge() {
 }
 
 .analysis {
-  height: 100%;
-  padding: 14px 14px 24px;
-  gap: 12px;
-  background: var(--extra-light-fill);
+  min-height: 100%;
+  padding: 18px 20px 28px;
+  gap: 14px;
   display: grid;
   grid-auto-rows: min-content;
-  @media (max-width: 1024px) {
-    padding: 10px 10px 20px;
+  @media (max-width: 767px) {
+    padding: 12px 12px 22px;
+    gap: 11px;
+  }
+
+  .analysis-overview {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .title {
-    margin-top: 6px;
-    margin-left: 12px;
-    font-size: 15px;
-    font-weight: 500;
+  .overview-card, .analysis-panel {
+    min-width: 0;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 12px;
   }
 
-  .number {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 12px;
-    @media (max-width: 1366px) {
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    /* 移动端保持2列，不切换为单列 */
+  .overview-card {
+    min-height: 116px;
+    padding: 14px 15px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 
-    .number-item {
-      background: var(--el-bg-color);
-      border-radius: 8px;
-      border: 1px solid var(--el-border-color);
-      padding: 12px 14px;
-
-      .top {
-        display: grid;
-        justify-content: space-between;
-        align-content: center;
-        grid-template-columns: auto auto;
-
-        .left {
-          display: grid;
-          gap: 2px;
-          grid-auto-rows: min-content;
-
-          > div:first-child {
-            font-size: 13px;
-            color: var(--el-text-color-secondary);
-          }
-
-          > div:last-child {
-            font-size: 12px;
-          }
-
-          :deep(.el-statistic__number) {
-            font-size: 22px;
-          }
-        }
-
-        .right {
-          display: grid;
-          align-items: center;
-
-          .count-icon {
-            position: relative;
-            display: grid;
-            align-items: center;
-            padding: 9px;
-            border-radius: 7px;
-            background: var(--el-color-primary-light-9);
-            color: var(--el-color-primary);
-          }
-        }
-
-      }
-
-      .delete-ratio {
-        width: 100%;
-        display: grid;
-        grid-template-columns: auto auto;
-        justify-content: start;
-        gap: 12px;
-        padding-top: 4px;
-        font-size: 12px;
-
-        .normal {
-          width: fit-content;
-          color: var(--el-color-success);
-          font-weight: bold;
-          margin-left: 2px;
-        }
-
-        .deleted {
-          width: fit-content;
-          color: var(--el-color-danger);
-          font-weight: bold;
-          margin-left: 2px;
-        }
-      }
-
+    :deep(.el-statistic__content) { line-height: 1.15; }
+    :deep(.el-statistic__number) {
+      font-size: clamp(19px, 1.65vw, 26px);
+      font-weight: 650;
+      letter-spacing: -0.045em;
+      font-variant-numeric: tabular-nums;
     }
   }
 
-  .picture {
-    display: grid;
-    grid-template-columns: 420px 1fr;
-    gap: 12px;
-    @media (max-width: 1366px) {
-      grid-template-columns: 1fr;
-    }
-    @media (max-width: 1024px) {
-      gap: 10px;
-    }
-
-    .picture-item {
-      background: var(--el-bg-color);
-      border-radius: 8px;
-      border: 1px solid var(--el-border-color);
-
-      .source-button {
-        padding-right: 15px;
-        display: flex;
-        align-items: start;
-
-        :deep(.el-radio-button__inner) {
-          padding: 6px 10px;
-        }
-      }
-
-      .sender-pie {
-        height: 280px;
-        @media (max-width: 767px) {
-          height: 200px;
-        }
-      }
-
-      .increase-line {
-        height: 280px;
-        @media (max-width: 767px) {
-          height: 220px;
-        }
-      }
-    }
+  .overview-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
   }
 
-  .picture-cs {
+  .overview-mark {
+    width: 29px;
+    height: 29px;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    border-radius: 9px;
+    color: var(--el-color-primary);
+    background: var(--el-color-primary-light-9);
+  }
+  .sent-mark { color: #18896f; background: rgba(36,168,139,.12); }
+  .account-mark { color: #8b64bb; background: rgba(139,100,187,.12); }
+  .user-mark { color: #bf7a36; background: rgba(191,122,54,.12); }
+  .today-mark { color: #3973b9; background: rgba(57,115,185,.12); }
+
+  .overview-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 13px;
+    margin-top: 8px;
+    color: var(--el-text-color-secondary);
+    font-size: 11px;
+    b { margin-left: 2px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .normal { color: var(--el-color-success); }
+    .deleted { color: var(--el-color-danger); }
+  }
+
+  .analysis-primary-grid {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: minmax(0, 1.7fr) minmax(310px, .9fr);
     gap: 12px;
-    @media (max-width: 1366px) {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
+  }
 
-    .picture-cs-item {
-      background: var(--el-bg-color);
-      border-radius: 8px;
-      border: 1px solid var(--el-border-color);
+  .analysis-secondary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 
-      .send-count {
-        height: 280px;
-        @media (max-width: 767px) {
-          height: 240px;
-        }
-      }
+  .analysis-panel {
+    padding: 15px 17px 12px;
+    overflow: hidden;
+  }
 
-      .email-column {
-        height: 280px;
-        @media (max-width: 767px) {
-          height: 210px;
-        }
-      }
-    }
+  .panel-heading {
+    min-height: 35px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    h2 { margin: 0; color: var(--el-text-color-primary); font-size: 14px; line-height: 1.4; font-weight: 620; }
+    span:not(.panel-index) { display: block; margin-top: 3px; color: var(--el-text-color-secondary); font-size: 11px; line-height: 1.4; }
+  }
+
+  .panel-index {
+    color: var(--el-text-color-placeholder);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .08em;
+  }
+
+  .email-column { height: 296px; }
+  .sender-pie { height: 296px; }
+  .increase-line { height: 220px; }
+  .account-line { height: 220px; }
+
+  .analysis-primary-grid .analysis-panel { min-height: 366px; }
+  .analysis-secondary-grid .analysis-panel { min-height: 270px; }
+
+  @media (max-width: 1180px) {
+    .analysis-primary-grid { grid-template-columns: minmax(0, 1.35fr) minmax(270px, .9fr); }
+  }
+  @media (max-width: 900px) {
+    .analysis-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .analysis-primary-grid, .analysis-secondary-grid { grid-template-columns: minmax(0, 1fr); }
+    .analysis-primary-grid .analysis-panel { min-height: 335px; }
+    .email-column, .sender-pie { height: 276px; }
+    .increase-line { height: 210px; }
+    .account-line { height: 210px; }
+  }
+  @media (max-width: 620px) {
+    .analysis-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .today-overview-card { grid-column: 1 / -1; }
+  }
+  @media (max-width: 480px) {
+    .overview-card { min-height: 106px; padding: 11px 10px 10px; }
+    .overview-label { gap: 6px; font-size: 11px; }
+    .overview-mark { width: 26px; height: 26px; border-radius: 8px; }
+    .overview-meta { gap: 5px 8px; font-size: 10px; }
+    .overview-card :deep(.el-statistic__number) { font-size: 20px; }
+    .analysis-panel { padding: 13px 12px 10px; }
+    .analysis-primary-grid .analysis-panel { min-height: 314px; }
+    .email-column, .sender-pie { height: 250px; }
   }
 }
 

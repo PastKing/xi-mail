@@ -7,6 +7,7 @@ import sessionService from '../../src/service/session-service';
 import cryptoUtils from '../../src/utils/crypto-utils';
 import loginService from '../../src/service/login-service';
 import publicService from '../../src/service/public-service';
+import settingService from '../../src/service/setting-service';
 import worker from '../../src/index';
 let sql, c, user;
 function adapter(db) {
@@ -22,6 +23,7 @@ beforeEach(() => {
   user = {userId:1,email:'owner@example.test',password:'hashed-password',salt:'salt',status:0,isDel:0};
   c = {env:{db:adapter(sql),two_factor_key:'private-two-factor-key-unique-characters-123456789',admin:user.email},req:{url:'https://local.test/api/my/two-factor',header:()=> '192.0.2.1'}};
   vi.spyOn(userService,'selectByIdIncludeDel').mockImplementation(async()=>user);
+  vi.spyOn(settingService,'query').mockResolvedValue({});
   vi.spyOn(userService,'selectByEmailIncludeDel').mockImplementation(async()=>user);
   vi.spyOn(userService,'upgradePasswordHash').mockResolvedValue(undefined);
   vi.spyOn(cryptoUtils,'verifyPassword').mockImplementation(async password=>password==='correct-password');

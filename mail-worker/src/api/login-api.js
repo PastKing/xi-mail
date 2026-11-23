@@ -5,8 +5,8 @@ import userContext from '../security/user-context';
 import twoFactor from '../service/two-factor-service';
 
 app.post('/login', async (c) => {
-	const token = await loginService.login(c, await c.req.json());
 	c.header('Cache-Control', 'no-store');
+	const token = await loginService.login(c, await c.req.json());
 	return c.json(result.ok(typeof token === 'string' ? { token } : token));
 });
 

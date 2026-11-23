@@ -87,8 +87,8 @@
             </el-tooltip>
           </div>
           <div class="r2domain">
-            <span>{{ setting.r2Domain || '' }}</span>
-            <el-button class="settings-action" @click="r2DomainShow = true">{{ $t('change') }}</el-button>
+            <span class="s3-config-status">{{ $t(setting.r2Domain ? 's3ConnectionConfigured' : 's3ConnectionNotConfigured') }}</span>
+            <el-button class="settings-action" @click="r2DomainShow = true">{{ $t('manage') }}</el-button>
           </div>
         </div>
         <div class="setting-item">
@@ -219,7 +219,7 @@
     <el-dialog class="sys-setting-dialog ss-dialog-sm" v-model="r2DomainShow" :title="$t('addOsDomain')"
                @closed="r2DomainInput = setting.r2Domain">
       <form>
-        <el-input type="text" :placeholder="$t('domainDesc')" v-model="r2DomainInput"/>
+        <label class="r2-domain-field"><span>{{ $t('osDomain') }}</span><el-input type="text" :placeholder="$t('r2DomainPlaceholder')" v-model="r2DomainInput"/><small>{{ $t('r2DomainHelp') }}</small></label>
         <el-button type="primary" :loading="isSaving('r2Domain')" :disabled="isSaving('r2Domain')" @click="saveR2domain">{{ $t('save') }}</el-button>
       </form>
     </el-dialog>
@@ -284,22 +284,31 @@
         <el-input-tag tag-type="warning" :placeholder="$t('toBotTokenDesc')" v-model="tgChatId" @add-tag="addChatTag"/>
         <el-input tag-type="warning" :placeholder="$t('customDomainDesc')" v-model="customDomain"/>
         <div class="tg-msg-label">
-          <span>{{ $t('from') }}</span>
+          <span class="tg-option-label">{{ $t('from') }}</span>
           <el-select popper-class="sys-setting-popper" v-model="tgMsgFrom">
             <el-option v-for="item in tgMsgFromOption" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </div>
         <div class="tg-msg-label">
-          <span>{{ $t('recipient') }}</span>
+          <span class="tg-option-label">{{ $t('recipient') }}</span>
           <el-select popper-class="sys-setting-popper" v-model="tgMsgTo">
             <el-option v-for="item in showHideOption" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </div>
         <div class="tg-msg-label">
-          <span>{{ $t('emailText') }}</span>
+          <span class="tg-option-label">{{ $t('emailText') }}</span>
           <el-select popper-class="sys-setting-popper" v-model="tgMsgText">
             <el-option v-for="item in showHideOption" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
+        </div>
+        <div class="tg-msg-label">
+          <span class="tg-option-label">
+            <span>{{ $t('tgMsgCode') }}</span>
+            <el-tooltip :content="$t('tgMsgCodeHint')">
+              <Icon class="warning tg-option-help" icon="mingcute:information-line" width="16" height="16"/>
+            </el-tooltip>
+          </span>
+          <el-switch v-model="tgMsgCode" :aria-label="$t('tgMsgCode')" :disabled="isSaving('tgBotToken')"/>
         </div>
       </div>
       <template #footer>
@@ -438,6 +447,7 @@ const tgBotToken = ref('')
 const tgMsgFrom = ref('')
 const tgMsgTo = ref('')
 const tgMsgText = ref('')
+const tgMsgCode = ref(true)
 const forwardEmail = ref([])
 const forwardStatus = ref(0)
 const ruleType = ref(0)
@@ -518,6 +528,7 @@ function openTgSetting() {
   customDomain.value = setting.value.customDomain
   tgMsgFrom.value = setting.value.tgMsgFrom
   tgMsgText.value = setting.value.tgMsgText
+  tgMsgCode.value = setting.value.tgMsgCode !== false
   tgMsgTo.value = setting.value.tgMsgTo
   tgChatId.value = setting.value.tgChatId ? setting.value.tgChatId.split(',') : []
   tgSettingShow.value = true
@@ -568,7 +579,18 @@ function addChatTag(val) {
 }
 
 function saveR2domain() {
-  editSetting({r2Domain: r2DomainInput.value}).then(ok => {
+  let domain = r2DomainInput.value.trim()
+  if (domain && !/^https:\/\//i.test(domain)) domain = `https://${domain}`
+  try {
+    const url = domain ? new URL(domain) : null
+    if (url && (url.protocol !== 'https:' || url.username || url.password || url.port || url.pathname !== '/' || url.search || url.hash || !url.hostname.includes('.') || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?$/i.test(url.hostname))) throw new Error()
+    domain = url ? `https://${url.hostname.toLowerCase()}` : ''
+  } catch {
+    ElMessage.warning(t('r2DomainHttpsOnly'))
+    return
+  }
+  r2DomainInput.value = domain
+  editSetting({r2Domain: domain}).then(ok => {
     if (ok) r2DomainShow.value = false
   })
 }
@@ -652,6 +674,7 @@ function tgBotSave() {
     tgChatId: tgChatId.value + '',
     tgMsgFrom: tgMsgFrom.value,
     tgMsgText: tgMsgText.value,
+    tgMsgCode: tgMsgCode.value,
     tgMsgTo: tgMsgTo.value
   }).then(ok => {
     if (ok) tgSettingShow.value = false
@@ -720,6 +743,10 @@ function saveNoticePopup() {
     margin: 0 0 0 10px;
   }
 }
+
+.r2-domain-field { display:grid; gap:7px; min-width:0; }
+.r2-domain-field > span { color:var(--el-text-color-regular); font-size:13px; }
+.r2-domain-field > small { color:var(--el-text-color-secondary); font-size:12px; line-height:1.5; }
 
 .bot-verify {
   display: grid;
@@ -849,6 +876,25 @@ function saveNoticePopup() {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
+
+    .tg-option-label {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      font-size: var(--settings-control-font-size, 14px);
+      line-height: 1.5;
+      color: var(--el-text-color-regular);
+
+      .tg-option-help {
+        flex: none;
+      }
+    }
+
+    .el-switch {
+      flex-shrink: 0;
+      align-self: center;
+    }
 
     .el-select {
       width: v-bind(tgMsgLabelWidth);

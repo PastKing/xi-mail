@@ -34,7 +34,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('Registration Turnstile guard', () => {
   it('registers an external login address without creating a hosted mailbox, preserving the invitation role', async () => {
-    settings.emailPrefixFilter = ['x']; settings.emailKeywordBlacklist = ['x'];
+    settings.emailKeywordBlacklist = ['x'];
     await expect(loginService.register(c, input({email:' X@External.Example ',token:'test-token'}))).resolves.toEqual({regVerifyOpen:true});
     expect(create.mock.calls[0][1]).toMatchObject({email:'x@external.example',type:2,regKeyId:1,createMailbox:false});
     expect(create.mock.calls[0][2]).toMatchObject({code:'test-invitation'});
@@ -55,9 +55,19 @@ describe('Registration Turnstile guard', () => {
     roleService.selectById.mockResolvedValue({availDomain:'other.example'});
     await expect(loginService.register(c,input({token:'test-token'}))).rejects.toMatchObject({code:403});
   });
-  it('keeps managed prefix rules and rejects malformed external addresses', async () => {
+  it('keeps the minimum prefix length and rejects malformed external addresses', async () => {
     await expect(loginService.register(c,input({email:'x@allowed.example',token:'test-token'}))).rejects.toThrow();
     await expect(loginService.register(c,input({email:'name@@external.example',token:'test-token'}))).rejects.toThrow();
+    expect(create).not.toHaveBeenCalled();
+  });
+  it('uses address keywords as the single substring rule and ignores the retired prefix filter', async () => {
+    settings.emailPrefixFilter = ['candidate'];
+    await expect(loginService.register(c,input({token:'test-token'}))).resolves.toEqual({regVerifyOpen:true});
+    expect(create).toHaveBeenCalledOnce();
+
+    create.mockClear();
+    settings.emailKeywordBlacklist = ['min'];
+    await expect(loginService.register(c,input({email:'administrator@allowed.example',token:'test-token'}))).rejects.toThrow();
     expect(create).not.toHaveBeenCalled();
   });
   it.each([undefined, '', ' ', {}, [], 'x'.repeat(2049)])('rejects invalid token before invitation/address queries (%j)', async token => {
@@ -66,7 +76,6 @@ describe('Registration Turnstile guard', () => {
     expect(create).not.toHaveBeenCalled(); expect(fetchMock).not.toHaveBeenCalled();
   });
   it('does not exempt an anonymous caller claiming the administrator email', async () => {
-    settings.emailPrefixFilter = ['admin'];
     await expect(loginService.register(c, input({ email: c.env.admin }))).rejects.toMatchObject({ code: 400 });
     expect(invitation).not.toHaveBeenCalled(); expect(lookup).not.toHaveBeenCalled();
   });

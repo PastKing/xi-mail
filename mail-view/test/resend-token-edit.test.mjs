@@ -93,7 +93,8 @@ function tokenEditor({ active = 'resend', confirm = async () => {}, saved = true
   const tokenDialogShow = ref(true);
   const updates = [];
   const providers = source.slice(source.indexOf('const providers = ['), source.indexOf('const tokenForm ='));
-  const handlers = source.slice(source.indexOf('async function saveToken()'), source.indexOf('function resetEmailPrefix()'));
+  const handlerStart = source.indexOf('async function saveToken()');
+  const handlers = source.slice(handlerStart, source.indexOf('</script>', handlerStart));
   const editor = new Function(
     'tokenForm', 'setting', 'tokenAction', 'tokenDialogShow', 'editSetting', 'ElMessageBox', 't',
     `${providers}\n${handlers}\nreturn { saveToken, deleteToken };`,

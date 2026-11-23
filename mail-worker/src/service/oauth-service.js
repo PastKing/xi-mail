@@ -9,6 +9,7 @@ import oauthBindingService from './oauth-binding-service';
 import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import { verifyTelegramIdentity } from './telegram-identity-service';
 import { verifyGoogleIdentity } from './google-identity-service';
+import rateLimit from './security-rate-limit-service';
 
 const stateKey = (provider, state) => `oauth:${provider}:state:${state}`;
 const validNonce = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -22,6 +23,8 @@ const oauthService = {
     const config = await oauthConfigService.require(c, providerId);
     const userId = intent === 'bind' ? c.get('user')?.userId : null;
     if (intent === 'bind' && !userId) throw new BizError('请先使用邮箱登录，再绑定第三方账号', 401);
+    if (intent === 'login') await rateLimit.consume(c, 'oauth-authorize-site', 'all-providers', 120, 60);
+    else await rateLimit.consume(c, 'oauth-authorize-bind', String(userId), 12, 600);
     const state = nonce();
     const verifier = provider.pkce ? nonce() : undefined;
     const oidcNonce = provider.oidc || providerId === 'telegram' ? nonce() : undefined;

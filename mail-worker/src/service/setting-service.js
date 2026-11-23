@@ -16,7 +16,7 @@ import { OAUTH_PROVIDERS } from '../const/oauth-providers';
 import webhookConfig from './resend-webhook-config-service';
 import sendflareService from './sendflare-service';
 import translationService from './translation-service';
-import {ensureStorageColumns,normalizeStoragePrefix,validateS3Config,objectProxyBase} from './storage-config-service';
+import {ensureStorageColumns,normalizeStoragePrefix,normalizeR2Domain,validateS3Config,objectProxyBase} from './storage-config-service';
 
 const SEND_PROVIDERS = ['resend', 'queensmtp', 'sendflare', 'cloudflare'];
 
@@ -149,7 +149,7 @@ const settingService = {
 			settingRow[id + 'MinTrustLevel'] = config.minTrustLevel ?? 0;
 		});
 
-		settingRow.emailPrefixFilter = settingRow.emailPrefixFilter.split(",").filter(Boolean);
+		delete settingRow.emailPrefixFilter;
 		settingRow.emailKeywordBlacklist = (settingRow.emailKeywordBlacklist || '').split(",").filter(Boolean);
 		settingRow.senderDomainBlacklist = (settingRow.senderDomainBlacklist || '').split(",").filter(Boolean);
 		settingRow.senderDomainWhitelist = (settingRow.senderDomainWhitelist || '').split(",").filter(Boolean);
@@ -163,11 +163,16 @@ const settingService = {
 		return settingRow;
 	},
 
+	async telegramCodeEnabled(c) {
+		return await c.env.kv.get(KvConst.TELEGRAM_VERIFICATION_CODE) !== '0';
+	},
+
 	async get(c, showSiteKey = false) {
 
-		const [settingRow, recordList] = await Promise.all([
-			await this.query(c),
-			verifyRecordService.selectListByIP(c)
+		const [settingRow, recordList, tgMsgCode] = await Promise.all([
+			this.query(c),
+			verifyRecordService.selectListByIP(c),
+			this.telegramCodeEnabled(c)
 		]);
 		delete settingRow.regKeyHintEn;
 
@@ -214,10 +219,16 @@ const settingService = {
 		settingRow.objectProxyBase=objectProxyBase(c,settingRow);
 		if(!settingRow.attachmentStorage||settingRow.attachmentStorage==='auto')settingRow.attachmentStorage=settingRow.storageType;
 
-		return settingRow;
+		return {...settingRow, tgMsgCode};
 	},
 
 	async set(c, params) {
+		const hasTgMsgCode = Object.hasOwn(params, 'tgMsgCode');
+		const tgMsgCode = params.tgMsgCode;
+		if (hasTgMsgCode && typeof tgMsgCode !== 'boolean') {
+			throw new BizError(t('telegramCodeSettingInvalid'), 400);
+		}
+		delete params.tgMsgCode;
 		const hasSubtitle = Object.hasOwn(params, 'subtitle');
 		let subtitle;
 		if (hasSubtitle) {
@@ -231,6 +242,7 @@ const settingService = {
 		delete params.hasResendWebhookSecret;
 		for (const provider of OAUTH_PROVIDERS) await oauthConfigService.save(c, params, provider.id);
 		if (Object.hasOwn(params, 'loginTemplate')) params.loginTemplate = normalizeLoginTemplate(params.loginTemplate);
+		if (Object.hasOwn(params, 'r2Domain')) params.r2Domain = normalizeR2Domain(params.r2Domain);
 		delete params.hasAi
 		delete params.hasR2
 		delete params.aiModels
@@ -281,9 +293,7 @@ const settingService = {
 			throw new BizError(t('cloudflareEmailNotConfigured'), 400);
 		}
 
-		if (Array.isArray(params.emailPrefixFilter)) {
-			params.emailPrefixFilter = params.emailPrefixFilter + '';
-		}
+		delete params.emailPrefixFilter;
 
 		if (Array.isArray(params.emailKeywordBlacklist)) {
 			params.emailKeywordBlacklist = params.emailKeywordBlacklist + '';
@@ -310,6 +320,7 @@ const settingService = {
 		params.sendProviders = JSON.stringify(sendProviders);
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		if (hasSubtitle) await c.env.kv.put(KvConst.WEBSITE_SUBTITLE, subtitle);
+		if (hasTgMsgCode) await c.env.kv.put(KvConst.TELEGRAM_VERIFICATION_CODE, tgMsgCode ? '1' : '0');
 		if (sendflareInput !== undefined) await sendflareService.saveTokens(c, sendflareInput);
 		await this.refresh(c);
 	},
