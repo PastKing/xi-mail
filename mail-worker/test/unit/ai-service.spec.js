@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import aiService from '../../src/service/ai-service';
+import { settingConst } from '../../src/const/entity-const';
 
 const idMeText = `Welcome!
 
@@ -62,6 +63,80 @@ function regexCode(email) {
 }
 
 describe('正则兜底', () => {
+	it('识别 Gravatar 标题中的纯字母验证码', async () => {
+		const email = { subject: 'XLYVNV is your Gravatar code', from: { address: 'donotreply@gravatar.com' } };
+		expect(regexCode(email)).toBe('XLYVNV');
+		expect(await aiService.extractCode({ env: {} }, email)).toBe('XLYVNV');
+		const run = vi.fn().mockResolvedValue({ response: '{"code":"XLYVNV"}' });
+		expect(await aiService.extractCode({ env: { ai: { run } } }, email)).toBe('XLYVNV');
+		expect(run).toHaveBeenCalledOnce();
+	});
+
+	it('明确的验证码标签支持纯字母短码', () => {
+		for (const text of ['Verification code: XLYVNV', '验证码：XLYVNV', 'Your login code:\nXLYVNV']) {
+			expect(regexCode({ text })).toBe('XLYVNV');
+		}
+	});
+
+	it('德语邮件无中英文关键词也交由 AI 识别', async () => {
+		const email = {
+			subject: 'Ihr Verifizierungstoken',
+			text: 'Ihr Verifizierungstoken lautet: 739184',
+			from: { address: 'support@checkdomain.de' }
+		};
+		const run = vi.fn().mockResolvedValue({ response: '{"code":"739184"}' });
+		expect(await aiService.extractCode({ env: { ai: { run } } }, email)).toBe('739184');
+		expect(run).toHaveBeenCalledOnce();
+		expect(regexCode(email)).toBe('');
+		expect(await aiService.extractCode({ env: {} }, email)).toBe('');
+	});
+
+	it('AI 识别其他语言的纯字母验证码，不再用中英文标签否决', async () => {
+		for (const text of ['認証番号は XLYVNV です。', 'Votre identifiant temporaire : XLYVNV', 'رمز التحقق الخاص بك: XLYVNV']) {
+			const run = vi.fn().mockResolvedValue({ response: '{"code":"XLYVNV"}' });
+			expect(await aiService.extractCode({ env: { ai: { run } } }, { text })).toBe('XLYVNV');
+			expect(run).toHaveBeenCalledOnce();
+		}
+	});
+
+	it('无验证码的普通邮件也可由 AI 判定为空', async () => {
+		const run = vi.fn().mockResolvedValue({ response: '{"code":""}' });
+		expect(await aiService.extractCode({ env: { ai: { run } } }, { subject: '每周新闻', text: '本周活动安排' })).toBe('');
+		expect(run).toHaveBeenCalledOnce();
+	});
+
+	it('关闭识别、名单不匹配和空邮件不调用 AI', async () => {
+		const run = vi.fn();
+		const c = { env: { ai: { run } } };
+		const email = { text: '認証番号は 739184 です。', from: { address: 'support@example.com' } };
+		expect(await aiService.extractCode(c, email, { aiCode: settingConst.aiCode.CLOSE })).toBe('');
+		expect(await aiService.extractCode(c, email, { aiCodeFilter: 'other.example' })).toBe('');
+		expect(await aiService.extractCode(c, {})).toBe('');
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it('AI 异常时回退中英文规则', async () => {
+		const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			const run = vi.fn().mockRejectedValue(new Error('unavailable'));
+			expect(await aiService.extractCode({ env: { ai: { run } } }, { text: 'Your verification code is: 739184' })).toBe('739184');
+			expect(await aiService.extractCode({ env: { ai: { run } } }, { text: '验证码为：739184' })).toBe('739184');
+		} finally { errorLog.mockRestore(); }
+	});
+
+	it('AI 不得返回原文没有的码、被截断的长码或链接令牌', async () => {
+		for (const text of ['認証番号は ABCDEF です。', '認証番号は XLYVNVABCDEFGHIJKLMNOP です。', 'https://example.com/?token=XLYVNV', '認証番号は XLYVNV-abcd です。']) {
+			const run = vi.fn().mockResolvedValue({ response: '{"code":"XLYVNV"}' });
+			expect(await aiService.extractCode({ env: { ai: { run } } }, { text })).toBe('');
+		}
+	});
+
+	it('不把普通单词、链接令牌或长码的片段识别为字母验证码', () => {
+		for (const text of ['THIS is your verification code', 'Verification code: PLEASE continue', 'Your verification code\nGRAVATAR', 'Your code: https://example.com/?code=XLYVNV', 'XLYVNV-abcdef is your Gravatar code', 'XLYVNVABCDEFGHIJKLMNOP is your Gravatar code']) {
+			expect(regexCode({ text })).toBe('');
+		}
+		expect(aiService.parseAiCode({ response: '{"code":"VERIFIED"}' })).toBe('');
+	});
 
 	it('取出 ID.me 正文里独立成行的验证码', () => {
 		expect(regexCode({ subject: 'Welcome to ID.me', text: idMeText })).toBe('446329');

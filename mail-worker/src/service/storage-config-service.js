@@ -21,6 +21,18 @@ export function normalizeStoragePrefix(value='') {
   if(parts.some(part=>part==='.'||part==='..'))throw new BizError('路径前缀不能包含 . 或 ..',400);
   return parts.length?parts.join('/')+'/':'';
 }
+export function normalizeR2Domain(value='') {
+  if(typeof value!=='string'||value.length>512||/[\x00-\x20\x7f\\]/.test(value))throw new BizError('请填写有效的 R2 HTTPS 访问域名',400);
+  const input=value.trim();
+  if(!input)return '';
+  if(/^http:\/\//i.test(input)||(/^[a-z][a-z0-9+.-]*:\/\//i.test(input)&&!/^https:\/\//i.test(input)))throw new BizError('R2 访问域名必须使用 HTTPS',400);
+  try{
+    const url=new URL(/^https:\/\//i.test(input)?input:`https://${input}`);
+    const host=url.hostname.toLowerCase();
+    if(url.protocol!=='https:'||url.username||url.password||url.port||url.pathname!=='/'||url.search||url.hash||host.length>253||!host.includes('.')||host==='localhost'||! /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?$/i.test(host))throw new Error();
+    return `https://${host}`;
+  }catch{throw new BizError('请填写有效的 R2 HTTPS 访问域名，例如 cdn.example.com',400)}
+}
 export function hasS3Config(setting) {return !!(setting.bucket&&setting.endpoint&&setting.s3AccessKey&&setting.s3SecretKey)}
 export function validateS3Config(setting) {
   if(!hasS3Config(setting))throw new BizError('请填写存储桶、服务地址和访问密钥',400);

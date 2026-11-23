@@ -7,7 +7,7 @@ import s3 from '../../src/service/s3-service';
 import storage from '../../src/service/r2-service';
 import settings from '../../src/service/setting-service';
 import locations from '../../src/service/object-location-service';
-import {normalizeStoragePrefix,validateS3Config,ensureStorageColumns,objectProxyBase} from '../../src/service/storage-config-service';
+import {normalizeStoragePrefix,normalizeR2Domain,validateS3Config,ensureStorageColumns,objectProxyBase} from '../../src/service/storage-config-service';
 let db,c,config,r2,remote,kv,fail;
 const bytes=new TextEncoder().encode('test object');
 beforeEach(()=>{
@@ -29,6 +29,8 @@ beforeEach(()=>{
 });
 afterEach(()=>{vi.restoreAllMocks();db.close()});
 describe('S3 configuration and connection probe',()=>{
+ it.each([['cdn.example.test','https://cdn.example.test'],['https://CDN.example.test/','https://cdn.example.test'],['','']])('normalizes R2 access domain %j', (input,expected)=>expect(normalizeR2Domain(input)).toBe(expected));
+ it.each(['http://cdn.example.test','ftp://cdn.example.test','cdn.example.test/path','cdn.example.test:8443','127.0.0.1','localhost','*.example.test'])('rejects unsafe R2 access domain %s',input=>expect(()=>normalizeR2Domain(input)).toThrow());
  it.each([['',''],['/',''],[' /xi-mail//assets/ ','xi-mail/assets/']])('normalizes %j', (input,expected)=>expect(normalizeStoragePrefix(input)).toBe(expected));
  it.each(['../mail','mail/../files','mail\\files','mail\nfiles'])('rejects ambiguous prefix %j',input=>expect(()=>normalizeStoragePrefix(input)).toThrow());
  it.each(['s3.example.test','https://user:pass@s3.example.test','https://127.0.0.1','http://169.254.169.254','ftp://example.test','https://example.test?secret=x'])('rejects invalid endpoint %s',endpoint=>expect(()=>validateS3Config({...config,endpoint})).toThrow());

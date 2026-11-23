@@ -27,6 +27,8 @@ run_worker_first = true
 crons = ["0 16 * * *"]
 
 [vars]
+# 前后端分开部署时填写前端 Origin，多个用逗号隔开。同站部署无需填写。
+# CORS_ALLOWED_ORIGINS = "https://frontend.example.com"
 orm_log = false
 # admin 在 Cloudflare → Worker → Settings → Variables and Secrets 设置。
 # 命令行部署也可在这里填写 admin = "你的完整管理员邮箱"。

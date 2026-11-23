@@ -62,9 +62,22 @@ describe('Managed interface languages',()=>{
       const response=await worker.fetch(new Request('https://local.test/api'+path,{method,headers:{'Content-Type':'application/json'},...(method==='POST'?{body:'{}'}:{})}),c.env,{});
       expect((await response.json()).code).toBe(401);
     }
-    const result=await worker.fetch(new Request('https://local.test/api/translation/pack?language=zh'),c.env,{});
+    const full=await worker.fetch(new Request('https://local.test/api/translation/pack?language=zh'),c.env,{});
+    expect((await full.json()).code).toBe(401);
+    const result=await worker.fetch(new Request('https://local.test/api/translation/public-pack?language=zh'),c.env,{});
     expect((await result.json()).code).toBe(200);
     expect(remote).not.toHaveBeenCalled();
+  });
+  it('publishes only login, setup and mail-share labels in the anonymous language pack',async()=>{
+    await c.env.kv.put('translation:config',JSON.stringify({languages:['en'],mailTranslation:true}));
+    await c.env.kv.put('translation:pack:en',JSON.stringify({messages:{loginBtn:'Sign in',shareTitle:'Inbox share',globalToken:'Global token',webhooks:'Webhooks',subWorker:'Sub workers',analysis:'Analysis'}}));
+    const pack=await translation.publicPack(c,'en');
+    expect(pack.messages).toMatchObject({loginBtn:'Sign in',shareTitle:'Inbox share'});
+    expect(pack.messages).not.toHaveProperty('globalToken');
+    expect(pack.messages).not.toHaveProperty('webhooks');
+    expect(pack.messages).not.toHaveProperty('subWorker');
+    expect(pack.messages).not.toHaveProperty('analysis');
+    expect(pack.messages.length).toBeUndefined();
   });
 });
 

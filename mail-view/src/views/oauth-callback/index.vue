@@ -57,6 +57,7 @@ import { useSettingStore } from '@/store/setting.js'
 import { OAUTH_PROVIDERS } from '@/config/oauth-providers.js'
 import BrandMark from '@/components/BrandMark.vue'
 import TwoFactorChallenge from '@/components/TwoFactorChallenge.vue'
+import { activateLanguage } from '@/i18n/language.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -67,9 +68,10 @@ const provider = computed(() => OAUTH_PROVIDERS.find(item => item.id === route.p
 const siteName = computed(() => setting.settings.title || 'Xi-Mail')
 const phase = ref('processing')
 const twoFactorChallenge = ref('')
-function finishTwoFactor(token) {
+async function finishTwoFactor(token) {
   twoFactorChallenge.value = ''
   server.setToken(server.activeServerId || 'local', token)
+  try { await activateLanguage(setting.lang, { persist: false, publicOnly: false }) } catch {}
   setSuccess('login')
 }
 const intent = ref('login')
@@ -117,6 +119,7 @@ async function processCallback() {
       if (result?.requiresTwoFactor) { twoFactorChallenge.value = result.challenge; phase.value = 'idle'; return }
       if (typeof result?.token !== 'string' || !result.token) throw new Error(t('oauthFailed'))
       server.setToken(server.activeServerId || 'local', result.token)
+      try { await activateLanguage(setting.lang, { persist: false, publicOnly: false }) } catch {}
     }
     // The result remains visible briefly before automatic navigation.
     setSuccess(intent)

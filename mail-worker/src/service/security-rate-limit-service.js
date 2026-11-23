@@ -33,6 +33,16 @@ const securityRateLimit = {
       throw error;
     }
   },
+  async check(c, scope, subject, limit) {
+    await this.ensure(c);
+    const key = await this.key(scope, subject), now = Math.floor(Date.now() / 1000);
+    const row = await c.env.db.prepare('SELECT attempts, expires_at FROM security_rate_limit WHERE bucket = ?').bind(key).first();
+    if (row && row.expires_at > now && row.attempts >= limit) {
+      const error = new BizError(t('tooManyAttempts'), 429);
+      error.retryAfter = Math.max(1, row.expires_at - now);
+      throw error;
+    }
+  },
   async clear(c, scope, subject) {
     await this.ensure(c);
     await c.env.db.prepare('DELETE FROM security_rate_limit WHERE bucket = ?').bind(await this.key(scope, subject)).run();
@@ -40,8 +50,12 @@ const securityRateLimit = {
   async login(c, email) {
     const ip = c.req?.header('CF-Connecting-IP') || 'unknown';
     await this.consume(c, 'login-ip', ip, 60, 300);
+    await this.loginCredentials(c, email);
+  },
+  async loginCredentials(c, email) {
+    const ip = c.req?.header('CF-Connecting-IP') || 'unknown';
     await this.consume(c, 'login-pair', ip + ':' + email, 8, 900);
-    await this.consume(c, 'login-account', email, 50, 900);
+    await this.consume(c, 'login-account', email, 20, 900);
   },
   async loginSuccess(c, email) {
     const ip = c.req?.header('CF-Connecting-IP') || 'unknown';

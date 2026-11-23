@@ -26,6 +26,25 @@ beforeEach(()=>{
  }},get:key=>cached.get(key),set:(key,value)=>cached.set(key,value)};
  vi.spyOn(settingService,'refresh').mockResolvedValue();
 });
+
+describe('Telegram verification code setting', () => {
+ it('defaults to enabled and persists explicit changes independently of other settings', async () => {
+  expect(await settingService.telegramCodeEnabled(c)).toBe(true);
+
+  await settingService.set(c, {tgMsgCode: false});
+  await settingService.set(c, {title: 'New name'});
+  expect(await settingService.telegramCodeEnabled(c)).toBe(false);
+  expect(await settingService.websiteConfig(c)).not.toHaveProperty('tgMsgCode');
+
+  await settingService.set(c, {tgMsgCode: true});
+  expect(await settingService.telegramCodeEnabled(c)).toBe(true);
+ });
+
+ it('rejects a string instead of treating it as a boolean', async () => {
+  await expect(settingService.set(c, {tgMsgCode: 'false'})).rejects.toMatchObject({code: 400});
+  expect(values.has(KvConst.TELEGRAM_VERIFICATION_CODE)).toBe(false);
+ });
+});
 afterEach(()=>{vi.restoreAllMocks();db.close();});
 describe('Website subtitle',()=>{
  it('defaults to an empty subtitle for existing sites',async()=>{

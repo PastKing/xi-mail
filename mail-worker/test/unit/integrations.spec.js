@@ -140,12 +140,13 @@ describe('Recent management endpoint authorization', () => {
 		permissions=['all-email:query'];
 		expect((await request(path,{method})).body.code).toBe(403);
 	});
-	it('only settings-write permission can append a blocked sender domain',async()=>{
+	it('only settings-write permission can append a blocked sender domain without echoing the full list',async()=>{
 		permissions=['setting:set'];
 		db.exec("CREATE TABLE setting(sender_domain_blacklist TEXT,sender_filter_mode INTEGER);INSERT INTO setting VALUES('old.example',0)");
 		vi.spyOn(settingService,'refresh').mockResolvedValue(undefined);
-		const result=await request('/setting/senderDomain/block',{method:'POST',body:{domain:'new.example'}});
-		expect(result.body).toMatchObject({code:200,data:{domain:'new.example',senderDomainBlacklist:['old.example','new.example']}});
+		const result=await request('/setting/senderDomain/block',{method:'POST',body:{domains:['new.example']}});
+		expect(result.body).toMatchObject({code:200,data:{domainCount:1,addedCount:1,alreadyBlockedCount:0,addedDomains:['new.example']}});
+		expect(result.body.data.senderDomainBlacklist).toBeUndefined();
 		expect(result.headers.get('Cache-Control')).toBe('no-store');
 	});
 	it('requires settings-write permission for a draft S3 probe without saving settings',async()=>{

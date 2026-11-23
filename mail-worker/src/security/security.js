@@ -10,7 +10,7 @@ import { t } from '../i18n/i18n'
 import app from '../hono/hono';
 
 const publicExact = [
-	'/translation/pack',
+	'/translation/public-pack',
 	'/attachment/view',
 	'/mail-share/read',
 	'/mail-share/content',

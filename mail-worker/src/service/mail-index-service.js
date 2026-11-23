@@ -17,7 +17,9 @@ const analysisReady = new WeakMap();
 export async function ensureAnalysisIndexes(c) {
   await ensureMailIndexes(c);
   const db = c.env.db;
-  if (!analysisReady.has(db)) analysisReady.set(db, db.prepare('CREATE INDEX IF NOT EXISTS idx_user_create_time ON user(create_time)').run()
-    .catch(error => { analysisReady.delete(db); throw error; }));
+  if (!analysisReady.has(db)) analysisReady.set(db.batch([
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_user_create_time ON user(create_time)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_account_create_time ON account(create_time)'),
+  ]).catch(error => { analysisReady.delete(db); throw error; }));
   await analysisReady.get(db);
 }

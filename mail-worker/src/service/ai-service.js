@@ -17,7 +17,7 @@ const aiService = {
 		}
 
 		const source = this.buildSource(email);
-		if (!source || !CODE_HINT.test(source)) {
+		if (!source) {
 			return '';
 		}
 
@@ -55,9 +55,9 @@ const aiService = {
 				messages: [
 					{
 						role: 'system',
-						content: 'You extract the one-time verification code from an email. '
+						content: 'You extract the one-time verification code from an email in any language. '
 							+ 'Copy the code exactly as it appears in the text: never shorten it, never drop characters, never invent one. '
-							+ `A verification code is a short token the user retypes, normally ${CODE_MIN_LEN} to ${CODE_MAX_LEN} characters and containing at least one digit. `
+							+ `A verification code is a short token the user retypes, normally ${CODE_MIN_LEN} to ${CODE_MAX_LEN} characters. It may contain only uppercase letters when explicitly identified as the code (for example, "ABCDEF is your verification code"). Do not return ordinary words. `
 							+ `Return {"code":""} when the email has no such code, or when the only candidate is longer than ${CODE_MAX_LEN} characters, a UUID, an API token, a URL parameter, an order or tracking number, a date, a price or a phone number. `
 							+ 'Reply with JSON only, for example {"code":"123456"} or {"code":""}.'
 					},
@@ -101,18 +101,32 @@ const aiService = {
 			return '';
 		}
 
-		return this.normalizeCode(parsed.code);
+		return this.normalizeCode(parsed.code, '', true);
 	},
 
-	normalizeCode(code) {
+	normalizeCode(code, source = '', fromAi = false) {
 		const value = String(code ?? '').trim();
 		if (value.length < CODE_MIN_LEN || value.length > CODE_MAX_LEN) {
 			return '';
 		}
-		if (!/^[A-Za-z0-9]+$/.test(value) || !/\d/.test(value)) {
+		if (!/^[A-Za-z0-9]+$/.test(value)) {
 			return '';
 		}
+		if (!/\d/.test(value) && !(fromAi ? this.isLetterCode(value) : this.isExplicitLetterCode(value, source))) return '';
 		return value;
+	},
+
+	isLetterCode(code) {
+		return /^[A-Za-z]{4,12}$/.test(code)
+			&& !/^(?:THIS|THAT|YOUR|CODE|ENTER|PLEASE|VERIFY|VERIFIED|CONTINUE|SECURITY|PASSWORD|CONFIRM|CONFIRMATION|VERIFICATION|GRAVATAR)$/i.test(code);
+	},
+
+	isExplicitLetterCode(code, source) {
+		if (!/^[A-Z]{4,12}$/.test(code) || !this.isLetterCode(code)) return false;
+		const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const label = '(?:验证码|校验码|动态码|verification (?:code|token)|security (?:code|token)|one[- ]time (?:passcode|password|code|token)|otp|auth code|login code|access code|confirmation code|passcode|\\bpin\\b|\\bcode\\b)';
+		return new RegExp(`(?:${label})[^A-Za-z0-9]{0,24}${escaped}(?![A-Za-z0-9_-])`, 'i').test(source)
+			|| new RegExp(`(?:^|[^A-Za-z0-9_-])${escaped}\\s+is\\s+your\\s+(?:[A-Za-z][A-Za-z .'-]{0,30}\\s+)?(?:verification code|security code|code|passcode|otp)\\b`, 'i').test(source);
 	},
 
 	// 结果必须在原文中独立成词，UUID / 长 token 的前半截会被这里挡下来
@@ -122,11 +136,19 @@ const aiService = {
 	},
 
 	extractCodeByRegex(source) {
+		// 中英文规则只用于兜底，不作为 AI 的语言门槛。
+		if (!CODE_HINT.test(source)) return '';
 		const candidates = [];
 
 		// 关键词紧邻验证码，中间只允许标点和空白
-		const keywordPattern = /(?:验证码|校验码|动态码|verification code|security code|one[- ]time (?:passcode|password|code)|otp|auth code|login code|access code|confirmation code|\bpin\b)[^A-Za-z0-9]{0,24}([A-Za-z0-9]{4,12})/gi;
+		const keywordPattern = /(?:验证码|校验码|动态码|verification (?:code|token)|security (?:code|token)|one[- ]time (?:passcode|password|code|token)|otp|auth code|login code|access code|confirmation code|\bpin\b)[^A-Za-z0-9]{0,24}([A-Za-z0-9]{4,12})/gi;
 		for (const match of source.matchAll(keywordPattern)) {
+			candidates.push(match[1]);
+		}
+
+		// 标签后带有简短连接词：如 "verification code is: 123456"。
+		const labeledSentencePattern = /(?:验证码|校验码|动态码|verification (?:code|token)|security (?:code|token)|one[- ]time (?:passcode|password|code|token)|auth code|login code|confirmation code)\s*(?:is|为)\s*[:：-]?\s*([A-Za-z0-9]{4,12})/gi;
+		for (const match of source.matchAll(labeledSentencePattern)) {
 			candidates.push(match[1]);
 		}
 
@@ -142,7 +164,7 @@ const aiService = {
 		}
 
 		for (const candidate of candidates) {
-			const code = this.normalizeCode(candidate);
+			const code = this.normalizeCode(candidate, source);
 			if (code && this.appearsAsToken(code, source)) {
 				return code;
 			}

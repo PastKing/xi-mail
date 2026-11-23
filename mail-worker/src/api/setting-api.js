@@ -1,7 +1,7 @@
 import app from '../hono/hono';
 import result from '../model/result';
 import settingService from '../service/setting-service';
-import {blockSenderDomain} from '../service/sender-domain-block-service';
+import {blockSenderDomains} from '../service/sender-domain-block-service';
 import s3Service from '../service/s3-service';
 import rateLimit from '../service/security-rate-limit-service';
 import userContext from '../security/user-context';
@@ -14,8 +14,9 @@ app.post('/setting/s3/test',async(c)=>{
 
 app.post('/setting/senderDomain/block', async(c)=>{
 	c.header('Cache-Control','no-store');
-	const {domain}=await c.req.json();
-	return c.json(result.ok(await blockSenderDomain(c,domain)));
+	const body=await c.req.json();
+	const domains=Array.isArray(body?.domains)?body.domains:[body?.domain];
+	return c.json(result.ok(await blockSenderDomains(c,domains)));
 });
 
 app.put('/setting/set', async (c) => {

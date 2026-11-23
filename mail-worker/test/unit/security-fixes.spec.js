@@ -238,6 +238,15 @@ describe.skipIf(!DatabaseSync)('Outbound sender identity', () => {
 });
 
 describe.skipIf(!DatabaseSync)('Mailbox ownership and availability', () => {
+  it('uses address keywords for new mailboxes and ignores the retired prefix filter', async () => {
+    settings.emailPrefixFilter = ['legacy'];
+    const legacyName = await accountService.add(c,{email:'legacy@allowed.example'},10);
+    expect(legacyName.email).toBe('legacy@allowed.example');
+
+    settings.emailKeywordBlacklist = ['BLOCK'];
+    await expect(accountService.add(c,{email:'new-blocked@allowed.example'},10)).rejects.toThrow();
+    expect(sql.prepare("SELECT count(*) AS count FROM account WHERE email='new-blocked@allowed.example'").get().count).toBe(0);
+  });
   it.each(['new', 'restore', 'reclaim', 'mixed'])('atomically enforces the last quota slot for concurrent %s writes', async mode => {
     for (let id = 1; id <= 9; id++) mailbox(id, 10, `existing${id}@allowed.example`);
     const candidates = Array.from({ length: 6 }, (_, index) => {
@@ -362,6 +371,74 @@ describe.skipIf(!DatabaseSync)('Mailbox ownership and availability', () => {
 });
 
 describe.skipIf(!DatabaseSync)('Atomic login throttling and credential responses', () => {
+  it('protects the SPA and API responses and limits cross-origin access to configured clients', async () => {
+    const env = {...c.env, CORS_ALLOWED_ORIGINS: 'https://frontend.example',
+      assets: {fetch: async () => new Response('<!doctype html><title>Xi-Mail</title>', {headers: {'Content-Type': 'text/html'}})}};
+    const home = await worker.fetch(new Request('https://local.test/'), env, {});
+    for (const [key, value] of Object.entries({
+      'Strict-Transport-Security': 'max-age=31536000', 'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin',
+    })) expect(home.headers.get(key)).toBe(value);
+    expect(home.headers.get('Content-Security-Policy')).toContain("script-src 'self' https://challenges.cloudflare.com");
+    const dev = await worker.fetch(new Request('http://localhost/'), env, {});
+    expect(dev.headers.get('Strict-Transport-Security')).toBeNull();
+    for (const origin of ['https://local.test', 'https://frontend.example', 'https://frontend.example.invalid', 'null']) {
+      const api = await worker.fetch(new Request('https://local.test/api/setting/clientConfig', {
+        method: 'OPTIONS', headers: {Origin: origin, 'Access-Control-Request-Method': 'GET'},
+      }), env, {});
+      expect(api.status).toBe(204);
+      expect(api.headers.get('Access-Control-Allow-Origin')).toBe(origin.endsWith('.invalid') || origin === 'null' ? null : origin);
+      expect(api.headers.get('Vary')).toContain('Origin');
+      expect(api.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
+    }
+  });
+  it('validates the login Turnstile action before reading the account', async () => {
+    settings.siteKey = 'fixture-site-key';
+    settings.secretKey = ['fixture', 'turnstile', 'secret'].join('-');
+    const lookup = vi.spyOn(userService, 'selectByEmailIncludeDel').mockResolvedValue(undefined);
+    const verify = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({success: false}))
+      .mockResolvedValueOnce(Response.json({success: true, action: 'register'}))
+      .mockResolvedValueOnce(Response.json({success: true, action: 'login'}));
+    const credentials = {email: 'target@allowed.example', password: ['fixture', 'password'].join('-')};
+    try {
+      await expect(loginService.login(c, credentials)).rejects.toMatchObject({code: 400});
+      expect(verify).not.toHaveBeenCalled();
+      for (const token of ['rejected-fixture', 'registration-fixture']) {
+        await expect(loginService.login(c, {...credentials, token})).rejects.toMatchObject({code: 400});
+      }
+      expect(lookup).not.toHaveBeenCalled();
+      await expect(loginService.login(c, {...credentials, token: 'login-fixture'})).rejects.toBeDefined();
+      expect(lookup).toHaveBeenCalledExactlyOnceWith(c, credentials.email);
+    } finally {
+      verify.mockRestore();
+    }
+  });
+  it('applies an account cooldown across different IPs without blocking other accounts', async () => {
+    const lookup = vi.spyOn(userService, 'selectByEmailIncludeDel').mockResolvedValue(undefined);
+    const verify = vi.spyOn(cryptoUtils, 'verifyPassword').mockResolvedValue(false);
+    const credentials = {email: 'target@allowed.example', password: ['fixture', 'password'].join('-')};
+    for (let index = 1; index <= 20; index++) {
+      const client = {...c, req: {header: () => `192.0.2.${index}`}};
+      await expect(loginService.login(client, credentials)).rejects.toBeDefined();
+    }
+    const next = {...c, req: {header: () => '192.0.2.21'}};
+    await expect(loginService.login(next, {...credentials, email: ' TARGET@ALLOWED.EXAMPLE '})).rejects.toMatchObject({code: 429});
+    expect(verify).toHaveBeenCalledTimes(20);
+    await expect(loginService.login(next, {...credentials, email: 'another@allowed.example'})).rejects.toBeDefined();
+    expect(lookup).toHaveBeenCalledTimes(21);
+  });
+  it('limits password spraying by counting failed credentials across different accounts per IP', async () => {
+    const lookup = vi.spyOn(userService, 'selectByEmailIncludeDel').mockResolvedValue(undefined);
+    vi.spyOn(cryptoUtils, 'verifyPassword').mockResolvedValue(false);
+    const client = {...c, req: {header: name => name === 'CF-Connecting-IP' ? '192.0.2.222' : undefined}};
+    for (let index = 0; index < 20; index++) {
+      await expect(loginService.login(client, {email: `spray-${index}@allowed.example`, password: 'incorrect'}))
+        .rejects.toMatchObject({code: 501});
+    }
+    await expect(loginService.login(client, {email: 'spray-last@allowed.example', password: 'incorrect'}))
+      .rejects.toMatchObject({code: 429});
+    expect(lookup).toHaveBeenCalledTimes(20);
+  });
   it('enforces limits atomically across concurrent requests and resets an expired window', async () => {
     const attempts = await Promise.allSettled(Array.from({ length: 20 }, () => rateLimit.consume(c, 'test', 'same-subject', 8, 60)));
     expect(attempts.filter(result => result.status === 'fulfilled')).toHaveLength(8);

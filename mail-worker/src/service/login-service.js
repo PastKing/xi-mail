@@ -33,7 +33,7 @@ const loginService = {
 		const email = typeof params?.email === 'string' ? params.email.trim().toLowerCase() : params?.email;
 
 		const setting = await settingService.query(c);
-		const { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailPrefixFilter, emailKeywordBlacklist } = setting;
+		const { regKey, register, registerVerify, regVerifyCount, minEmailPrefix, emailKeywordBlacklist } = setting;
 		const managedAddress = typeof email === 'string' && settingService.getValidDomains(setting).includes(emailUtils.getDomain(email));
 
 		if (register === settingConst.register.CLOSE) {
@@ -56,10 +56,6 @@ const loginService = {
 
 		if (managedAddress && emailUtils.getName(email).length < minEmailPrefix) {
 			throw new BizError(t('minEmailPrefix', { msg: minEmailPrefix } ));
-		}
-
-		if (managedAddress && emailPrefixFilter.some(content => emailUtils.getName(email).includes(content)))  {
-			throw new BizError(t('banEmailPrefix'));
 		}
 
 		if (managedAddress && emailKeywordBlacklist.length > 0 && emailKeywordBlacklist.some(kw => emailUtils.getName(email).toLowerCase().includes(kw.toLowerCase()))) {
@@ -202,15 +198,24 @@ const loginService = {
 		const password = params?.password;
 		if (!email || email.length > 320 || (!noVerifyPwd && (typeof password !== 'string' || !password || password.length > 256)))
 			throw new BizError(t('invalidCredentials'));
-		if (!noVerifyPwd) await securityRateLimit.login(c, email);
+		if (!noVerifyPwd) {
+			const ip = c.req?.header('CF-Connecting-IP') || 'unknown';
+			await securityRateLimit.consume(c, 'login-ip', ip, 60, 300);
+			await securityRateLimit.check(c, 'login-failure-ip', ip, 20);
+			const settings = await settingService.query(c);
+			if (settings.siteKey) await turnstileService.verify(c, params.token, 'login');
+			await securityRateLimit.loginCredentials(c, email);
+		}
 
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
 		// Hash even for unknown accounts, and use one response for unknown/deleted/wrong-password logins.
 		const validPassword = noVerifyPwd || await cryptoUtils.verifyPassword(password,
 			userRow?.salt || 'xi-mail-login-dummy-salt', userRow?.password || cryptoUtils.DUMMY_HASH);
-		if (!userRow || userRow.isDel === isDel.DELETE || !validPassword)
+		if (!userRow || userRow.isDel === isDel.DELETE || !validPassword) {
+			if (!noVerifyPwd) await securityRateLimit.consume(c, 'login-failure-ip', c.req?.header('CF-Connecting-IP') || 'unknown', 20, 900);
 			throw new BizError(t('invalidCredentials'));
+		}
 
 		if(userRow.status === userConst.status.BAN) {
 			const settings = await settingService.query(c);

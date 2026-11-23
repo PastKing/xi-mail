@@ -1,9 +1,9 @@
 import { UAParser } from 'ua-parser-js';
 const reqUtils = {
 	getIp(c) {
-		return  c.req.header('CF-Connecting-IP') ||
-			c.req.header('X-Forwarded-For') ||
-			'Unknown';
+		// Cloudflare Workers supplies this edge-derived value. Forwarding headers
+		// are client-controlled unless a separate trusted proxy chain is parsed.
+		return c.req.header('CF-Connecting-IP') || 'Unknown';
 	},
 
 	getUserAgent(c) {

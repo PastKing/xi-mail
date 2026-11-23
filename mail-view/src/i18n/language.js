@@ -7,24 +7,28 @@ import {reactive} from 'vue';
 let sequence=0;
 const cache=new Map();
 const publicCopies=reactive(new Map());
-function cacheKey(id){return `${useServerStore().activeServerId||'local'}:${id}`;}
+function cacheKey(id,publicOnly=false){return `${useServerStore().activeServerId||'local'}:${id}:${publicOnly?'public':'full'}`;}
 export function supportedLanguages() {return useSettingStore().settings.translation?.languages || [{id:'zh',name:'简体中文',label:'中文',flag:'cn'}];}
 export function clearLanguageCache(id) {
-  const key=cacheKey(id);cache.delete(key);publicCopies.delete(key);
+  for(const publicOnly of [true,false]){const key=cacheKey(id,publicOnly);cache.delete(key);publicCopies.delete(key);}
 }
 export function registrationHint(source) {
   const lang=useSettingStore().lang;
   if(lang==='zh')return source;
-  const copy=publicCopies.get(cacheKey(lang));
+  const copy=publicCopies.get(cacheKey(lang,false))||publicCopies.get(cacheKey(lang,true));
   return copy?.regKeyHintSource===source&&typeof copy.regKeyHint==='string'?copy.regKeyHint:source;
 }
-export async function activateLanguage(requested='zh',{persist=true}={}) {
+export async function activateLanguage(requested='zh',{persist=true,publicOnly}={}) {
   const token=++sequence, setting=useSettingStore();
   const id=supportedLanguages().some(item=>item.id===requested)?requested:'zh';
   if(id!=='zh') {
-    const key=cacheKey(id);
+    const server=useServerStore();
+    const path=location.pathname;
+    const publicRoute=path==='/login'||path==='/share'||path==='/setup'||path.startsWith('/oauth/');
+    const usePublicPack=publicOnly??(publicRoute||!server.getToken());
+    const key=cacheKey(id,usePublicPack);
     let pack=cache.get(key);
-    if(!pack) {pack=await languagePack(id);cache.set(key,pack);}
+    if(!pack) {pack=await languagePack(id,usePublicPack);cache.set(key,pack);}
     if(token!==sequence)return;
     i18n.global.setLocaleMessage(id,pack.messages);
     publicCopies.set(key,pack.publicCopy||{});

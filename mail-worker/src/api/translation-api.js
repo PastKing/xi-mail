@@ -14,6 +14,10 @@ app.get('/translation/pack',async c=>{
   c.header('Cache-Control','no-store');
   return c.json(result.ok(await translation.pack(c,c.req.query('language'))));
 });
+app.get('/translation/public-pack',async c=>{
+  c.header('Cache-Control','no-store');
+  return c.json(result.ok(await translation.publicPack(c,c.req.query('language'))));
+});
 app.post('/email/translate',async c=>{
   c.header('Cache-Control','no-store');
   return c.json(result.ok(await translation.mail(c,await c.req.json(),userContext.getUserId(c))));

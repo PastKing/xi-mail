@@ -3,9 +3,10 @@ const app = new Hono();
 
 import result from '../model/result';
 import { cors } from 'hono/cors';
+import { allowedApiOrigin } from '../security/response-headers';
 
 app.use('*', cors({
-	origin: '*',
+	origin: (origin, c) => allowedApiOrigin(origin, new URL(c.req.url).origin, c.env?.CORS_ALLOWED_ORIGINS),
 	allowHeaders: ['Content-Type', 'Authorization', 'accept-language', 'x-admin-auth'],
 	allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	credentials: false,

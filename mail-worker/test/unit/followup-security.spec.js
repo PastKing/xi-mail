@@ -24,6 +24,7 @@ import user from '../../src/entity/user';
 import account from '../../src/entity/account';
 import regKey from '../../src/entity/reg-key';
 import {att} from '../../src/entity/att';
+import KvConst from '../../src/const/kv-const';
 
 const SECRET = 'test-signing-key-with-256-bit-variety-A1b2C3d4';
 let db, c, records;
@@ -134,7 +135,10 @@ describe('Telegram mail capabilities', () => {
     const remote = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ok:true}));
     await telegramService.sendEmailToBot(c, unassigned);
     const payload = JSON.parse(remote.mock.calls[0][1].body);
-    const url = new URL(payload.reply_markup.inline_keyboard[0][0].web_app.url);
+    const [button] = payload.reply_markup.inline_keyboard[0];
+    expect(button.text).toBe('查看原邮件');
+    expect(payload.reply_markup.inline_keyboard[0]).toHaveLength(1);
+    const url = new URL(button.url);
     expect(url.origin).toBe('https://mail.example.test');
     expect(url.pathname).toMatch(/^\/api\/telegram\/getEmail\/[a-f0-9]{64}$/);
     expect(await mailLinkService.read(c,url.pathname.split('/').pop())).toMatchObject({text:'Unassigned mail'});
@@ -146,6 +150,49 @@ describe('Telegram mail capabilities', () => {
     await telegramService.sendEmailToBot(c,unassigned);
     expect(JSON.parse(remote.mock.calls[0][1].body)).not.toHaveProperty('reply_markup');
     expect(c.env.kv.put).not.toHaveBeenCalled();
+  });
+  it.each(['001203', 'XLYVNV', 'aB07'])('copies the exact recognized code %s in private and group notifications', async code => {
+    seedUnassigned();
+    vi.spyOn(settingService, 'query').mockResolvedValue({customDomain: 'https://mail.example.test', tgChatId: '1234, -1001234', tgBotToken: 'local-token', tgMsgText: 'hide'});
+    const remote = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ok: true}));
+    await telegramService.sendEmailToBot(c, {...unassigned, code});
+    const payloads = remote.mock.calls.map(([, init]) => JSON.parse(init.body));
+    expect(payloads.map(payload => payload.chat_id)).toEqual(['1234', '-1001234']);
+    for (const [index, payload] of payloads.entries()) {
+      expect(payload.text).toBe('<b>Notification</b>');
+      const url = expect.stringMatching(/^https:\/\/mail\.example\.test\/api\/telegram\/getEmail\/[a-f0-9]{64}$/);
+      expect(payload.reply_markup.inline_keyboard[0]).toEqual([
+        {text: '复制验证码', copy_text: {text: code}},
+        {text: '查看原邮件', ...(index === 0 ? {web_app: {url}} : {url})},
+      ]);
+    }
+    expect(c.env.kv.put).toHaveBeenCalledTimes(1);
+  });
+  it('keeps copy available with no viewer and limits escaped mail text after HTML decoding', async () => {
+    vi.spyOn(settingService, 'query').mockResolvedValue({tgChatId: '1234', tgBotToken: 'local-token', tgMsgFrom: 'show', tgMsgTo: 'show', tgMsgText: 'show'});
+    const remote = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ok: true}));
+    await telegramService.sendEmailToBot(c, {...unassigned, subject: 'A & B <tag>', name: 'One < Two', code: '0007', text: '🚀&<'.repeat(3000)});
+    const payload = JSON.parse(remote.mock.calls[0][1].body);
+    expect(payload.reply_markup.inline_keyboard).toEqual([[{text: '复制验证码', copy_text: {text: '0007'}}]]);
+    expect(payload.text).toContain('<b>A &amp; B &lt;tag&gt;</b>');
+    expect(payload.text).toContain('One &lt; Two');
+    const decoded = payload.text.replace(/<\/?b>/g, '').replace(/&(?:amp|lt|gt);/g, value => ({'&amp;': '&', '&lt;': '<', '&gt;': '>'})[value]);
+    expect(decoded.length).toBeLessThanOrEqual(4096);
+    expect(decoded).toMatch(/…$/u);
+    expect(decoded).not.toMatch(/[\uD800-\uDFFF]/u);
+  });
+  it('omits the code and copy button when disabled while sending the ordinary notification', async () => {
+    seedUnassigned();
+    records.set(KvConst.TELEGRAM_VERIFICATION_CODE, '0');
+    vi.spyOn(settingService, 'query').mockResolvedValue({customDomain: 'https://mail.example.test', tgChatId: '1234', tgBotToken: 'test-bot', tgMsgText: 'show'});
+    const remote = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ok: true}));
+    await telegramService.sendEmailToBot(c, {...unassigned, code: '001203'});
+    const payload = JSON.parse(remote.mock.calls[0][1].body);
+    expect(payload.text).toContain(unassigned.text);
+    expect(payload.text).not.toContain('001203');
+    expect(payload.reply_markup.inline_keyboard[0]).toEqual([
+      {text: '查看原邮件', web_app: {url: expect.stringMatching(/^https:\/\/mail\.example\.test\//)}},
+    ]);
   });
 });
 

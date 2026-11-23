@@ -6,6 +6,7 @@ import BizError from '../error/biz-error';
 import rate from './security-rate-limit-service';
 import emailService from './email-service';
 import {mailTranslationDocument} from './mail-translation-document';
+import {PUBLIC_TRANSLATION_KEYS} from '../const/public-translation-keys';
 
 const CONFIG = 'translation:config';
 const PACK = 'translation:pack:';
@@ -98,6 +99,11 @@ const translationService = {
     const pack=await c.env.kv.get(PACK+id,{type:'json'});
     if (!pack?.messages) throw new BizError('该语言的界面译文尚未准备好。',404);
     return {language:id,messages:pack.messages,version:pack.version,publicCopy:await registrationCopy(c,language)};
+  },
+  async publicPack(c,id) {
+    const pack=await this.pack(c,id);
+    const messages=Object.fromEntries(Object.entries(pack.messages).filter(([key])=>PUBLIC_TRANSLATION_KEYS.has(key)));
+    return {...pack,messages};
   },
   async generate(c,id) {
     const language=await catalogService.resolve(c,id);id=language.id;

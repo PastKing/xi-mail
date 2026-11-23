@@ -66,6 +66,7 @@ const analysisDao = {
 	},
 
     async userDayCount(c, diffHours) { return dayCounts(c, 'user', null, diffHours); },
+    async accountDayCount(c, diffHours) { return dayCounts(c, 'account', null, diffHours); },
     async receiveDayCount(c, diffHours) { return dayCounts(c, 'email', 0, diffHours); },
     async sendDayCount(c, diffHours) { return dayCounts(c, 'email', 1, diffHours); },
 };

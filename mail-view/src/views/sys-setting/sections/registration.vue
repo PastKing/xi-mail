@@ -11,11 +11,9 @@
           <div><span>{{ t('multipleEmail') }}</span><el-tooltip effect="dark" :content="t('multipleEmailDesc')"><Icon class="warning" icon="mingcute:information-line" width="18" height="18" /></el-tooltip></div>
           <div><el-switch v-model="setting.manyEmail" @change="change('manyEmail')" :before-change="beforeChange" :active-value="0" :inactive-value="1" /></div>
         </div>
-        <div class="settings-inline-field">
-          <div class="settings-inline-heading"><span>{{ t('emailPrefix') }}</span><div class="email-prefix"><span>{{ t('atLeast') }}</span><el-input-number class="settings-number-input" controls-position="right" v-model="minEmailPrefix" :aria-label="t('emailPrefix')" :min="1" :max="20" /><span>{{ t('character') }}</span></div></div>
-          <p>{{ t('emailPrefixRulesHint') }}</p>
-          <el-input-tag v-model="emailPrefixFilter" :aria-label="t('mustNotContain')" :placeholder="t('emailPrefixFilterPlaceholder')" />
-          <div class="settings-inline-actions"><el-button @click="resetEmailPrefix">{{ t('settingsInlineReset') }}</el-button><el-button type="primary" :loading="isSaving('minEmailPrefix','emailPrefixFilter')" :disabled="isSaving('minEmailPrefix','emailPrefixFilter')" @click="saveEmailPrefix">{{ t('settingsInlineSave') }}</el-button></div>
+        <div class="setting-item">
+          <div><span>{{ t('emailPrefix') }}</span><el-tooltip :content="t('emailPrefixRulesHint')"><Icon class="warning" icon="mingcute:information-line" width="18" height="18" /></el-tooltip></div>
+          <div class="email-prefix"><span>{{ t('atLeast') }}</span><el-input-number v-model="setting.minEmailPrefix" class="settings-number-input" controls-position="right" :aria-label="t('emailPrefix')" :min="1" :max="20" :disabled="isSaving('minEmailPrefix')" @change="change('minEmailPrefix')" /><span>{{ t('character') }}</span></div>
         </div>
         <div class="setting-item">
           <div>
@@ -301,13 +299,7 @@ const {
   editSetting,
   change,
   beforeChange,
-  onSettingsLoaded,
-  onSettingsDirty,
 } = useSysSetting();
-const minEmailPrefix = ref(0),
-  emailPrefixFilter = ref([]);
-let prefixBaseline;
-const prefixSnapshot = () => JSON.stringify({minEmailPrefix:minEmailPrefix.value,emailPrefixFilter:emailPrefixFilter.value});
 const providerDialogShow = ref(false),
   tokenDialogShow = ref(false);
 const tokenAction = ref('');
@@ -468,20 +460,6 @@ async function deleteToken() {
     payload.sendProviders = { [tokenForm.domain]: '' };
   tokenAction.value = 'delete';
   try { if (await editSetting(payload)) { tokenForm.token = ''; tokenDialogShow.value = false; } } finally { tokenAction.value = ''; }
-}
-function resetEmailPrefix() {
-  minEmailPrefix.value = setting.value.minEmailPrefix;
-  emailPrefixFilter.value = [...(setting.value.emailPrefixFilter || [])];
-  prefixBaseline = prefixSnapshot();
-}
-onSettingsLoaded(() => { if (prefixBaseline === undefined || prefixSnapshot() === prefixBaseline) resetEmailPrefix(); });
-onSettingsDirty(() => prefixBaseline !== undefined && prefixSnapshot() !== prefixBaseline, resetEmailPrefix);
-async function saveEmailPrefix() {
-  const saved = {minEmailPrefix:minEmailPrefix.value,emailPrefixFilter:[...emailPrefixFilter.value]};
-  const ok = await editSetting({
-      ...saved,
-    });
-  if (ok) prefixBaseline = JSON.stringify(saved);
 }
 </script>
 <style scoped lang="scss">

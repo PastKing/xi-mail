@@ -4,7 +4,7 @@ import { t } from '../i18n/i18n'
 
 const turnstileService = {
 
-	async verify(c, token) {
+	async verify(c, token, action) {
 
 		if (typeof token !== 'string' || !token.trim() || token.length > 2048) {
 			throw new BizError(t('emptyBotToken'),400);
@@ -33,7 +33,7 @@ const turnstileService = {
 			throw new BizError(t('botVerifyFail'), 503);
 		}
 
-		if (result?.success !== true) {
+		if (result?.success !== true || (action && result.action !== action)) {
 			throw new BizError(t('botVerifyFail'),400)
 		}
 	}
