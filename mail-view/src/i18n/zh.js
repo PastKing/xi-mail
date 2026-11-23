@@ -328,8 +328,6 @@ const zh = {
     autoRefreshDesc: '轮询请求服务器获取最新邮件',
     sendEmail: '邮件发送',
     resendToken: 'Resend Token',
-    editResendTokenTitle: '修改 Resend Token',
-    replaceResendTokenDesc: '可查看或修改已保存的 Token，留空则保持原值',
     oss: '对象存储',
     osDomain: '访问域名',
     ossDomainDesc: 'R2 附件的自定义访问域名状态。配置后可用该域名生成附件链接；已切换到 S3 时，附件通过本站代理读取。KV 存储可留空。',

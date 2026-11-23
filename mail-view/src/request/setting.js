@@ -27,10 +27,6 @@ export function settingQuery() {
     return http.get('/setting/query')
 }
 
-export function getResendToken(domain) {
-    return http.get('/setting/resendToken', { params: { domain } })
-}
-
 export function websiteConfig() {
     return http.get('/setting/websiteConfig')
 }

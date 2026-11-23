@@ -1,8 +1,6 @@
 import app from '../hono/hono';
 import result from '../model/result';
 import settingService from '../service/setting-service';
-import BizError from '../error/biz-error';
-import { t } from '../i18n/i18n';
 import wecomService from '../service/wecom-service';
 import {blockSenderDomains} from '../service/sender-domain-block-service';
 import s3Service from '../service/s3-service';
@@ -45,15 +43,6 @@ app.put('/setting/set', async (c) => {
 app.get('/setting/query', async (c) => {
 	const setting = await settingService.get(c);
 	return c.json(result.ok(setting));
-});
-
-app.get('/setting/resendToken', async (c) => {
-	c.header('Cache-Control', 'no-store');
-	if (c.get('user')?.email !== c.env.admin) {
-		throw new BizError(t('unauthorized'), 403);
-	}
-	const data = await settingService.getResendToken(c, c.req.query('domain'));
-	return c.json(result.ok(data));
 });
 
 app.get('/setting/websiteConfig', async (c) => {

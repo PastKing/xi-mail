@@ -279,7 +279,6 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessageBox } from 'element-plus';
 import { useSysSetting } from '../use-sys-setting.js';
 defineOptions({ name: 'sys-setting-registration' });
 const props = defineProps({settingsArea:{type:String,default:''}});

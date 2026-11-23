@@ -235,8 +235,6 @@ const en = {
     autoRefreshDesc: 'Automatically fetch the latest emails from the server',
     sendEmail: 'Send Email',
     resendToken: 'Resend Token',
-    editResendTokenTitle: 'Edit Resend Token',
-    replaceResendTokenDesc: 'View or edit the saved token; leave blank to keep it',
     oss: 'Object Storage',
     osDomain: 'Domain',
     ossDomainDesc: 'Leave empty if using KV storage.',
