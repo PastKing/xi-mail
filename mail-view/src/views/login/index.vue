@@ -134,7 +134,7 @@
               </div>
             </div>
 
-            <div v-if="showLoginVerify && settingStore.settings.siteKey">
+            <div v-if="showLoginVerify">
               <div ref="loginVerifyHost"></div>
               <span v-if="loginVerifyError" class="err-text">{{ $t('verifyModuleFailed') }}</span>
             </div>
@@ -324,6 +324,7 @@ if (serverStore.isStandalone && !settingStore.settings?.title && serverStore.ser
 
 const verifyShow = ref(false);
 const showLoginVerify = ref(false);
+const loginVerifyMode = computed(() => settingStore.settings.loginVerify ?? (settingStore.settings.loginVerification ? 0 : 1));
 const loginVerifyHost = ref(null);
 const loginVerifyError = ref(false);
 let loginWidgetId = null;
@@ -337,7 +338,11 @@ function clearLoginVerification() {
 }
 
 watch(loginVerifyHost, host => { if (!host) clearLoginVerification(); });
-watch(() => [serverStore.activeServerId, settingStore.settings.siteKey], clearLoginVerification);
+watch(() => serverStore.activeServerId, () => {
+  showLoginVerify.value = false;
+  clearLoginVerification();
+});
+watch(() => settingStore.settings.siteKey, clearLoginVerification);
 onBeforeUnmount(clearLoginVerification);
 
 async function prepareLoginVerification() {
@@ -394,7 +399,7 @@ const submit = async () => {
   loginLoading.value = true;
   let submittedWidget = null;
   try {
-    if (settingStore.settings.siteKey && !loginVerifyToken) {
+    if ((loginVerifyMode.value === 0 || showLoginVerify.value) && !loginVerifyToken) {
       await prepareLoginVerification();
       if (loginWidgetId !== null && !loginVerifyError.value) ElMessage.info(t('botVerifyMsg'));
       return;
@@ -407,8 +412,16 @@ const submit = async () => {
       form.password = '';
       twoFactorChallenge.value = data.challenge;
     } else await saveToken(data.token);
-  } catch {
-    // The request interceptor displays verification and credential errors.
+  } catch (error) {
+    if (error?.code === 428) {
+      if (!settingStore.settings.siteKey) {
+        const activeServerId = serverStore.activeServerId;
+        const config = await websiteConfig().catch(() => null);
+        if (!config || serverStore.activeServerId !== activeServerId) return;
+        settingStore.settings.siteKey = config.siteKey;
+      }
+      await prepareLoginVerification();
+    }
   } finally {
     if (submittedWidget !== null && submittedWidget === loginWidgetId) window.turnstile?.reset(submittedWidget);
     loginLoading.value = false;

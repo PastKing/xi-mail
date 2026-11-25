@@ -145,13 +145,12 @@
         <div class="setting-item">
           <div><span>{{ $t('signUpVerification') }}</span></div>
           <div>
-            <el-input-number v-if="setting.registerVerify === 2" v-model="regVerifyCount" :aria-label="$t('signUpVerification')" :min="1" style="width: 110px" @change="saveRegVerifyCount" />
+            <el-input-number v-if="setting.registerVerify === 2" v-model="regVerifyCount" :aria-label="$t('signUpVerification')" :min="1" class="settings-number-input" @change="saveRegVerifyCount" />
             <el-select popper-class="sys-setting-popper"
                 @change="change('registerVerify')"
-                :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                 v-model="setting.registerVerify"
                 placeholder="Select"
-                class="bot-verify-select"
+                class="settings-compact-select"
             >
               <el-option :value="0" :label="$t('enable')"/>
               <el-option :value="1" :label="$t('disable')"/>
@@ -161,15 +160,30 @@
         </div>
         <p v-if="setting.registerVerify === 2" class="verify-rule-hint">{{ $t('rulesVerifyTitle', {count:regVerifyCount}) }}</p>
         <div class="setting-item">
+          <div><span>{{ $t('loginVerification') }}</span></div>
+          <div>
+            <el-input-number v-if="setting.loginVerify === 2" v-model="setting.loginVerifyCount"
+                             :aria-label="$t('loginVerifyThreshold')" :min="1" :max="7" :precision="0"
+                             :disabled="isSaving('loginVerifyCount')" class="settings-number-input" @change="saveLoginVerifyCount" />
+            <el-select popper-class="sys-setting-popper" v-model="setting.loginVerify"
+                       :aria-label="$t('loginVerification')"
+                       :disabled="isSaving('loginVerify')" @change="change('loginVerify')" class="settings-compact-select">
+              <el-option :value="0" :label="$t('enable')"/>
+              <el-option :value="1" :label="$t('disable')"/>
+              <el-option :value="2" :label="$t('rulesVerify')"/>
+            </el-select>
+          </div>
+        </div>
+        <p v-if="setting.loginVerify === 2" class="verify-rule-hint">{{ $t('loginVerifyRuleHint', {count:setting.loginVerifyCount}) }}</p>
+        <div class="setting-item">
           <div><span>{{ $t('addEmailVerification') }}</span></div>
           <div>
-            <el-input-number v-if="setting.addEmailVerify === 2" v-model="addVerifyCount" :aria-label="$t('addEmailVerification')" :min="1" style="width: 110px" @change="saveAddVerifyCount" />
+            <el-input-number v-if="setting.addEmailVerify === 2" v-model="addVerifyCount" :aria-label="$t('addEmailVerification')" :min="1" class="settings-number-input" @change="saveAddVerifyCount" />
             <el-select popper-class="sys-setting-popper"
                 @change="change('addEmailVerify')"
-                :style="`width: ${ locale === 'en' ? 100 : 80 }px;`"
                 v-model="setting.addEmailVerify"
                 placeholder="Select"
-                class="bot-verify-select"
+                class="settings-compact-select"
             >
               <el-option :value="0" :label="$t('enable')"/>
               <el-option :value="1" :label="$t('disable')"/>
@@ -374,7 +388,7 @@ const sectionArea = computed(() => {
   if (props.settingsArea) return props.settingsArea
   const key = route.query.find
   if (['tgBot','otherEmail','forwardingRules'].includes(key)) return 'forward'
-  if (['signUpVerification','addEmailVerification'].includes(key)) return 'verify'
+  if (['signUpVerification','loginVerification','addEmailVerification'].includes(key)) return 'verify'
   if (['noticeTitle','noticePopup','popUp'].includes(key)) return 'notice'
   if (key === 'resendWebhookTitle') return 'webhook'
   if (['workersAi','aiModel','aiCodeEnable','s3Configuration','storageType'].includes(key)) return 'storage'
@@ -659,6 +673,11 @@ function saveRegVerifyCount() {
   editSetting({regVerifyCount: regVerifyCount.value})
 }
 
+function saveLoginVerifyCount(value, previous) {
+  setting.value.loginVerifyCount = value ?? previous ?? 3
+  change('loginVerifyCount')
+}
+
 function saveAddVerifyCount() {
   addVerifyCount.value = addVerifyCount.value || 1
   editSetting({addVerifyCount: addVerifyCount.value})
@@ -766,10 +785,6 @@ function saveNoticePopup() {
     width: 48px;
     margin: 0 0 0 10px;
   }
-}
-
-.bot-verify-select {
-  margin-left: 10px;
 }
 
 .s3-button {

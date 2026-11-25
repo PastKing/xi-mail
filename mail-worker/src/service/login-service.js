@@ -201,9 +201,12 @@ const loginService = {
 		if (!noVerifyPwd) {
 			const ip = c.req?.header('CF-Connecting-IP') || 'unknown';
 			await securityRateLimit.consume(c, 'login-ip', ip, 60, 300);
-			await securityRateLimit.check(c, 'login-failure-ip', ip, 20);
-			const settings = await settingService.query(c);
-			if (settings.siteKey) await turnstileService.verify(c, params.token, 'login');
+			const failures = await securityRateLimit.check(c, 'login-failure-ip', ip, 20);
+			const {loginVerify, loginVerifyCount} = await settingService.loginVerificationPolicy(c);
+			if (loginVerify === 0 || (loginVerify === 2 && failures >= loginVerifyCount)) {
+				if (!params.token) throw new BizError(t('emptyBotToken'), 428);
+				await turnstileService.verify(c, params.token, 'login');
+			}
 			await securityRateLimit.loginCredentials(c, email);
 		}
 

@@ -25,11 +25,6 @@
           <el-statistic :formatter="value => Math.round(value)" :value="userData" />
           <div class="overview-meta"><span>{{ $t('active') }} <b class="normal">{{ numberCount.normalUserTotal }}</b></span><span>{{ $t('deleted') }} <b class="deleted">{{ numberCount.delUserTotal }}</b></span></div>
         </article>
-        <article class="overview-card today-overview-card">
-          <div class="overview-label"><span class="overview-mark today-mark"><Icon icon="mingcute:send-plane-line" width="17" height="17" /></span>{{ $t('sentToday') }}</div>
-          <el-statistic :formatter="value => Math.round(value)" :value="todaySendData" />
-          <div class="overview-meta"><span>{{ $t('sentCountUnit') }}</span></div>
-        </article>
       </section>
 
       <section class="analysis-primary-grid">
@@ -48,9 +43,24 @@
           <header class="panel-heading"><div><h2>{{ $t('userGrowth') }}</h2><span>{{ $t('analysisRecentDays') }}</span></div><span class="panel-index">03</span></header>
           <div class="increase-line"></div>
         </article>
-        <article class="analysis-panel mailbox-growth-panel">
-          <header class="panel-heading"><div><h2>{{ $t('mailboxGrowth') }}</h2><span>{{ $t('analysisRecentDays') }}</span></div><span class="panel-index">04</span></header>
-          <div class="account-line"></div>
+        <article class="analysis-panel suffix-panel">
+          <header class="panel-heading">
+            <div>
+              <h2>{{ $t('analysisPopularSuffixes') }}</h2>
+              <span>{{ $t('analysisSuffixRankingScope') }}</span>
+            </div>
+          </header>
+          <ol v-if="suffixRanking.length" class="suffix-ranking">
+            <li v-for="(row, index) in suffixRanking" :key="row.suffix" class="suffix-row">
+              <span class="suffix-position" aria-hidden="true">{{ index + 1 }}</span>
+              <span class="suffix-name" :title="'@' + row.suffix">@{{ row.suffix }}</span>
+              <strong class="suffix-count">{{ formatCount.format(row.total) }}</strong>
+              <span class="suffix-track" aria-hidden="true">
+                <span :style="{width: (row.total / suffixRanking[0].total * 100) + '%'}"></span>
+              </span>
+            </li>
+          </ol>
+          <p v-else class="suffix-empty">{{ $t('analysisNoSuffixes') }}</p>
         </article>
       </section>
     </div>
@@ -74,14 +84,13 @@ defineOptions({
   name: 'analysis'
 })
 
-const {t} = useI18n();
+const {t, locale} = useI18n();
 const route = useRoute();
 const uiStore = useUiStore()
 const receiveTotal = ref(0)
 const sendTotal = ref(0)
 const accountTotal = ref(0)
 const userTotal = ref(0)
-const todaySendTotal = ref(0)
 const analysisLoading = ref(true)
 
 const numberCount = reactive({
@@ -111,14 +120,14 @@ const accountData = useTransition(accountTotal, {
 const userData = useTransition(userTotal, {
   duration: 1500,
 })
-const todaySendData = useTransition(todaySendTotal, { duration: 900 })
 
 const senderData = ref(null)
 const userLineData = reactive({
   xdata: [],
   sdata: []
 })
-const accountLineData = reactive({xdata: [], sdata: []})
+const suffixRanking = ref([])
+const formatCount = computed(() => new Intl.NumberFormat(locale.value))
 
 const emailColumnData = {
   receiveData: [],
@@ -137,11 +146,9 @@ const topic = computed(() => ({
   gaugeSplitLine: uiStore.dark ? '#CFD3DC' : '#606266',
   containerBackground: uiStore.dark ? '#6C6E72' : '#E6EBF8'
 }))
-let daySendTotal = 0
 let leaveWidth = 0
 let senderPie = null
 let increaseLine = null
-let accountLine = null
 let emailColumn = null
 let first = true
 let boxKey = ref(0)
@@ -172,14 +179,11 @@ onMounted(() => {
 
     userLineData.xdata = data.userDayCount.map(item => dayjs(item.date).format("M.D"));
     userLineData.sdata = data.userDayCount.map(item => item.total)
-    accountLineData.xdata = (data.accountDayCount || []).map(item => dayjs(item.date).format('M.D'))
-    accountLineData.sdata = (data.accountDayCount || []).map(item => item.total)
+    suffixRanking.value = data.mailboxSuffixRanking ?? []
 
     emailColumnData.daysData = data.emailDayCount.receiveDayCount.map(item => dayjs(item.date).format("M.D"))
     emailColumnData.receiveData = data.emailDayCount.receiveDayCount.map(item => item.total)
     emailColumnData.sendData = data.emailDayCount.sendDayCount.map(item => item.total)
-    daySendTotal = data.daySendTotal
-    todaySendTotal.value = daySendTotal
     analysisLoading.value = false
     initPicture();
     first = false
@@ -232,7 +236,6 @@ function initPicture() {
   setTimeout(() => {
     createSenderPie()
     createIncreaseLine()
-    createAccountLine()
     createEmailColumnChart();
   })
 }
@@ -487,45 +490,6 @@ function createIncreaseLine() {
   });
 }
 
-function createAccountLine() {
-  if (accountLine) accountLine.dispose()
-  accountLine = echarts.init(document.querySelector('.account-line'))
-  accountLine.setOption({
-    tooltip: {
-      trigger: 'axis', confine: true,
-      axisPointer: {type: 'line', lineStyle: {color: topic.value.crossColor}},
-      backgroundColor: topic.value.background,
-      borderColor: topic.value.splitLineColor,
-      textStyle: {color: topic.value.color},
-      formatter: params => {
-        const point = params[0]
-        return `${point.axisValueLabel}<br>${point.marker} ${t('mailboxGrowth')}：${point.value}`
-      },
-    },
-    grid: {top: 18, right: 18, bottom: 28, left: 42, containLabel: true},
-    xAxis: {
-      type: 'category', data: accountLineData.xdata, boundaryGap: false,
-      axisTick: {show: false},
-      axisLine: {lineStyle: {color: topic.value.axisColor}},
-      axisLabel: {hideOverlap: true, color: topic.value.axisColor},
-    },
-    yAxis: {
-      type: 'value', minInterval: 1,
-      max: params => params.max < 8 ? 10 : undefined,
-      axisLine: {show: false}, axisTick: {show: false},
-      axisLabel: {color: topic.value.axisColor},
-      splitLine: {lineStyle: {color: topic.value.splitLineColor, type: 'dashed'}},
-    },
-    series: [{
-      name: t('mailboxGrowth'), type: 'line', smooth: 0.28, showSymbol: false,
-      lineStyle: {width: 2.3, color: '#8b64bb'},
-      itemStyle: {color: '#8b64bb'},
-      areaStyle: {color: 'rgba(139, 100, 187, 0.09)'},
-      data: accountLineData.sdata,
-    }],
-  })
-}
-
 function createEmailColumnChart() {
 
   if (emailColumn) {
@@ -653,7 +617,7 @@ function createEmailColumnChart() {
 
   .analysis-overview {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -702,7 +666,6 @@ function createEmailColumnChart() {
   .sent-mark { color: #18896f; background: rgba(36,168,139,.12); }
   .account-mark { color: #8b64bb; background: rgba(139,100,187,.12); }
   .user-mark { color: #bf7a36; background: rgba(191,122,54,.12); }
-  .today-mark { color: #3973b9; background: rgba(57,115,185,.12); }
 
   .overview-meta {
     display: flex;
@@ -749,7 +712,43 @@ function createEmailColumnChart() {
   .email-column { height: 296px; }
   .sender-pie { height: 296px; }
   .increase-line { height: 220px; }
-  .account-line { height: 220px; }
+  .suffix-ranking {
+    display: grid;
+    gap: 8px;
+    padding: 0;
+    margin: 8px 0 0;
+    list-style: none;
+  }
+
+  .suffix-row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 3px 8px;
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .suffix-position, .suffix-count { font-variant-numeric: tabular-nums; }
+  .suffix-position { color: var(--el-text-color-secondary); }
+  .suffix-count { font-weight: 600; }
+  .suffix-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .suffix-track {
+    grid-column: 2 / -1;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--el-fill-color-light);
+    overflow: hidden;
+    > span { display: block; height: 100%; border-radius: inherit; background: #8b64bb; }
+  }
+
+  .suffix-empty {
+    margin: 0;
+    padding-block: 50px;
+    color: var(--el-text-color-secondary);
+    text-align: center;
+    font-size: 13px;
+  }
 
   .analysis-primary-grid .analysis-panel { min-height: 366px; }
   .analysis-secondary-grid .analysis-panel { min-height: 270px; }
@@ -758,16 +757,12 @@ function createEmailColumnChart() {
     .analysis-primary-grid { grid-template-columns: minmax(0, 1.35fr) minmax(270px, .9fr); }
   }
   @media (max-width: 900px) {
-    .analysis-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .analysis-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .analysis-primary-grid, .analysis-secondary-grid { grid-template-columns: minmax(0, 1fr); }
     .analysis-primary-grid .analysis-panel { min-height: 335px; }
     .email-column, .sender-pie { height: 276px; }
     .increase-line { height: 210px; }
-    .account-line { height: 210px; }
-  }
-  @media (max-width: 620px) {
-    .analysis-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .today-overview-card { grid-column: 1 / -1; }
+    .analysis-secondary-grid .suffix-panel { min-height: 0; }
   }
   @media (max-width: 480px) {
     .overview-card { min-height: 106px; padding: 11px 10px 10px; }

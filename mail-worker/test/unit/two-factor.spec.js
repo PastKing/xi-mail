@@ -24,6 +24,7 @@ beforeEach(() => {
   c = {env:{db:adapter(sql),two_factor_key:'private-two-factor-key-unique-characters-123456789',admin:user.email},req:{url:'https://local.test/api/my/two-factor',header:()=> '192.0.2.1'}};
   vi.spyOn(userService,'selectByIdIncludeDel').mockImplementation(async()=>user);
   vi.spyOn(settingService,'query').mockResolvedValue({});
+  vi.spyOn(settingService,'loginVerificationPolicy').mockResolvedValue({loginVerify:1,loginVerifyCount:3});
   vi.spyOn(userService,'selectByEmailIncludeDel').mockImplementation(async()=>user);
   vi.spyOn(userService,'upgradePasswordHash').mockResolvedValue(undefined);
   vi.spyOn(cryptoUtils,'verifyPassword').mockImplementation(async password=>password==='correct-password');

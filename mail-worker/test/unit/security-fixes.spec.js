@@ -23,6 +23,7 @@ import cryptoUtils from '../../src/utils/crypto-utils';
 import jwtUtils from '../../src/utils/jwt-utils';
 import { email as emailTable } from '../../src/entity/email';
 import { getTableConfig } from 'drizzle-orm/sqlite-core';
+import KvConst from '../../src/const/kv-const';
 
 function d1(db) {
   const prepare = (sql, params = []) => ({
@@ -395,13 +396,14 @@ describe.skipIf(!DatabaseSync)('Atomic login throttling and credential responses
   it('validates the login Turnstile action before reading the account', async () => {
     settings.siteKey = 'fixture-site-key';
     settings.secretKey = ['fixture', 'turnstile', 'secret'].join('-');
+    values.set(KvConst.LOGIN_VERIFICATION, '1');
     const lookup = vi.spyOn(userService, 'selectByEmailIncludeDel').mockResolvedValue(undefined);
     const verify = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({success: false}))
       .mockResolvedValueOnce(Response.json({success: true, action: 'register'}))
       .mockResolvedValueOnce(Response.json({success: true, action: 'login'}));
     const credentials = {email: 'target@allowed.example', password: ['fixture', 'password'].join('-')};
     try {
-      await expect(loginService.login(c, credentials)).rejects.toMatchObject({code: 400});
+      await expect(loginService.login(c, credentials)).rejects.toMatchObject({code: 428});
       expect(verify).not.toHaveBeenCalled();
       for (const token of ['rejected-fixture', 'registration-fixture']) {
         await expect(loginService.login(c, {...credentials, token})).rejects.toMatchObject({code: 400});
@@ -412,6 +414,47 @@ describe.skipIf(!DatabaseSync)('Atomic login throttling and credential responses
     } finally {
       verify.mockRestore();
     }
+  });
+  it('requires Turnstile only after the configured IP failure threshold is reached', async () => {
+    values.set(KvConst.LOGIN_VERIFICATION, JSON.stringify({loginVerify:2,loginVerifyCount:3}));
+    const lookup = vi.spyOn(userService, 'selectByEmailIncludeDel').mockResolvedValue(undefined);
+    const verify = vi.spyOn(turnstileService, 'verify').mockResolvedValue();
+    const credentials = {email: 'target@allowed.example', password: 'synthetic-password'};
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await expect(loginService.login(c, credentials)).rejects.not.toMatchObject({code: 428});
+    }
+    await expect(loginService.login(c, credentials)).rejects.toMatchObject({code: 428});
+    expect(lookup).toHaveBeenCalledTimes(3);
+    expect(verify).not.toHaveBeenCalled();
+    await expect(loginService.login(c, {...credentials, token:'captcha-fixture'})).rejects.not.toMatchObject({code: 428});
+    expect(verify).toHaveBeenCalledExactlyOnceWith(c, 'captcha-fixture', 'login');
+    await expect(loginService.login(context(10, '192.0.2.11'), credentials)).rejects.not.toMatchObject({code: 428});
+    const bucket = await rateLimit.key('login-failure-ip', '192.0.2.10');
+    sql.prepare('UPDATE security_rate_limit SET expires_at = 0 WHERE bucket = ?').run(bucket);
+    await expect(loginService.login(c, credentials)).rejects.not.toMatchObject({code: 428});
+    expect(lookup).toHaveBeenCalledTimes(6);
+  });
+  it('revokes the current session on logout and prevents caching mail responses', async () => {
+    const token = 'local-session-id';
+    const jwt = await jwtUtils.generateToken(c, {userId: currentUser.userId, token});
+    c.req.header = () => undefined;
+    const auth = {user: currentUser, tokens: [], refreshTime: new Date().toISOString()};
+    sessionService.add(c, auth, token, 'password');
+    await sessionService.save(c, currentUser.userId, auth);
+    vi.spyOn(emailService, 'list').mockResolvedValue({list: []});
+    vi.spyOn(emailService, 'content').mockResolvedValue({text: 'Local mail fixture'});
+    const request = (path, method = 'GET') => worker.fetch(new Request('https://local.test/api' + path, {
+      method, headers: {Authorization: jwt},
+    }), c.env, {});
+    for (const path of ['/email/list', '/email/content?emailId=1']) {
+      const response = await request(path);
+      expect((await response.json()).code).toBe(200);
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+    }
+    expect((await (await request('/logout', 'DELETE')).json()).code).toBe(200);
+    const loggedOut = await request('/email/list');
+    expect((await loggedOut.json()).code).toBe(401);
+    expect(loggedOut.headers.get('Cache-Control')).toBe('no-store');
   });
   it('applies an account cooldown across different IPs without blocking other accounts', async () => {
     const lookup = vi.spyOn(userService, 'selectByEmailIncludeDel').mockResolvedValue(undefined);

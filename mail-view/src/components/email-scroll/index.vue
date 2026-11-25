@@ -46,7 +46,9 @@
       </div>
 
       <div class="header-right">
-        <span class="email-count" v-if="total">{{ $t('emailCount', {total: total}) }}</span>
+        <span v-if="props.type === 'all-email' || total" class="email-count" role="status">
+          {{ $t('emailCount', {total: total ?? '—'}) }}
+        </span>
         <el-tooltip v-if="canToggleAccount" :content="accountShow ? $t('hideAccountList') : $t('showAccountList')" placement="bottom">
           <Icon class="icon" width="18" height="18"
                 :icon="accountShow ? 'mingcute:layout-leftbar-close-line' : 'mingcute:layout-leftbar-open-line'"
@@ -351,7 +353,7 @@ const followLoading = ref(false);
 const noLoading = ref(false);
 const emailList = reactive([])
 const expandList = reactive([])
-const total = ref(0);
+const total = ref(props.type === 'all-email' ? null : 0);
 const checkAll = ref(false);
 const isIndeterminate = ref(false);
 const scroll = ref(null)
@@ -815,6 +817,7 @@ function handleDelete() {
 }
 
 function deleteEmail(emailIds) {
+  const previousLength = emailList.length;
   emailIds.forEach(emailId => {
     emailList.forEach((item, index) => {
       if (emailId === item.emailId) {
@@ -822,6 +825,14 @@ function deleteEmail(emailIds) {
       }
     })
   })
+  const removed = previousLength - emailList.length;
+  if (props.type === 'all-email' && removed) {
+    if (total.value !== null) total.value = Math.max(0, total.value - removed);
+    if (!emailList.length || reqLock) {
+      refreshList();
+      return;
+    }
+  }
   if (emailList.length < queryParam.size && !noLoading.value) {
     getEmailList()
   }
@@ -848,7 +859,7 @@ function addItem(email) {
       latestEmail.value = email
     }
 
-    total.value++
+    if (total.value !== null) total.value++
     return true;
   }
 
@@ -869,7 +880,7 @@ function addItem(email) {
     latestEmail.value = email
   }
 
-  total.value++
+  if (total.value !== null) total.value++
   return true;
 }
 
@@ -1005,6 +1016,7 @@ function refresh() {
 function refreshList() {
   checkAll.value = false;
   isIndeterminate.value = false;
+  if (props.type === 'all-email') total.value = null;
   getEmailList(true);
 }
 

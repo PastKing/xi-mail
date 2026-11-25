@@ -167,12 +167,21 @@ const settingService = {
 		return await c.env.kv.get(KvConst.TELEGRAM_VERIFICATION_CODE) !== '0';
 	},
 
+	async loginVerificationPolicy(c) {
+		const saved = await c.env.kv.get(KvConst.LOGIN_VERIFICATION);
+		const defaults = {loginVerify: saved === '1' ? 0 : 1, loginVerifyCount: 3};
+		if (!saved || saved === '1' || saved === '0') return defaults;
+		const {loginVerify, loginVerifyCount} = JSON.parse(saved);
+		return {loginVerify, loginVerifyCount};
+	},
+
 	async get(c, showSiteKey = false) {
 
-		const [settingRow, recordList, tgMsgCode] = await Promise.all([
+		const [settingRow, recordList, tgMsgCode, loginPolicy] = await Promise.all([
 			this.query(c),
 			verifyRecordService.selectListByIP(c),
-			this.telegramCodeEnabled(c)
+			this.telegramCodeEnabled(c),
+			this.loginVerificationPolicy(c)
 		]);
 		delete settingRow.regKeyHintEn;
 
@@ -219,10 +228,36 @@ const settingService = {
 		settingRow.objectProxyBase=objectProxyBase(c,settingRow);
 		if(!settingRow.attachmentStorage||settingRow.attachmentStorage==='auto')settingRow.attachmentStorage=settingRow.storageType;
 
-		return {...settingRow, tgMsgCode};
+		return {...settingRow, tgMsgCode, ...loginPolicy, loginVerification: loginPolicy.loginVerify === 0};
 	},
 
 	async set(c, params) {
+		if (Object.hasOwn(params, 'loginVerification')) {
+			if (typeof params.loginVerification !== 'boolean') throw new BizError(t('loginVerificationInvalid'), 400);
+			params.loginVerify ??= params.loginVerification ? 0 : 1;
+			delete params.loginVerification;
+		}
+		const loginPatch = {};
+		for (const field of ['loginVerify', 'loginVerifyCount']) {
+			if (Object.hasOwn(params, field)) {
+				loginPatch[field] = params[field];
+				delete params[field];
+			}
+		}
+		const hasLoginPatch = Object.keys(loginPatch).length > 0;
+		let loginPolicy;
+		const settingData = await this.query(c);
+		if (hasLoginPatch || Object.hasOwn(params, 'siteKey') || Object.hasOwn(params, 'secretKey')) {
+			loginPolicy = {...await this.loginVerificationPolicy(c), ...loginPatch};
+			const {loginVerify, loginVerifyCount} = loginPolicy;
+			if (![0, 1, 2].includes(loginVerify) || !Number.isInteger(loginVerifyCount) || loginVerifyCount < 1 || loginVerifyCount > 7) {
+				throw new BizError(t('loginVerificationInvalid'), 400);
+			}
+			const candidate = {...settingData, ...params};
+			if (loginVerify !== 1 && ![candidate.siteKey, candidate.secretKey].every(key => typeof key === 'string' && key.trim())) {
+				throw new BizError(t('loginVerificationKeysRequired'), 400);
+			}
+		}
 		const hasTgMsgCode = Object.hasOwn(params, 'tgMsgCode');
 		const tgMsgCode = params.tgMsgCode;
 		if (hasTgMsgCode && typeof tgMsgCode !== 'boolean') {
@@ -259,7 +294,6 @@ const settingService = {
 			params.aiModel = resolveAiModel(params.aiModel);
 		}
 
-		const settingData = await this.query(c);
 		if(Object.keys(params).some(key=>['s3Prefix','attachmentStorage','bucket','endpoint','region','s3AccessKey','s3SecretKey','forcePathStyle'].includes(key))){
 			await ensureStorageColumns(c);
 			if(Object.hasOwn(params,'s3Prefix'))params.s3Prefix=normalizeStoragePrefix(params.s3Prefix);
@@ -321,6 +355,7 @@ const settingService = {
 		await orm(c).update(setting).set({ ...params }).returning().get();
 		if (hasSubtitle) await c.env.kv.put(KvConst.WEBSITE_SUBTITLE, subtitle);
 		if (hasTgMsgCode) await c.env.kv.put(KvConst.TELEGRAM_VERIFICATION_CODE, tgMsgCode ? '1' : '0');
+		if (hasLoginPatch) await c.env.kv.put(KvConst.LOGIN_VERIFICATION, JSON.stringify(loginPolicy));
 		if (sendflareInput !== undefined) await sendflareService.saveTokens(c, sendflareInput);
 		await this.refresh(c);
 	},
@@ -388,8 +423,8 @@ const settingService = {
 
 	// Anonymous clients receive only fields needed to render login and registration.
 	async websiteConfig(c) {
-		const settingRow = await this.query(c);
-		return this.loginConfig(settingRow);
+		const [settingRow, {loginVerify}] = await Promise.all([this.query(c), this.loginVerificationPolicy(c)]);
+		return {...this.loginConfig(settingRow), loginVerify, loginVerification: loginVerify === 0};
 	},
 
 	loginConfig(settingRow) {

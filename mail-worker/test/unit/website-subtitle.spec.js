@@ -46,6 +46,44 @@ describe('Telegram verification code setting', () => {
  });
 });
 afterEach(()=>{vi.restoreAllMocks();db.close();});
+
+describe('Password login verification setting', () => {
+ it('is opt-in, requires both Turnstile keys and preserves the public site key for registration', async () => {
+  expect(await settingService.loginVerificationPolicy(c)).toEqual({loginVerify:1,loginVerifyCount:3});
+  await expect(settingService.set(c, {loginVerification: true})).rejects.toMatchObject({code: 400});
+  const raw = JSON.parse(values.get(KvConst.SETTING));
+  values.set(KvConst.SETTING, JSON.stringify({...raw, siteKey: 'public-site-key', secretKey: ['fixture', 'secret'].join('-')}));
+  c.set('setting', undefined);
+  await settingService.set(c, {loginVerification: true});
+  await settingService.set(c, {title: 'New name'});
+  const config = await settingService.websiteConfig(c);
+  expect(config).toMatchObject({loginVerification: true, siteKey: 'public-site-key'});
+  expect(config).not.toHaveProperty('secretKey');
+  await expect(settingService.set(c, {secretKey: ''})).rejects.toMatchObject({code: 400});
+  await settingService.set(c, {loginVerification: false});
+  expect(await settingService.websiteConfig(c)).toMatchObject({loginVerification: false, siteKey: 'public-site-key'});
+ });
+
+ it('reads legacy enabled values and saves the mode and threshold together', async () => {
+  values.set(KvConst.LOGIN_VERIFICATION, '1');
+  expect(await settingService.loginVerificationPolicy(c)).toEqual({loginVerify:0,loginVerifyCount:3});
+  const raw = JSON.parse(values.get(KvConst.SETTING));
+  values.set(KvConst.SETTING, JSON.stringify({...raw, siteKey:'public-site-key', secretKey:['fixture','secret'].join('-')}));
+  await settingService.set(c, {loginVerify:2});
+  await settingService.set(c, {loginVerifyCount:5});
+  expect(await settingService.loginVerificationPolicy(c)).toEqual({loginVerify:2,loginVerifyCount:5});
+  await expect(settingService.set(c, {loginVerifyCount:8})).rejects.toMatchObject({code:400});
+  const publicConfig = await settingService.websiteConfig(c);
+  expect(publicConfig).toMatchObject({loginVerify:2, loginVerification:false});
+  expect(publicConfig).not.toHaveProperty('loginVerifyCount');
+ });
+
+ it('rejects non-boolean updates', async () => {
+  await expect(settingService.set(c, {loginVerification: 'true'})).rejects.toMatchObject({code: 400});
+  expect(values.has(KvConst.LOGIN_VERIFICATION)).toBe(false);
+ });
+});
+
 describe('Website subtitle',()=>{
  it('defaults to an empty subtitle for existing sites',async()=>{
   expect((await settingService.query(c)).subtitle).toBe('');
