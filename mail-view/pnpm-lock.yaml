@@ -75,15 +75,12 @@ importers:
         specifier: ^4.5.0
         version: 4.5.1(vue@3.5.20)
     devDependencies:
-      '@tailwindcss/oxide-win32-x64-msvc':
-        specifier: ^4.2.2
-        version: 4.2.2
       '@tailwindcss/vite':
         specifier: ^4.2.2
         version: 4.2.2(vite@7.1.5(jiti@2.6.1)(less@4.4.1)(lightningcss@1.32.0)(sass@1.91.0)(terser@5.43.1))
       '@vitejs/plugin-vue':
-        specifier: ^5.2.1
-        version: 5.2.4(vite@7.1.5(jiti@2.6.1)(less@4.4.1)(lightningcss@1.32.0)(sass@1.91.0)(terser@5.43.1))(vue@3.5.20)
+        specifier: ^6.0.1
+        version: 6.0.11(vite@7.1.5(jiti@2.6.1)(less@4.4.1)(lightningcss@1.32.0)(sass@1.91.0)(terser@5.43.1))(vue@3.5.20)
       less:
         specifier: ^4.2.2
         version: 4.4.1
@@ -924,6 +921,9 @@ packages:
     resolution: {integrity: sha512-dfUnCxiN9H4ap84DvD2ubjw+3vUNpstxa0TneY/Paat8a3R4uQZDLSvWjmznAY/DoahqTHl9V46HF/Zs3F29pg==}
     engines: {node: '>= 10.0.0'}
 
+  '@rolldown/pluginutils@1.1.1':
+    resolution: {integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==}
+
   '@rollup/plugin-babel@5.3.1':
     resolution: {integrity: sha512-WFfdLWU/xVWKeRQnKmIAQULUI7Il0gZnBIH/ZFO069wYIfPu+8zrfp/KMW0atmELoRDq8FbiP3VCss9MhCut7Q==}
     engines: {node: '>= 10.0.0'}
@@ -1213,12 +1213,12 @@ packages:
   '@types/web-bluetooth@0.0.21':
     resolution: {integrity: sha512-oIQLCGWtcFZy2JW77j9k8nHzAOpqMHLQejDA48XXMWH6tjCQHz5RCFz1bzsmROyL6PUm+LLnUiI4BCn221inxA==}
 
-  '@vitejs/plugin-vue@5.2.4':
-    resolution: {integrity: sha512-7Yx/SXSOcQq5HiiV3orevHUFn+pmMB4cgbEkDYgnkUWb0WfeQ/wa2yFv6D5ICiCQOVpjA7vYDXrC7AGO8yjDHA==}
-    engines: {node: ^18.0.0 || >=20.0.0}
+  '@vitejs/plugin-vue@6.0.11':
+    resolution: {integrity: sha512-m48lskIUJGlB6qUiYhDMI8nd2ngeidz2U4nKTjqI13cFMu5rH8JeEILPkDtK9Fk/TjBA2pkj8AlbenqDaKu+ww==}
+    engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: ^5.0.0 || ^6.0.0
-      vue: ^3.2.25
+      vite: ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+      vue: ^3.2.25 || ^3.6.0-rc.15
 
   '@vue/compiler-core@3.5.20':
     resolution: {integrity: sha512-8TWXUyiqFd3GmP4JTX9hbiTFRwYHgVL/vr3cqhr4YQ258+9FADwvj7golk2sWNGHR67QgmCZ8gz80nQcMokhwg==}
@@ -1799,7 +1799,7 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+    deprecated: Glob versions prior to v9 are no longer supported
 
   globalthis@1.0.4:
     resolution: {integrity: sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ==}
@@ -3884,6 +3884,8 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.5.1
     optional: true
 
+  '@rolldown/pluginutils@1.1.1': {}
+
   '@rollup/plugin-babel@5.3.1(@babel/core@7.28.3)(rollup@2.79.2)':
     dependencies:
       '@babel/core': 7.28.3
@@ -4047,7 +4049,8 @@ snapshots:
   '@tailwindcss/oxide-win32-arm64-msvc@4.2.2':
     optional: true
 
-  '@tailwindcss/oxide-win32-x64-msvc@4.2.2': {}
+  '@tailwindcss/oxide-win32-x64-msvc@4.2.2':
+    optional: true
 
   '@tailwindcss/oxide@4.2.2':
     optionalDependencies:
@@ -4089,8 +4092,9 @@ snapshots:
 
   '@types/web-bluetooth@0.0.21': {}
 
-  '@vitejs/plugin-vue@5.2.4(vite@7.1.5(jiti@2.6.1)(less@4.4.1)(lightningcss@1.32.0)(sass@1.91.0)(terser@5.43.1))(vue@3.5.20)':
+  '@vitejs/plugin-vue@6.0.11(vite@7.1.5(jiti@2.6.1)(less@4.4.1)(lightningcss@1.32.0)(sass@1.91.0)(terser@5.43.1))(vue@3.5.20)':
     dependencies:
+      '@rolldown/pluginutils': 1.1.1
       vite: 7.1.5(jiti@2.6.1)(less@4.4.1)(lightningcss@1.32.0)(sass@1.91.0)(terser@5.43.1)
       vue: 3.5.20
 

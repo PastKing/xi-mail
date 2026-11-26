@@ -41,6 +41,7 @@
               <div class="receive"><span class="source">{{$t('recipient')}}</span><span class="receive-email">{{  formateReceive(email.recipient) }}</span></div>
               <div class="receive" v-if="formatRecipientList(email.cc)"><span class="source">{{$t('cc')}}</span><span class="receive-email">{{ formatRecipientList(email.cc) }}</span></div>
               <div class="receive" v-if="email.type === 1 && formatRecipientList(email.bcc)"><span class="source">{{$t('bcc')}}</span><span class="receive-email">{{ formatRecipientList(email.bcc) }}</span></div>
+              <MailDetailStatus v-if="email.statusIcon" :status="email.statusIcon" />
               <div class="date">
                 <div>{{ formatDetailDate(email.createTime) }}</div>
               </div>
@@ -118,6 +119,7 @@ import {useI18n} from "vue-i18n";
 import {EmailUnreadEnum} from "@/enums/email-enum.js";
 import {hasPerm} from '@/perm/perm.js';
 import MailTranslation from '@/components/MailTranslation.vue';
+import MailDetailStatus from '@/enhancements/mail-detail-status/MailDetailStatus.vue';
 
 const uiStore = useUiStore();
 const settingStore = useSettingStore();

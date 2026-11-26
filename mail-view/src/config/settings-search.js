@@ -11,10 +11,10 @@ export const SETTINGS_SEARCH_ALIASES = {
  languageSettings:['语言 翻译 多语言 国旗 English 日本語 Edge'],
  senderDomainBlacklist:['senderDomainWhitelist','senderDomainWhitelistDesc','senderFilterModeDesc'],
  autoCleanEmail:['autoCleanExclude'],
- sendProvider:['Resend QueenSMTP SendFlare token SMTP'],
+ sendProvider:['Cloudflare Resend QueenSMTP SendFlare token SMTP'],
  signUpVerification:['Cloudflare Turnstile CAPTCHA Site Key Secret Key'],
  loginVerification:['Cloudflare Turnstile CAPTCHA login'],
  addEmailVerification:['Cloudflare Turnstile CAPTCHA'],
  oauthIntegration:['NodeLoc Telegram Discord DC LinuxDo GitHub Google OAuth Client ID Client Secret'],
- s3Configuration:['S3 R2 AWS storage'],tgBot:['Telegram Bot token Chat ID'],
+ s3Configuration:['S3 R2 AWS storage'],tgBot:['Telegram Bot token Chat ID','wecomBot','wecomDesc'],
 };

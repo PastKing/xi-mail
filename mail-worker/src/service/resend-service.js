@@ -25,6 +25,7 @@ const resendService = {
 		if (!Object.hasOwn(statuses, body.type)) return;
 		if (typeof body.data?.email_id !== 'string' || !body.data.email_id || body.data.email_id.length > 256)
 			throw new BizError('Invalid webhook event', 400);
+		if (body.data.email_id.startsWith('cloudflare:')) return;
 
 		const params = {
 			resendEmailId: body.data.email_id,

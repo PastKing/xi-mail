@@ -1,6 +1,7 @@
 const KvConst = {
 	AUTH_INFO: 'auth-uid:',
 	SETTING: 'setting:',
+	WECOM: 'setting:wecom',
 	WEBSITE_SUBTITLE: 'website:subtitle',
 	TELEGRAM_VERIFICATION_CODE: 'telegram:verification-code',
 	LOGIN_VERIFICATION: 'login:verification-enabled',

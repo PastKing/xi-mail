@@ -1,10 +1,26 @@
 import app from '../hono/hono';
 import result from '../model/result';
 import settingService from '../service/setting-service';
+import wecomService from '../service/wecom-service';
 import {blockSenderDomains} from '../service/sender-domain-block-service';
 import s3Service from '../service/s3-service';
 import rateLimit from '../service/security-rate-limit-service';
 import userContext from '../security/user-context';
+
+app.get('/setting/wecom/query', async (c) => {
+	c.header('Cache-Control', 'no-store');
+	return c.json(result.ok(await wecomService.get(c)));
+});
+
+app.put('/setting/wecom/set', async (c) => {
+	await wecomService.set(c, await c.req.json());
+	return c.json(result.ok());
+});
+
+app.post('/setting/wecom/test', async (c) => {
+	await wecomService.test(c, await c.req.json());
+	return c.json(result.ok());
+});
 
 app.post('/setting/s3/test',async(c)=>{
 	c.header('Cache-Control','no-store');
