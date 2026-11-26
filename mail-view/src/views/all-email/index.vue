@@ -567,7 +567,16 @@ async function latest() {
 
   .header-tools { gap: 6px; }
 
-  .header-right { margin-left: auto; }
+  .header-right {
+    margin-left: auto;
+    flex: none;
+  }
+
+  .email-count {
+    min-inline-size: 6em;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
 
   .icon {
     flex-shrink: 0;
@@ -587,7 +596,7 @@ async function latest() {
     padding: 12px;
     > .el-checkbox { grid-row: 2; grid-column: 1; margin: 0; justify-content: center; }
     .header-left { display: contents; }
-    .header-tools { grid-row: 2; grid-column: 2; gap: 4px; }
+    .header-tools { grid-row: 2; grid-column: 2; gap: 4px; flex-wrap: wrap; }
     .header-right { grid-row: 2; grid-column: 3; margin-left: 0; }
     .email-count { font-size: 12px; }
     .desktop-mail-action { display: none; }
@@ -599,6 +608,16 @@ async function latest() {
   .mail-search-fields .status-select :deep(.el-select__wrapper) { height: 36px; min-height: 36px; }
   .mail-search-fields :deep(.el-input__wrapper), .mail-search-fields :deep(.el-select__wrapper) { min-height: 36px; height: 36px; }
   .mail-tool-button { min-width: 36px; min-height: 36px; }
+}
+
+@media (max-width: 360px) {
+  :deep(.admin-mail-toolbar) {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 8px 2px;
+    padding-inline: 8px;
+
+    .header-tools { gap: 2px; }
+  }
 }
 
 .search-input {

@@ -20,6 +20,7 @@ export function secureResponse(response, url, appDocument = false, apiResponse =
   const headers = new Headers(response.headers);
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('X-Frame-Options', 'DENY');
+  if (apiResponse) headers.set('Cache-Control', 'no-store');
   if (!headers.has('Referrer-Policy')) headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   if (!headers.has('Content-Security-Policy') && (appDocument || apiResponse)) {
     headers.set('Content-Security-Policy', appDocument ? APP_POLICY : API_POLICY);

@@ -36,6 +36,7 @@ mail-worker-sub/.cf-home
 
 git.md
 error.md
+logs-*.csv
 # Local Worker secrets must never be committed.
 **/.dev.vars
 **/.dev.vars.*

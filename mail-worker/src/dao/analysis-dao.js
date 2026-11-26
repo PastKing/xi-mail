@@ -66,7 +66,19 @@ const analysisDao = {
 	},
 
     async userDayCount(c, diffHours) { return dayCounts(c, 'user', null, diffHours); },
-    async accountDayCount(c, diffHours) { return dayCounts(c, 'account', null, diffHours); },
+    async mailboxSuffixRanking(c) {
+        const { results } = await c.env.db.prepare(`
+            SELECT lower(substr(a.email, instr(a.email, '@') + 1)) AS suffix, COUNT(*) AS total
+            FROM account a
+            JOIN user u ON u.user_id = a.user_id AND u.is_del = 0
+            WHERE a.is_del = 0 AND a.email COLLATE NOCASE <> u.email
+                AND instr(a.email, '@') > 1 AND instr(a.email, '@') < length(a.email)
+            GROUP BY suffix
+            ORDER BY total DESC, suffix ASC
+            LIMIT 6
+        `).all();
+        return results;
+    },
     async receiveDayCount(c, diffHours) { return dayCounts(c, 'email', 0, diffHours); },
     async sendDayCount(c, diffHours) { return dayCounts(c, 'email', 1, diffHours); },
 };

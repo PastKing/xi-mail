@@ -96,7 +96,7 @@ const sections = computed(() => {
 const groupSpecs = [
   {id:'site',label:'settingsGroupSite',description:'settingsGroupSiteDesc',items:[['website','websiteSetting','settingsWebsiteDesc'],['appearance','appearance','settingsAppearanceDesc'],['language','languageSettings','languageSettingsDesc'],['integration','settingsNoticeTitle','settingsNoticeDesc','noticePopup'],['oauth','oauthIntegration','settingsOAuthDesc']]},
   {id:'mail',label:'settingsGroupMail',description:'settingsGroupMailDesc',items:[['registration','settingsAddressTitle','settingsAddressDesc'],['domain','domainManagement','settingsDomainDesc'],['registration','sendProvider','settingsSendingDesc','sendProvider'],['integration','resendWebhookTitle','settingsWebhookDesc','resendWebhookTitle'],['integration','forwardingRules','settingsForwardDesc','forwardingRules']]},
-  {id:'security',label:'settingsGroupSecurity',description:'settingsGroupSecurityDesc',items:[['security','settingsFilterTitle','settingsFilterDesc','senderDomainBlacklist'],['security','settingsAccessTitle','settingsAccessDesc','autoBan'],['security','settingsRetentionTitle','settingsRetentionDesc','autoCleanEmail'],['integration','signUpVerification','settingsVerifyDesc','signUpVerification']]},
+  {id:'security',label:'settingsGroupSecurity',description:'settingsGroupSecurityDesc',items:[['security','settingsFilterTitle','settingsFilterDesc','senderDomainBlacklist'],['security','settingsAccessTitle','settingsAccessDesc','autoBan'],['security','settingsRetentionTitle','settingsRetentionDesc','autoCleanEmail'],['integration','turnstileSetting','settingsVerifyDesc','signUpVerification']]},
   {id:'service',label:'settingsGroupService',description:'settingsGroupServiceDesc',items:[['integration','settingsStorageTitle','settingsStorageDesc','s3Configuration'],['sub-workers','subWorkerManage','settingsWorkersDesc'],['servers','serverManage','settingsServersDesc'],['about','about','settingsAboutDesc']]},
 ]
 const groups = computed(() => groupSpecs.map(group => ({...group,items:group.items.map(([id,title,description,find]) => {
@@ -114,7 +114,7 @@ const activeItem = computed(() => {
   }
   if (route.name === 'sys-setting-integration') {
     if (['tgBot','otherEmail','forwardingRules'].includes(anchor)) anchor = 'forwardingRules'
-    else if (['signUpVerification','addEmailVerification'].includes(anchor)) anchor = 'signUpVerification'
+    else if (['signUpVerification','loginVerification','addEmailVerification'].includes(anchor)) anchor = 'signUpVerification'
     else if (['noticeTitle','noticePopup','popUp'].includes(anchor)) anchor = 'noticePopup'
     else if (['workersAi','aiModel','aiCodeEnable','s3Configuration','storageType'].includes(anchor)) anchor = 's3Configuration'
   }

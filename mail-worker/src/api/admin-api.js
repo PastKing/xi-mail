@@ -6,7 +6,6 @@ import email from '../entity/email';
 import BizError from '../error/biz-error';
 import { and, eq, desc, count } from 'drizzle-orm';
 import { isDel } from '../const/entity-const';
-import subWorkerService from '../service/sub-worker-service';
 
 /** Verify x-admin-auth header against stored global token */
 async function verifyAdminToken(c) {
@@ -30,6 +29,7 @@ async function verifyAdminToken(c) {
  * Header: x-admin-auth: <token>
  */
 app.get('/admin/mails', async (c) => {
+	c.header('Cache-Control', 'no-store');
 	await verifyAdminToken(c);
 
 	let { limit = '20', offset = '0', address } = c.req.query();
@@ -39,8 +39,6 @@ app.get('/admin/mails', async (c) => {
 	if (!address) {
 		throw new BizError('address 参数必填', 400);
 	}
-
-	await subWorkerService.syncAll(c);
 
 	const db = orm(c);
 

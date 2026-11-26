@@ -14,6 +14,7 @@ import {writeRoleDomainPolicy} from '../../src/service/role-domain-policy';
 import transfer from '../../src/service/account-transfer-service';
 import rate from '../../src/service/security-rate-limit-service';
 import s3Service from '../../src/service/s3-service';
+import KvConst from '../../src/const/kv-const';
 
 let db, c, store, permissions, remote;
 function adapter(db) {
@@ -127,11 +128,12 @@ describe('Recent management endpoint authorization', () => {
 	it('allows intentional global statistics only with all-mail query permission',async()=>{
 		permissions=['all-email:query'];
 		db.exec(`ALTER TABLE email ADD COLUMN send_email TEXT;
+			ALTER TABLE email ADD COLUMN to_email TEXT;
 			ALTER TABLE email ADD COLUMN type INTEGER;
 			ALTER TABLE email ADD COLUMN status INTEGER;
 			ALTER TABLE email ADD COLUMN is_del INTEGER;
 			ALTER TABLE email ADD COLUMN create_time TEXT;
-			INSERT INTO email VALUES(1,1,99,'sender@example.test',0,0,0,'2026-11-12 00:00:00');`);
+			INSERT INTO email(email_id,account_id,user_id,send_email,type,status,is_del,create_time) VALUES(1,1,99,'sender@example.test',0,0,0,'2026-11-12 00:00:00');`);
 		const result=await request('/allEmail/senderStatistics?type=receive');
 		expect(result.body).toMatchObject({code:200,data:{totalMessages:1,senderCount:1,list:[{address:'sender@example.test',total:1}]}});
 		expect(result.headers.get('Cache-Control')).toBe('no-store');
@@ -305,10 +307,25 @@ describe('Role boundaries for personal integrations', () => {
 		expect(remote).not.toHaveBeenCalled();
 	});
 	it('installs role controls idempotently without automatically granting them to users', async () => {
+		const batch = vi.spyOn(c.env.db, 'batch');
 		await Promise.all([ensureFeaturePermissions(c), ensureFeaturePermissions(c)]);
 		const rows = db.prepare('SELECT perm_key FROM perm WHERE type=2').all();
 		expect(new Set(rows.map((row) => row.perm_key))).toEqual(new Set(FEATURE_PERMISSIONS.map((row) => row[2])));
 		expect(rows).toHaveLength(FEATURE_PERMISSIONS.length);
+		expect(batch).toHaveBeenCalledTimes(1);
+		expect(store.get(KvConst.FEATURE_PERMISSIONS_READY)).toBe('1');
+	});
+	it('checks for missing permissions before batching and caches a complete migration', async () => {
+		const groups = [...new Set(FEATURE_PERMISSIONS.map(([group]) => group))];
+		for (const group of groups) db.prepare('INSERT INTO perm(name,pid,type) VALUES (?,0,1)').run(group);
+		for (const [group,name,key] of FEATURE_PERMISSIONS) {
+			const parent = db.prepare('SELECT perm_id FROM perm WHERE name=? AND pid=0').get(group).perm_id;
+			db.prepare('INSERT INTO perm(name,perm_key,pid,type) VALUES (?,?,?,2)').run(name,key,parent);
+		}
+		const batch = vi.spyOn(c.env.db,'batch');
+		await ensureFeaturePermissions(c);
+		expect(batch).not.toHaveBeenCalled();
+		expect(store.get(KvConst.FEATURE_PERMISSIONS_READY)).toBe('1');
 	});
 });
 

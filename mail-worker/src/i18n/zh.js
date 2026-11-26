@@ -91,6 +91,8 @@ const zh = {
 	noOsDomainUpBack: '对象存储域名未配置不能上传背景',
 	starNotExistEmail: '星标的邮件不存在',
 	emptyBotToken: '需要进行人机验证',
+	loginVerificationInvalid: '登录验证设置无效',
+	loginVerificationKeysRequired: '开启登录验证前，请先配置 Turnstile 的 Site Key 和 Secret Key',
 	botVerifyFail: '人机验证失败,请重试',
 	authExpired: '身份认证失效,请重新登录',
 	unauthorized: '权限不足',

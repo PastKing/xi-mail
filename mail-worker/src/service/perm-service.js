@@ -6,7 +6,6 @@ import user from '../entity/user';
 import role from '../entity/role';
 import { permConst } from '../const/entity-const';
 import { t } from '../i18n/i18n'
-import { ensureFeaturePermissions } from './feature-permission-service';
 
 export function orderPermissionGroups(groups) {
 	const mail = groups.find(item => item.name === '邮件');
@@ -19,7 +18,6 @@ export function orderPermissionGroups(groups) {
 
 const permService = {
 	async tree(c) {
-		await ensureFeaturePermissions(c);
 		const pList = await orm(c).select().from(perm).where(eq(perm.pid, 0)).orderBy(asc(perm.sort)).all();
 		const cList = await orm(c).select().from(perm).where(ne(perm.pid, 0)).orderBy(asc(perm.sort)).all();
 
@@ -36,7 +34,6 @@ const permService = {
 	},
 
 	async userPermKeys(c, userId) {
-		await ensureFeaturePermissions(c);
 		const userPerms = await orm(c).select({permKey: perm.permKey}).from(user)
 			.leftJoin(role, eq(role.roleId,user.type))
 			.rightJoin(rolePerm, eq(rolePerm.roleId,role.roleId))
